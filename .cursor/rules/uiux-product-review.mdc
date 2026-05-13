@@ -1,0 +1,299 @@
+---
+description: Use this rule when designing, reviewing, or modifying UI screens for the fashion virtual try-on app. Apply it before making UI changes, generating components, reviewing layouts, or suggesting screen architecture.
+alwaysApply: false
+---
+
+# UI/UX Product Design Rule for Stylus
+
+You are helping build a mobile-first fashion-tech application focused on virtual try-on, styling, wardrobe intelligence, and fashion decision-making.
+
+This is not a generic e-commerce app. Do not default to product grids, category-heavy browsing, marketplace-style banners, or discount-first layouts.
+
+## Product Thesis
+
+The app helps users:
+- figure out what to wear or buy
+- see how outfits look on them before buying
+- understand how to style items
+- reuse their existing wardrobe better
+- make more confident fashion decisions
+- reduce regret, returns, and decision fatigue
+
+The core experience is:
+
+Discover → Try on → Evaluate → Style → Save / Buy / Reuse with closet
+
+The product should feel like a personal fashion decision system, not just a shopping catalog.
+
+## User Insights
+
+Use these insights while designing or reviewing screens:
+
+- Many users buy based on feeling, not strict planning.
+- Users often explore before deciding.
+- Occasion-based shopping is a strong high-intent use case.
+- A major struggle is: "Will this match my style?"
+- Another major struggle is: "Will this look good on me?"
+- Users want to reuse what they already own.
+- Users often try to build outfits around items they already have.
+- Closet upload is valuable but high-friction.
+- Users may not have used virtual try-on before, so the experience must be self-explanatory.
+- Price matters, but should support decisions rather than dominate the experience.
+- Users need help forming intent, not just searching for products.
+
+## UX Principles
+
+For every screen, check:
+
+1. What is the user trying to do here?
+2. What user problem does this screen solve?
+3. What is the one primary action?
+4. Is the screen reducing uncertainty or creating more work?
+5. Is the experience look-first rather than product-first?
+6. Is try-on visible as a key action where relevant?
+7. Does the screen help the user decide, not just browse?
+8. Does the copy explain value clearly?
+9. Is closet upload framed as easy and valuable?
+10. Is the UI uncluttered and mobile-friendly?
+11. Does the screen build trust before asking for sensitive data?
+12. Does this create a scalable, trustworthy, and high-converting product experience?
+
+## Business Goals
+
+Prioritize flows that increase:
+
+- first try-on
+- closet upload
+- saved looks
+- return visits
+- style-profile completion
+- user trust
+- purchase confidence
+- wardrobe-based recommendations
+- conversion from exploration to action
+
+Do not add features only because they look nice. Every section must support a user need, business goal, or core product loop.
+
+## Product Hierarchy
+
+The app should prioritize:
+
+1. Try-on activation
+2. Style relevance
+3. Occasion-based discovery
+4. Wardrobe/closet intelligence
+5. AI styling support
+6. Smart shopping decisions
+7. Price and discount support
+
+Do not let discounts, brands, or product grids overpower styling and try-on.
+
+## UI Guidelines
+
+- Use large visuals.
+- Prefer complete outfits over individual product tiles.
+- Prioritize outfit cards, not SKU grids.
+- Use clear CTAs like:
+  - "Try on me"
+  - "Add first item"
+  - "Ask Mira"
+  - "Save look"
+  - "Style this"
+- Avoid too many badges, filters, or competing actions.
+- Use soft cards, strong spacing, and clear visual hierarchy.
+- Keep text short but meaningful.
+- Make CTAs obvious and thumb-friendly.
+- Compact product-card footer labels such as "Try now" and "Popular" should render at 11px using the product card meta/action typography token.
+- Header action icons that sit together, such as notification, heart, and profile, must have matching visual size, stroke weight, color, and hit area. Use the profile icon as the reference if one icon looks heavier.
+- Ensure bottom navigation and floating CTAs never cover content.
+- On the homepage, the Saved Looks carousel from Figma node `99:3698` must appear immediately after Shop by Brands. It should be a centered horizontal carousel with side peek cards, not a two-column grid.
+- Bottom navigation should float above the bottom safe area with tokenized bottom and side insets. It should not be a full-width footer stuck to `bottom: 0`.
+- Onboarding/setup screens must share the same heading, subtitle, and first-content vertical positions. Do not let individual screens shift their heading or content block to fit a larger card; resize or scroll the content area instead.
+- Onboarding/setup headings and subtitles must use the shared onboarding typography tokens. Do not allow individual setup screens to define local heading font family, size, weight, line height, or letter spacing.
+- Upload-photo selected states must not change the heading, subtitle, typography, or vertical layout. Only the upload box content should change into the selected image preview.
+- On onboarding/setup screens, circular next buttons must sit in the bottom-right corner with equal visual spacing from the bottom and right edges. Respect the bottom safe area, and do not use mismatched bottom/right offsets.
+- Use progressive disclosure instead of showing too much at once.
+
+## Personalization Guidance
+
+Do not fake personalization.
+
+Only use labels like:
+- "For you"
+- "Your style"
+- "91% match"
+- "Styled for you"
+
+when the app has enough data from:
+- onboarding quiz
+- swipe behavior
+- saved looks
+- closet upload
+- search behavior
+- try-on history
+
+For new users, use neutral language like:
+- "Popular"
+- "Trending"
+- "Try now"
+- "Work-ready"
+- "Great for parties"
+- "New this week"
+
+## Closet Upload Guidance
+
+Closet upload is strategically important, but it should not feel like work.
+
+Frame closet upload as a benefit:
+
+Use:
+- "Add one item"
+- "Add 3 pieces you love"
+- "Build looks from what you own"
+- "See what pairs with your closet"
+- "Style something you already have"
+
+Avoid:
+- "Upload your wardrobe"
+- "Complete your closet"
+- "Add 10 items to unlock"
+- "Upload 10 items to unlock your colour analysis"
+- "Upload 10 items to unlock your color analysis"
+- asking for too much upfront
+
+Closet upload should appear in multiple places, but contextually:
+- homepage closet card
+- after try-on
+- inside Mira prompts
+- on product/detail pages
+- in saved/empty states
+
+Each closet prompt should explain the immediate benefit.
+
+## Discount Guidance
+
+Discounts should support decision-making, not define the app.
+
+Use:
+- "Great looks under ₹1999"
+- "Smart deals to try on"
+- "Price drops on looks you saved"
+- "Budget-friendly outfits"
+
+Avoid:
+- loud sale banners
+- discount-first homepage hierarchy
+- cluttered price-heavy product grids
+- making the app feel like a marketplace clone
+
+Price should appear after relevance, style, and try-on value are clear.
+
+## AI Stylist Guidance
+
+The AI stylist is named Mira.
+
+Mira should help with:
+- how to style an item
+- what to wear for an occasion
+- what is trending
+- what goes with a closet item
+- budget-based looks
+- outfit decisions
+- wardrobe reuse
+
+Mira should always connect advice back to product actions:
+- view looks
+- try on
+- upload closet item
+- save
+- shop
+- compare options
+
+Mira should not give vague fashion advice without connecting it to actual looks, products, or actions.
+
+## Search / Explore Guidance
+
+Search should behave like intent discovery, not normal product search.
+
+Search and Explore screens must respect the mobile safe area. The first visible row should never sit flush against the status bar or top screen edge. Apply the safe-area top inset directly to the header/search-row container, not only to the scroll body. The search header should use `paddingTop: safeAreaInsets.top + spacing.l`, or if fixed-positioned, `top: safeAreaInsets.top + spacing.l`. Never render the custom search row at `top: 0`, with negative margins, or outside the safe-area wrapper.
+
+Search should not look like a wireframe. Keep the existing structure, but use finished visual treatment: warm app background, polished search field, useful prompt chips, recent-search chips, real outfit imagery, and look-first cards with clear try-on actions. Avoid plain gray boxes, beige placeholder rectangles in loaded states, placeholder cards, thin outline-only sections, large flat price circles, and empty product-grid scaffolding.
+
+Users may search by:
+- occasion
+- vibe
+- style
+- budget
+- image
+- closet item
+- trend
+- natural language question
+
+Good search examples:
+- "wedding guest outfit"
+- "office looks under ₹1999"
+- "style my white shirt"
+- "what goes with black jeans"
+- "casual dinner outfit"
+- "trending in Mumbai"
+
+Search results should be look-first and try-on-first.
+
+Avoid:
+- generic product grids
+- brand-first results
+- heavy filter walls
+- empty search states
+
+## Try-On Guidance
+
+Try-on is the core activation moment.
+
+Every major outfit/product card should make try-on easy.
+
+The try-on flow should:
+- feel fast
+- feel clear
+- feel trustworthy
+- show visual output prominently
+- explain what works and why
+- give next actions after the result
+
+After try-on, always consider:
+- Save look
+- Try another variation
+- View items
+- Style with closet
+- Ask Mira
+- Shop / buy
+
+## Trust & Privacy Guidance
+
+When asking for sensitive data such as:
+- photo
+- body/avatar
+- closet items
+- location
+
+Always explain:
+- why it is needed
+- what the user gets
+- whether they can skip/change later
+- how it improves the experience
+
+Avoid asking for sensitive data without visible value.
+
+## Output Format When Reviewing UI
+
+When asked to review a screen, respond in this structure:
+
+1. What is working
+2. UX issues
+3. UI issues
+4. Business issues
+5. Exact changes to make
+6. Priority order:
+   - Must fix
+   - Should fix
+   - Later
+7. Blind spots to watch

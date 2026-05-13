@@ -22,6 +22,7 @@ import { Button, InputField, Card } from '@yourorg/ds';
 |---|---|
 | [ProductCard] | [used on listings and cart] |
 | [NavHeader] | [top bar with back / search / cart] |
+| AskMiraCard | Homepage AI stylist entry point with suggested prompts and freeform question input |
 
 ## Variants Reference
 
