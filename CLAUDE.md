@@ -27,7 +27,7 @@ Before writing ANY code, check these. If any is true, **STOP**.
 
 | About to… | Do this instead |
 |---|---|
-| Hardcode a color, font, or spacing value | Use a token from `@styleos/ds`. If none exists, add one first. |
+| Hardcode a color, font, or spacing value | Use a token from `@styleos/ds` (lives at `packages/ds/`). If none exists, add one first. |
 | Skip loading, error, or empty state | All three are mandatory |
 | Component with >12 flat props | Group into typed objects or split |
 | File >600 lines | Split or extract hooks |
@@ -95,6 +95,7 @@ Before writing ANY code, check these. If any is true, **STOP**.
 | Spacing values | `docs/claude/tokens-spacing.md` |
 | Creating or modifying styles | `docs/claude/ui-quick-reference.md` |
 | Which design system components exist | `docs/claude/ds-components.md` |
+| Adding / editing the DS package itself (tokens, components, exports) | `docs/claude/ds-package.md` |
 | Icon names | `docs/claude/icons.md` |
 | Layout bugs, platform crashes | `docs/claude/platform-gotchas.md` |
 | Git branching, PRs | `docs/claude/git-workflow.md` |
