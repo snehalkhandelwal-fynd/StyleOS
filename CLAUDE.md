@@ -27,7 +27,7 @@ Before writing ANY code, check these. If any is true, **STOP**.
 
 | About to… | Do this instead |
 |---|---|
-| Hardcode a color, font, or spacing value | Use a token from `@yourorg/ds`. If none exists, add one first. |
+| Hardcode a color, font, or spacing value | Use a token from `@styleos/ds`. If none exists, add one first. |
 | Skip loading, error, or empty state | All three are mandatory |
 | Component with >12 flat props | Group into typed objects or split |
 | File >600 lines | Split or extract hooks |
