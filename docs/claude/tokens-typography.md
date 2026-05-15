@@ -10,13 +10,15 @@ import { typography, fontFamilies } from '@styleos/ds';
 
 ## Font Family
 
-The system runs **Airbnb Cereal VF** for everything: display, body, navigation, captions, microcopy. There is no separate display family — the variable font carries the entire scale.
+The system runs **Satoshi** for everything: display, body, navigation, captions, microcopy. There is no separate display family — the variable font carries the entire scale. (Airbnb Cereal is Airbnb's proprietary typeface and is not licensed for use here; Satoshi is the StyleOS replacement.)
 
 ```ts
-fontFamilies.primary  // 'Airbnb Cereal VF', Circular, -apple-system, system-ui, Roboto, 'Helvetica Neue', sans-serif
+fontFamilies.primary  // 'Satoshi', -apple-system, system-ui, Roboto, 'Helvetica Neue', sans-serif
 ```
 
-If Airbnb Cereal VF and Circular are unavailable, **Inter** is the closest open-source substitute. Adjust display headlines down by ~2% in line-height to match Cereal's slightly tighter cap height.
+Satoshi ships weights 300–900, which covers the 400 / 500 / 600 / 700 the scale below uses. If Satoshi is unavailable, **Inter** is the closest open-source substitute. Adjust display headlines down by ~2% in line-height to match Satoshi's slightly tighter cap height.
+
+> Installing Satoshi in macOS Font Book only makes it available to desktop design tools. For the React Native app to render it, the font file must also be bundled into the iOS and Android builds — an engineering step, not a DS token change.
 
 ## Text Styles
 

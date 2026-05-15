@@ -2,7 +2,7 @@ import type { TextStyle } from 'react-native';
 
 export const fontFamilies = {
   primary:
-    "Airbnb Cereal VF, Circular, -apple-system, system-ui, Roboto, 'Helvetica Neue', sans-serif",
+    "Satoshi, -apple-system, system-ui, Roboto, 'Helvetica Neue', sans-serif",
 } as const;
 
 type TypographyStyle = Pick<
