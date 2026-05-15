@@ -8,6 +8,8 @@
 packages/ds/
 ├── package.json              # name: @styleos/ds, peerDeps: react, react-native, react-native-svg
 ├── tsconfig.json
+├── assets/
+│   └── fonts/                # Satoshi static OTFs (the typography family) — link into the app build
 └── src/
     ├── index.ts              # barrel — re-exports tokens + components
     ├── tokens/
