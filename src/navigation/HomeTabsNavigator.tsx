@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { Platform, SafeAreaView, StyleSheet, View } from "react-native";
 
 import { BottomTabBar } from "../features/home/components/BottomTabBar";
 import { BrandPlpScreen } from "../features/home/screens/BrandPlpScreen";
@@ -12,6 +12,8 @@ import { hasCompletedStyleProfile } from "../features/home/utils/stylePersonaliz
 import type { OnboardingDraft } from "../features/onboarding/viewModels/useOnboardingViewModel";
 import { spacing } from "../theme";
 import type { HomeTabName } from "./types";
+
+const bottomNavOffset = Platform.OS === "ios" ? 0 : spacing.md;
 
 type HomeTabsNavigatorProps = {
   draft: OnboardingDraft;
@@ -64,6 +66,7 @@ export function HomeTabsNavigator({
             isGuest={isGuest}
             onChangeAddress={onChangeAddress}
             onOpenBrand={setSelectedBrandId}
+            onOpenExplore={() => handleChangeTab("Feed")}
             onOpenSearch={() => setIsSearchOpen(true)}
             onStartStyleQuiz={onStartStyleQuiz}
           />
@@ -90,7 +93,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   navHost: {
-    bottom: spacing.lg,
+    bottom: bottomNavOffset,
     left: 0,
     position: "absolute",
     right: 0

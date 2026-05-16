@@ -7,10 +7,12 @@ import {
   ImageBackground,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  StatusBar,
   Text,
   useWindowDimensions,
   View
@@ -23,15 +25,16 @@ import {
   getMerchandisingLabel,
   hasCompletedStyleProfile
 } from "../utils/stylePersonalization";
-import { colors, fonts, spacing } from "../../../theme";
+import { colors, fonts, layout, spacing } from "../../../theme";
 
-const AnimatedSafeAreaView = Animated.createAnimatedComponent(SafeAreaView);
+const AnimatedHeaderView = Animated.createAnimatedComponent(View);
 
 type HomeScreenProps = {
   draft: OnboardingDraft;
   isGuest: boolean;
   onChangeAddress: () => void;
   onOpenBrand: (brandId: string) => void;
+  onOpenExplore: () => void;
   onOpenSearch: () => void;
   onStartStyleQuiz: () => void;
 };
@@ -250,11 +253,13 @@ const miraChips = [
   "Pack for a 4-day Goa trip"
 ];
 
-const saleLooks = looks.slice(1, 5);
+const priceLooks = looks.slice(1, 5);
 const demoOutfits = [looks[0].image, looks[1].image, looks[3].image];
 const wishlistHeartColor = "#D92D20";
 const headerActionIconSize = 22;
 const headerActionStrokeWidth = 1.8;
+const homeHeaderTopPadding =
+  Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) + spacing.md : 56;
 
 function HeaderTruckIcon() {
   return (
@@ -415,14 +420,6 @@ function TopNavigation({
               strokeWidth={headerActionStrokeWidth}
             />
           </Pressable>
-          <Pressable accessibilityLabel="Wishlist" accessibilityRole="button" style={styles.headerIconButton}>
-            <Feather
-              color={colors.text}
-              name="heart"
-              size={headerActionIconSize}
-              strokeWidth={headerActionStrokeWidth}
-            />
-          </Pressable>
           <Pressable accessibilityLabel="Profile" accessibilityRole="button" style={styles.headerIconButton}>
             <HeaderProfileIcon />
           </Pressable>
@@ -481,16 +478,24 @@ function OccasionFilters({
       contentContainerStyle={styles.filterTrack}
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.filterRail}
     >
-      {occasionFilters.map((filter) => {
+      {occasionFilters.map((filter, index) => {
         const isSelected = selected === filter;
+        const isFirst = index === 0;
+        const isLast = index === occasionFilters.length - 1;
 
         return (
           <Pressable
             accessibilityRole="button"
             key={filter}
             onPress={() => onSelect(filter)}
-            style={[styles.filterPill, isSelected ? styles.filterPillSelected : null]}
+            style={[
+              styles.filterPill,
+              isFirst ? styles.filterPillFirst : null,
+              isLast ? styles.filterPillLast : null,
+              isSelected ? styles.filterPillSelected : null
+            ]}
           >
             <Text
               style={[
@@ -953,8 +958,11 @@ function AskMiraCard() {
           <Text style={styles.miraTitle}>Ask Mira</Text>
           <Text style={styles.miraLabel}>Your AI stylist</Text>
         </View>
-        <Text style={styles.miraCopy}>
-          Ask me anything about style, outfits, or what to buy.
+        <Text style={styles.miraHeadline}>
+          Not sure what to wear or buy?
+        </Text>
+        <Text style={styles.miraSubtext}>
+          Ask Mira for styling ideas, trends, or outfit help.
         </Text>
       </View>
       <ScrollView
@@ -1178,11 +1186,13 @@ function SavedLookCard({
 
 function SavedLooksSection({
   cardWidth,
+  onOpenExplore,
   onToggleWishlist,
   products,
   screenWidth
 }: {
   cardWidth: number;
+  onOpenExplore: () => void;
   onToggleWishlist: (productId: string) => void;
   products: ProductLook[];
   screenWidth: number;
@@ -1206,9 +1216,18 @@ function SavedLooksSection({
     setActiveIndex(Math.min(products.length - 1, Math.max(0, nextIndex)));
   };
 
+  if (products.length === 0) {
+    return (
+      <View style={styles.savedLooksSection}>
+        <Text style={styles.savedLooksTitle}>Continue where you left off.</Text>
+        <SavedLooksEmptyBanner onOpenExplore={onOpenExplore} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.savedLooksSection}>
-      <Text style={styles.savedLooksTitle}>Saved Looks</Text>
+      <Text style={styles.savedLooksTitle}>Continue where you left off.</Text>
       <Animated.ScrollView
         contentContainerStyle={[
           styles.savedLooksTrack,
@@ -1287,52 +1306,105 @@ function SavedLooksSection({
   );
 }
 
-function DiscountSection({
+function SavedLooksEmptyBanner({
+  onOpenExplore
+}: {
+  onOpenExplore: () => void;
+}) {
+  return (
+    <View style={styles.savedLooksEmptyBanner}>
+      <Text style={styles.savedLooksEmptyCopy}>Save looks you like.</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onOpenExplore}
+        style={({ pressed }) => [
+          styles.savedLooksEmptyButton,
+          pressed ? styles.pressed : null
+        ]}
+      >
+        <Text style={styles.savedLooksEmptyButtonText}>start exploring</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function PriceLookCard({
+  isWishlisted,
+  onToggleWishlist,
+  product,
+  width
+}: {
+  isWishlisted: boolean;
+  onToggleWishlist: () => void;
+  product: ProductLook;
+  width: number;
+}) {
+  return (
+    <View style={[styles.priceLookCard, { width }]}>
+      <ImageBackground
+        imageStyle={styles.priceLookImageStyle}
+        resizeMode="cover"
+        source={{ uri: product.image }}
+        style={styles.priceLookImage}
+      >
+        <View style={styles.priceLookSaveWrap}>
+          <SaveButton onPress={onToggleWishlist} saved={isWishlisted} />
+        </View>
+      </ImageBackground>
+      <View style={styles.priceLookFooter}>
+        <Text numberOfLines={1} style={styles.priceLookPrice}>
+          {product.price}
+        </Text>
+        <Pressable
+          accessibilityLabel={`Try on ${product.title}`}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.priceLookTryButton,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <Text style={styles.priceLookTryText}>Try on me</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function PriceSection({
+  cardWidth,
   onToggleWishlist,
   wishlistProductIds
 }: {
+  cardWidth: number;
   onToggleWishlist: (productId: string) => void;
   wishlistProductIds: Set<string>;
 }) {
   return (
     <View style={styles.section}>
       <SectionHeader
-        subtitle="Prices dropped on things we think you'll love"
-        title="On sale this week"
+        subtitle="Budget-friendly looks you can try before deciding"
+        title="Great style at every price"
       />
-      <ScrollView
-        contentContainerStyle={styles.horizontalCards}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      >
-        {saleLooks.map((product) => (
-          <View key={`sale-${product.id}`} style={styles.saleCard}>
-            <ImageBackground
-              imageStyle={styles.smallCardImageStyle}
-              resizeMode="cover"
-              source={{ uri: product.image }}
-              style={styles.saleImage}
-            >
-              <View style={styles.discountPill}>
-                <Text style={styles.discountText}>20% off</Text>
-              </View>
-              <SaveButton
-                onPress={() => onToggleWishlist(product.id)}
-                saved={wishlistProductIds.has(product.id)}
-              />
-            </ImageBackground>
-            <View style={styles.saleInfo}>
-              <Text numberOfLines={1} style={styles.arrivalName}>
-                {product.title}
-              </Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.salePrice}>₹1,999</Text>
-                <Text style={styles.originalPrice}>₹2,499</Text>
-              </View>
-            </View>
-          </View>
+      <View style={styles.productGrid}>
+        {priceLooks.map((product) => (
+          <PriceLookCard
+            isWishlisted={wishlistProductIds.has(product.id)}
+            key={`price-${product.id}`}
+            onToggleWishlist={() => onToggleWishlist(product.id)}
+            product={product}
+            width={cardWidth}
+          />
         ))}
-      </ScrollView>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.priceSectionCta,
+          pressed ? styles.pressed : null
+        ]}
+      >
+        <Text style={styles.priceSectionCtaText}>See more looks</Text>
+      </Pressable>
     </View>
   );
 }
@@ -1387,6 +1459,7 @@ export function HomeScreen({
   draft,
   onChangeAddress,
   onOpenBrand,
+  onOpenExplore,
   onOpenSearch,
   onStartStyleQuiz
 }: HomeScreenProps) {
@@ -1482,7 +1555,7 @@ export function HomeScreen({
 
   return (
     <SafeAreaView style={styles.screen}>
-      <AnimatedSafeAreaView
+      <AnimatedHeaderView
         onLayout={(event) => {
           const measuredHeight = event.nativeEvent.layout.height;
           setHeaderHeight((current) =>
@@ -1501,12 +1574,12 @@ export function HomeScreen({
           onChangeAddress={onChangeAddress}
           onOpenSearch={onOpenSearch}
         />
-      </AnimatedSafeAreaView>
+      </AnimatedHeaderView>
 
       <Animated.ScrollView
         contentContainerStyle={[
           styles.feed,
-          { paddingTop: (headerHeight || 160) + spacing.md }
+          { paddingTop: headerHeight || 160 }
         ]}
         onScroll={handleHomeScroll}
         scrollEventThrottle={16}
@@ -1531,15 +1604,15 @@ export function HomeScreen({
         <AskMiraCard />
         <ColourAnalysisCard />
         <ShopByBrandsSection onBrandPress={onOpenBrand} />
-        {savedLooks.length > 0 ? (
-          <SavedLooksSection
-            cardWidth={savedLookCardWidth}
-            onToggleWishlist={handleToggleWishlist}
-            products={savedLooks}
-            screenWidth={width}
-          />
-        ) : null}
-        <DiscountSection
+        <SavedLooksSection
+          cardWidth={savedLookCardWidth}
+          onOpenExplore={onOpenExplore}
+          onToggleWishlist={handleToggleWishlist}
+          products={savedLooks}
+          screenWidth={width}
+        />
+        <PriceSection
+          cardWidth={cardWidth}
           onToggleWishlist={handleToggleWishlist}
           wishlistProductIds={wishlistProductIds}
         />
@@ -1784,22 +1857,9 @@ const styles = StyleSheet.create({
     height: 220,
     justifyContent: "center"
   },
-  discountPill: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.text,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
-  discountText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    lineHeight: 13
-  },
   feed: {
     gap: spacing.xl,
-    paddingBottom: 128
+    paddingBottom: layout.bottomNavScrollPadding
   },
   filterPill: {
     alignItems: "center",
@@ -1825,8 +1885,16 @@ const styles = StyleSheet.create({
     color: colors.inverseText
   },
   filterTrack: {
-    gap: spacing.sm,
-    paddingRight: spacing.screen
+    gap: spacing.sm
+  },
+  filterPillFirst: {
+    marginLeft: spacing.screen
+  },
+  filterPillLast: {
+    marginRight: spacing.screen
+  },
+  filterRail: {
+    marginHorizontal: -spacing.screen
   },
   ghostCard: {
     alignItems: "center",
@@ -1862,10 +1930,6 @@ const styles = StyleSheet.create({
   },
   ghostWrap: {
     alignItems: "center"
-  },
-  horizontalCards: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.screen
   },
   intelligenceStrip: {
     alignItems: "center",
@@ -1942,7 +2006,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     marginHorizontal: spacing.screen,
-    paddingVertical: spacing.lg
+    paddingVertical: spacing.md
   },
   miraChip: {
     backgroundColor: colors.background,
@@ -1966,12 +2030,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: 0
   },
-  miraCopy: {
+  miraHeadline: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    lineHeight: 23,
+    marginTop: 14
+  },
+  miraSubtext: {
     color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 19.5,
-    marginTop: 10
+    marginTop: 4
   },
   miraHeader: {
     alignItems: "center",
@@ -2109,13 +2180,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.screen
   },
-  originalPrice: {
-    color: colors.soft,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    textDecorationLine: "line-through"
-  },
   paletteSwatch: {
     borderRadius: 8,
     flex: 1,
@@ -2125,11 +2189,65 @@ const styles = StyleSheet.create({
     opacity: 0.72,
     transform: [{ scale: 0.98 }]
   },
-  priceRow: {
+  priceLookCard: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden"
+  },
+  priceLookFooter: {
+    backgroundColor: colors.background,
+    padding: 10
+  },
+  priceLookImage: {
+    aspectRatio: 3 / 4,
+    alignItems: "flex-end",
+    backgroundColor: colors.imageSurface,
+    padding: spacing.sm
+  },
+  priceLookImageStyle: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12
+  },
+  priceLookPrice: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 13,
+    lineHeight: 17
+  },
+  priceLookSaveWrap: {
+    alignItems: "flex-end"
+  },
+  priceLookTryButton: {
     alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    marginTop: 4
+    backgroundColor: colors.text,
+    borderRadius: 8,
+    height: 36,
+    justifyContent: "center",
+    marginTop: 8
+  },
+  priceLookTryText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 15
+  },
+  priceSectionCta: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: colors.text,
+    borderRadius: 24,
+    height: 50,
+    justifyContent: "center",
+    marginTop: spacing.xs,
+    width: "100%"
+  },
+  priceSectionCtaText: {
+    color: colors.inverseText,
+    fontFamily: fonts.cta,
+    fontSize: 15,
+    lineHeight: 19
   },
   productBottomRow: {
     alignItems: "flex-end",
@@ -2189,28 +2307,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
     width: 44
-  },
-  saleCard: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-    width: 150
-  },
-  saleImage: {
-    aspectRatio: 3 / 4,
-    justifyContent: "space-between",
-    padding: 8
-  },
-  saleInfo: {
-    padding: 9
-  },
-  salePrice: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 13,
-    lineHeight: 17
   },
   saveButton: {
     alignItems: "center",
@@ -2294,6 +2390,34 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     paddingHorizontal: spacing.screen
+  },
+  savedLooksEmptyBanner: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.md,
+    marginHorizontal: spacing.screen,
+    padding: spacing.lg
+  },
+  savedLooksEmptyButton: {
+    alignItems: "center",
+    backgroundColor: colors.text,
+    borderRadius: 24,
+    height: 48,
+    justifyContent: "center"
+  },
+  savedLooksEmptyButtonText: {
+    color: colors.inverseText,
+    fontFamily: fonts.cta,
+    fontSize: 14,
+    lineHeight: 18
+  },
+  savedLooksEmptyCopy: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    lineHeight: 23
   },
   savedLooksTrack: {
     alignItems: "flex-start"
@@ -2439,9 +2563,9 @@ const styles = StyleSheet.create({
   },
   topNav: {
     backgroundColor: colors.background,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.md,
+    paddingTop: homeHeaderTopPadding,
     zIndex: 4
   },
   topNavScrolled: {

@@ -95,3 +95,7 @@ export const radii = {
   pill: 999,
   button: 999
 };
+
+export const layout = {
+  bottomNavScrollPadding: 104
+};

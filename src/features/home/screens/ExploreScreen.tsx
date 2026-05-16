@@ -1,6 +1,6 @@
 import { SafeAreaView, StyleSheet, Text } from "react-native";
 
-import { colors, spacing, typography } from "../../../theme";
+import { colors, layout, spacing, typography } from "../../../theme";
 
 type ExploreScreenProps = {
   copy?: string;
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.sm,
     padding: spacing.screen,
-    paddingBottom: 128,
+    paddingBottom: layout.bottomNavScrollPadding,
     paddingTop: spacing.xxl
   },
   title: {

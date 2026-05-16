@@ -30,11 +30,28 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
       ]}
     >
       {uri ? (
-        <Image
-          resizeMode="cover"
-          source={{ uri }}
-          style={avatarImageFrameStyles.image}
-        />
+        <>
+          <Image
+            resizeMode="cover"
+            source={{ uri }}
+            style={avatarImageFrameStyles.image}
+          />
+          <Pressable
+            accessibilityLabel="Change photo"
+            accessibilityRole="button"
+            onPress={(event) => {
+              event.stopPropagation();
+              openPhotoDrawer();
+            }}
+            style={({ pressed }) => [
+              styles.changePhotoButton,
+              pressed ? styles.addButtonPressed : null
+            ]}
+          >
+            <Ionicons color={colors.text} name="camera-outline" size={15} />
+            <Text style={styles.changePhotoText}>Change photo</Text>
+          </Pressable>
+        </>
       ) : (
         <View style={styles.emptyState}>
           <Image
@@ -91,6 +108,26 @@ const styles = StyleSheet.create({
   },
   boxWithPreview: {
     padding: 0
+  },
+  changePhotoButton: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTranslucent,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    position: "absolute",
+    right: spacing.md,
+    top: spacing.md
+  },
+  changePhotoText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 15
   },
   emptyState: {
     alignItems: "center",
