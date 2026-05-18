@@ -8,6 +8,7 @@ import {
 type BrandPlpScreenProps = {
   brandId: string;
   onBack: () => void;
+  onOpenCart?: () => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
 };
 
@@ -83,6 +84,7 @@ function buildBrandListingProducts(
       discountPercent: discountPercent || undefined,
       id: `${source.id}-${index}`,
       image: source.image,
+      match: source.match,
       occasion: occasions[index % occasions.length],
       originalPrice:
         discountPercent > 0
@@ -103,6 +105,7 @@ function buildBrandListingProducts(
 export function BrandPlpScreen({
   brandId,
   onBack,
+  onOpenCart,
   onOpenProduct
 }: BrandPlpScreenProps) {
   const title = getBrandName(brandId);
@@ -111,6 +114,7 @@ export function BrandPlpScreen({
   return (
     <ProductListingScreen
       onBack={onBack}
+      onOpenCart={onOpenCart}
       onOpenProduct={onOpenProduct}
       products={products}
       subtitle={`${products.length} products`}

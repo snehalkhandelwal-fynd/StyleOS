@@ -31,6 +31,7 @@ type ExploreScreenProps = {
   hasStyleProfile?: boolean;
   onInternalViewChange?: (isOpen: boolean) => void;
   onAskMira?: () => void;
+  onOpenCart?: () => void;
   onOpenSearch?: () => void;
   onStartTryOn?: (lookName?: string) => void;
   title?: string;
@@ -162,7 +163,7 @@ const priceFilters = [
 ];
 
 const shirtProductImage =
-  "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?auto=format&fit=crop&w=700&q=80";
+  "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80";
 
 const collectionImages = [
   "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
@@ -464,12 +465,12 @@ const summerCategories: SummerCategory[] = [
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80",
     id: "linen-shirts",
     image:
-      "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80",
     products: [
       {
         id: "linen-shirt-1",
         image:
-          "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?auto=format&fit=crop&w=700&q=80",
+          "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80",
         price: "₹1,299",
         styleLabel: "Core piece",
         title: "White linen shirt"
@@ -1577,12 +1578,16 @@ function CollectionGridView({
   collection,
   hasStyleProfile,
   onAskMira,
+  onOpenCart,
+  onOpenSearch,
   onStartTryOn,
   onBack
 }: {
   collection: ActiveCollection;
   hasStyleProfile?: boolean;
   onAskMira?: () => void;
+  onOpenCart?: () => void;
+  onOpenSearch?: () => void;
   onStartTryOn?: (lookName?: string) => void;
   onBack: () => void;
 }) {
@@ -1611,9 +1616,12 @@ function CollectionGridView({
     return (
       <ProductPdpScreen
         hasStyleProfile={hasStyleProfile}
+        onAddToCart={onOpenCart}
         onAskMira={onAskMira}
         onBack={() => setSelectedProduct(null)}
+        onOpenCart={onOpenCart}
         onOpenLook={setSelectedLook}
+        onOpenSearch={onOpenSearch}
         onStartTryOn={onStartTryOn}
         product={selectedProduct}
       />
@@ -1623,6 +1631,7 @@ function CollectionGridView({
   return (
     <ProductListingScreen
       onBack={onBack}
+      onOpenCart={onOpenCart}
       onOpenProduct={setSelectedProduct}
       products={products}
       subtitle={`${products.length} products`}
@@ -1635,12 +1644,16 @@ function SummerCategoryListingView({
   category,
   hasStyleProfile,
   onAskMira,
+  onOpenCart,
+  onOpenSearch,
   onStartTryOn,
   onBack
 }: {
   category: SummerCategory;
   hasStyleProfile?: boolean;
   onAskMira?: () => void;
+  onOpenCart?: () => void;
+  onOpenSearch?: () => void;
   onStartTryOn?: (lookName?: string) => void;
   onBack: () => void;
 }) {
@@ -1665,9 +1678,12 @@ function SummerCategoryListingView({
     return (
       <ProductPdpScreen
         hasStyleProfile={hasStyleProfile}
+        onAddToCart={onOpenCart}
         onAskMira={onAskMira}
         onBack={() => setSelectedProduct(null)}
+        onOpenCart={onOpenCart}
         onOpenLook={setSelectedLook}
+        onOpenSearch={onOpenSearch}
         onStartTryOn={onStartTryOn}
         product={selectedProduct}
       />
@@ -1677,6 +1693,7 @@ function SummerCategoryListingView({
   return (
     <ProductListingScreen
       onBack={onBack}
+      onOpenCart={onOpenCart}
       onOpenProduct={setSelectedProduct}
       products={products}
       subtitle={`${products.length} products`}
@@ -1782,6 +1799,7 @@ export function ExploreScreen({
   hasStyleProfile,
   onInternalViewChange,
   onAskMira,
+  onOpenCart,
   onOpenSearch,
   onStartTryOn = () => undefined,
   title
@@ -1907,6 +1925,8 @@ export function ExploreScreen({
         hasStyleProfile={hasStyleProfile}
         onAskMira={onAskMira}
         onBack={() => setActiveCollection(null)}
+        onOpenCart={onOpenCart}
+        onOpenSearch={onOpenSearch}
         onStartTryOn={onStartTryOn}
       />
     );
@@ -1919,6 +1939,8 @@ export function ExploreScreen({
         hasStyleProfile={hasStyleProfile}
         onAskMira={onAskMira}
         onBack={() => setActiveSummerCategory(null)}
+        onOpenCart={onOpenCart}
+        onOpenSearch={onOpenSearch}
         onStartTryOn={onStartTryOn}
       />
     );

@@ -90,7 +90,9 @@ export function HomeTabsNavigator({
             onAddToCart={() => handleChangeTab("Cart")}
             onAskMira={() => handleChangeTab("AIStylist")}
             onBack={() => setSelectedProduct(null)}
+            onOpenCart={() => handleChangeTab("Cart")}
             onOpenLook={setSelectedLook}
+            onOpenSearch={() => setIsSearchOpen(true)}
             onStartTryOn={() => handleChangeTab("TryOn")}
             product={selectedProduct}
           />
@@ -99,6 +101,7 @@ export function HomeTabsNavigator({
           <BrandPlpScreen
             brandId={selectedBrandId}
             onBack={() => setSelectedBrandId(null)}
+            onOpenCart={() => handleChangeTab("Cart")}
             onOpenProduct={setSelectedProduct}
           />
         ) : null}
@@ -120,6 +123,7 @@ export function HomeTabsNavigator({
             hasStyleProfile={hasStyleProfile}
             onInternalViewChange={handleExploreInternalViewChange}
             onAskMira={() => handleChangeTab("AIStylist")}
+            onOpenCart={() => handleChangeTab("Cart")}
             onOpenSearch={() => setIsSearchOpen(true)}
             onStartTryOn={() => handleChangeTab("TryOn")}
           />

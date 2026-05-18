@@ -24,6 +24,8 @@ export type ProductListingProduct = {
   discountPercent?: number;
   id: string;
   image: string;
+  match?: string;
+  matchScore?: number;
   occasion?: string;
   originalPrice?: string;
   price: string;
@@ -65,7 +67,9 @@ type ProductListingScreenProps = {
   emptyCopy?: string;
   emptyTitle?: string;
   onBack: () => void;
+  onOpenCart?: () => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
+  onOpenWishlist?: () => void;
   products: ProductListingProduct[];
   subtitle: string;
   title: string;
@@ -73,6 +77,9 @@ type ProductListingScreenProps = {
 
 const topSafeInset = Platform.OS === "ios" ? 44 : 0;
 const bottomSafeInset = Platform.OS === "ios" ? 34 : 0;
+const bottomControlBottomPadding =
+  Platform.OS === "ios" ? spacing.lg : spacing.md;
+const bottomControlDockHeight = 52 + bottomControlBottomPadding;
 const LISTING_CHIP_HEIGHT = 40;
 const PRODUCTS_BEFORE_LOOKS_RAIL = 12;
 const SCROLL_PROGRESS_THRESHOLD = 80;
@@ -147,17 +154,6 @@ function getPriceLimit(value: string) {
 
 function getFilterConfig(key: FilterKey) {
   return filterConfigs.find((filter) => filter.key === key) ?? filterConfigs[0];
-}
-
-function getSelectedFilterCount(selectedFilters: SelectedFilters) {
-  return Object.values(selectedFilters).filter(Boolean).length;
-}
-
-function getSortLabel(selectedSort: SortValue) {
-  return (
-    sortOptions.find((sortOption) => sortOption.value === selectedSort)?.label ??
-    "Popularity"
-  );
 }
 
 function getFilteredProducts(
@@ -284,18 +280,11 @@ function buildTrendingLooks(products: ProductListingProduct[]): TrendingLook[] {
 
 function FloatingListingControls({
   onOpenFilters,
-  onOpenSort,
-  selectedFilters,
-  selectedSort
+  onOpenSort
 }: {
   onOpenFilters: () => void;
   onOpenSort: () => void;
-  selectedFilters: SelectedFilters;
-  selectedSort: SortValue;
 }) {
-  const selectedFilterCount = getSelectedFilterCount(selectedFilters);
-  const selectedSortLabel = getSortLabel(selectedSort);
-
   return (
     <View style={styles.bottomControlsHost}>
       <Pressable
@@ -306,15 +295,10 @@ function FloatingListingControls({
           pressed ? styles.pressed : null
         ]}
       >
-        <View style={styles.bottomControlCopy}>
-          <Text numberOfLines={1} style={styles.bottomControlLabel}>
-            SORT BY
-          </Text>
-          <Text numberOfLines={1} style={styles.bottomControlValue}>
-            {selectedSortLabel}
-          </Text>
-        </View>
-        <Ionicons color={colors.text} name="swap-vertical-outline" size={23} />
+        <Ionicons color={colors.text} name="swap-vertical-outline" size={22} />
+        <Text numberOfLines={1} style={styles.bottomControlLabel}>
+          SORT
+        </Text>
       </Pressable>
       <View style={styles.bottomControlDivider} />
       <Pressable
@@ -325,20 +309,10 @@ function FloatingListingControls({
           pressed ? styles.pressed : null
         ]}
       >
-        <View style={styles.bottomControlCopy}>
-          <Text numberOfLines={1} style={styles.bottomControlLabel}>
-            FILTER
-          </Text>
-          <View style={styles.filterAppliedRow}>
-            <Text numberOfLines={1} style={styles.bottomControlValue}>
-              Applied
-            </Text>
-            <View style={styles.filterCountBubble}>
-              <Text style={styles.filterCountText}>{selectedFilterCount}</Text>
-            </View>
-          </View>
-        </View>
         <Feather color={colors.text} name="sliders" size={22} />
+        <Text numberOfLines={1} style={styles.bottomControlLabel}>
+          FILTER
+        </Text>
       </Pressable>
     </View>
   );
@@ -604,7 +578,9 @@ export function ProductListingScreen({
   emptyCopy = "Try another size, color, or vibe to keep styling.",
   emptyTitle = "No pieces in this mix",
   onBack,
+  onOpenCart,
   onOpenProduct,
+  onOpenWishlist,
   products,
   subtitle,
   title
@@ -695,6 +671,32 @@ export function ProductListingScreen({
           <Text numberOfLines={1} style={styles.subtitle}>
             {subtitle}
           </Text>
+        </View>
+        <View style={styles.headerActions}>
+          <Pressable
+            accessibilityLabel="Open wishlist"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onOpenWishlist}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.text} name="heart" size={23} />
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Open cart"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onOpenCart}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.text} name="shopping-bag" size={23} />
+          </Pressable>
         </View>
       </View>
 
@@ -795,8 +797,6 @@ export function ProductListingScreen({
       <FloatingListingControls
         onOpenFilters={() => setActiveSheet({ type: "filter-menu" })}
         onOpenSort={() => setActiveSheet({ type: "sort" })}
-        selectedFilters={selectedFilters}
-        selectedSort={selectedSort}
       />
 
       <OptionsSheet
@@ -825,14 +825,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     flexDirection: "row",
-    gap: spacing.md,
-    justifyContent: "space-between",
+    gap: 2,
+    justifyContent: "center",
     minWidth: 0,
     paddingHorizontal: spacing.screen
-  },
-  bottomControlCopy: {
-    flex: 1,
-    minWidth: 0
   },
   bottomControlDivider: {
     alignSelf: "stretch",
@@ -842,15 +838,8 @@ const styles = StyleSheet.create({
   bottomControlLabel: {
     color: colors.text,
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  bottomControlValue: {
-    color: colors.text,
-    fontFamily: fonts.body,
     fontSize: 16,
-    lineHeight: 21,
-    marginTop: 2
+    lineHeight: 20
   },
   bottomControlsHost: {
     alignItems: "stretch",
@@ -860,9 +849,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     elevation: 14,
     flexDirection: "row",
-    height: bottomSafeInset + 62,
+    height: bottomControlDockHeight,
     left: 0,
-    paddingBottom: bottomSafeInset,
+    paddingBottom: bottomControlBottomPadding,
     position: "absolute",
     right: 0,
     shadowColor: "#000000",
@@ -872,7 +861,7 @@ const styles = StyleSheet.create({
     zIndex: 30
   },
   content: {
-    paddingBottom: bottomSafeInset + 124,
+    paddingBottom: bottomControlDockHeight + spacing.xl,
     paddingTop: spacing.md
   },
   chipIcon: {
@@ -920,27 +909,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20
   },
-  filterAppliedRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm
-  },
-  filterCountBubble: {
-    alignItems: "center",
-    backgroundColor: colors.soft,
-    borderRadius: 12,
-    height: 22,
-    justifyContent: "center",
-    marginTop: 2,
-    minWidth: 22,
-    paddingHorizontal: 6
-  },
-  filterCountText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16
-  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -960,6 +928,17 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
     minWidth: 0
+  },
+  headerActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm
+  },
+  headerIconButton: {
+    alignItems: "center",
+    height: 42,
+    justifyContent: "center",
+    width: 34
   },
   listingChip: {
     alignItems: "center",
@@ -1106,7 +1085,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 999,
     borderWidth: 1,
-    bottom: bottomSafeInset + 70,
+    bottom: bottomControlDockHeight + spacing.sm,
     flexDirection: "row",
     gap: 6,
     minHeight: 30,
