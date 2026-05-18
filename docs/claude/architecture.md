@@ -1,6 +1,6 @@
-# Architecture: style-os-app
+# Architecture: Style_OS
 
-> Stack: **react-native**. This is a starter doc: fill in the project-specific details below.
+> Stack: **react-sdk**. This is a starter doc: fill in the project-specific details below.
 
 ## Pattern
 
