@@ -5,7 +5,7 @@
 ## Import Path
 
 ```ts
-import { Button, InputField, Card } from '@yourorg/ds';
+import { Button, InputField, Card } from '@styleos/ds';
 ```
 
 ## Core Components

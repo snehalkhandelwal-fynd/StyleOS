@@ -1,4 +1,4 @@
-# Setup Guide: style-os-app
+# Setup Guide: Style_OS
 
 > The adoption walkthrough. Three parallel tracks run by whoever on the team is closest to each part of the work. Expect 3-5 days of focused effort to get to first usable state, plus ongoing weekly maintenance.
 
@@ -33,7 +33,7 @@ Three workstreams run in parallel. Each is owned by whoever on the team is close
 **Tips:**
 - Tokens are the most-referenced doc in daily work: get these right first
 - For each token, capture: name as imported, value, when to use it
-- Import path is already configured: `@yourorg/ds`
+- Import path is already configured: `@styleos/ds`
 - `ds-components.md` can start minimal ("see Storybook for the full list") and grow over time
 
 ### Track B: Engineering Track
@@ -42,9 +42,9 @@ Three workstreams run in parallel. Each is owned by whoever on the team is close
 
 **Run by:** whoever is closest to the codebase: tech lead, senior engineer, or a small engineering pair.
 
-**Stack mapping is pre-filled for react-native:**
-- Designer territory: `src/features/*/screens/`, `src/features/*/components/`
-- Engineer territory: `src/features/*/viewModels/`, `src/features/*/controllers/`, `src/services/`, `src/core/`
+**Stack mapping is pre-filled for react-sdk:**
+- Designer territory: `pages/`, `components/`, `components-v2/`
+- Engineer territory: `hooks/`, `fetchers/`, `sdk/`
 
 Adjust these in `CLAUDE.md` if your folder structure differs.
 

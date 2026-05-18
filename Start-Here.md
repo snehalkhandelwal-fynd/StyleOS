@@ -1,4 +1,4 @@
-# Start Here: style-os-app
+# Start Here: Style_OS
 
 > What's in this folder and how to use it.
 

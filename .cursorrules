@@ -1,0 +1,74 @@
+When generating any UI component, screen, or styling code for the StyleOS app, follow these rules without deviation. These rules apply globally: every screen, card, button, and text element.
+
+Typography
+
+Two fonts only. Never introduce a third.
+
+Primary font: Noto Serif
+
+Use for all headings, titles, screen-level headlines, hero card names, section titles, and any large display text. Anywhere the user sees a "title", it is Noto Serif.
+
+Examples of where Noto Serif is used:
+
+- Screen titles ("Styled for you", "What's the occasion?", "Your look for today")
+- Greeting headlines ("Good Morning, Snehal")
+- Hero card names
+- Section headers
+- Large numerical displays
+- Any prominent display text intended to feel editorial
+
+Secondary font: Inter
+
+Use for everything else: body text, supporting copy, captions, labels, button text, input field text, small metadata, navigation labels, chips, pills, form fields, and all functional UI text.
+
+Examples of where Inter is used:
+
+- All button text including primary CTAs ("Try this on me", "Add to cart", "Continue")
+- Body copy and descriptions
+- Field labels and input placeholders
+- Search bar text
+- Address bar text
+- Filter pill labels ("Work", "Casual", "Date night")
+- Match score chips ("91% your style")
+- Delivery info ("Delivered by tomorrow")
+- Card metadata (brand names, prices)
+- Bottom nav labels
+- Section subtitles and captions
+
+Font implementation
+
+When setting up the project, install both fonts using either Expo Google Fonts or react-native-fonts:
+
+- @expo-google-fonts/noto-serif, or noto-serif from react-native-fonts
+- @expo-google-fonts/inter
+
+Define them in a typography theme file. Use Noto Serif via the family "NotoSerif_400Regular" or "NotoSerif_500Medium" for headings, and Inter via "Inter_400Regular" for CTAs and regular UI text. Use "Inter_500Medium" only for small emphasis where explicitly needed.
+
+Never use the platform default font (System, San Francisco, Roboto). Always use Inter as the fallback for any UI text.
+
+Type scale
+
+Use this exact scale across the app. Do not invent new sizes.
+
+- Display headline: Noto Serif, 500, 28px, line-height 1.2. Used once per screen for the main page title.
+- H2: Noto Serif, 500, 24px, line-height 1.25. Used for secondary screen-level headings and form-step titles such as "What is your phone number?"
+- Section heading: Noto Serif, 500, 22px, line-height 1.25. Used for section labels like "Styled for you" and "What's the occasion?"
+- Card title: Noto Serif, 500, 16px, line-height 1.3. Used for product names and look names.
+- Body large: Inter, 400, 14px, line-height 1.5. Primary body copy.
+- Body: Inter, 400, 13px, line-height 1.5. Default UI text.
+- Caption: Inter, 400, 12px, line-height 1.5. Supporting text and descriptions.
+- Small caption: Inter, 400, 11px, line-height 1.4. Chip labels and metadata.
+
+Never use bright accent colors. The app's design language is editorial and neutral. Color comes from the product photography itself, not from UI chrome.
+
+Component conventions
+
+- Primary button: filled black pill, white Inter 400 text, 44px height, 24px horizontal padding, 999px border-radius (full pill).
+- Secondary button: transparent full-width pill with #D9D9D9 border, black Inter 400 text, 48px height, 24px horizontal padding, 999px border-radius (full pill). It should fill the same available parent width as the primary CTA unless a specific compact variant is requested.
+
+Tone of voice in UI text
+
+- Never use ALL CAPS except for legal/disclosure text.
+- Never use exclamation points in UI copy.
+- Use sentence case for buttons and labels: "Try this on me", not "TRY THIS ON ME" or "Try This On Me".
+- Be conversational, not promotional: "Styled for you", not "Personalised picks!"

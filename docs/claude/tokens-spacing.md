@@ -3,7 +3,7 @@
 ## Import Path
 
 ```ts
-import { spacing, radii } from '@yourorg/ds';
+import { spacing, radii } from '@styleos/ds';
 ```
 
 ## Spacing Scale

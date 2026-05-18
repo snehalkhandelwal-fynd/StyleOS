@@ -26,8 +26,8 @@ ls -lh <file>
 ## Font Management
 
 - 3 weights maximum per family across the project
-- Never add a new font family without design approval
-- Prefer system fonts for plain body text when visually acceptable
+- Never add a new font family without design approval.
+- Stylus uses Outfit for all text. Do not use system fonts for body text.
 
 ## Dependency Hygiene
 
@@ -37,12 +37,12 @@ Before adding any dependency, check its bundle/binary size impact.
 
 - `moment.js`: deprecated, ~70KB; use `date-fns` or `dayjs` instead
 - Full `lodash`: import specific functions or use `lodash-es`
-- `lottie-react-native`: heavy; only for hero animations, never small UI flourishes
+
 
 ## Performance Checklist
 
 - [ ] Images have budget-compliant dimensions and file sizes
-- [ ] No new font families or weights added
+- [ ] No new font families or weights added beyond approved Outfit weights
 - [ ] No dependencies added without bundle-size check
 - [ ] Heavy components memoized appropriately
 - [ ] Lists virtualized if >20 items

@@ -1,6 +1,6 @@
-# Claude Rules: style-os-app
+# Claude Rules: Style_OS
 
-> Generated for a react-native project using **@yourorg/ds**. The standardized starting point for designers and engineers sharing this repository.
+> Generated for a react-sdk project using **@styleos/ds**. The standardized starting point for designers and engineers sharing this repository.
 
 This template encodes a portable pattern: branch-as-identity, modular routed docs, three-tier file permissions, and types-as-spec. Designers ship production UI code; engineers wire data on a parallel cadence.
 

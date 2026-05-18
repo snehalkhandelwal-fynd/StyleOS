@@ -1,23 +1,16 @@
 # UI Quick Reference
 
-> Cheat sheet for common styling patterns. Stack: **react-native**.
+> Cheat sheet for common styling patterns. Stack: **react-sdk**.
 
 ## Creating Styles
 
 ```ts
-import { StyleSheet } from 'react-native';
-import { colors, spacing, typography } from '@yourorg/ds';
+import { colors, spacing, typography } from '@styleos/ds';
 
-const styles = StyleSheet.create({
-  container: {
-    padding: spacing.l,
-    backgroundColor: colors.surface,
-  },
-  title: {
-    ...typography.h2Bold,
-    color: colors.textPrimary,
-  },
-});
+const containerStyle = {
+  padding: spacing.l,
+  backgroundColor: colors.surface,
+};
 ```
 
 ## Common Layouts

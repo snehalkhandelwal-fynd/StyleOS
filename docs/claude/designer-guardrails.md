@@ -114,7 +114,7 @@ return <ActualContent data={data} />;
 
 Before editing any component file, check its imports:
 - Imports from engineer territory → **read-only**, not a pure UI component
-- Only imports from `@yourorg/ds`, framework primitives, or sibling components → **safe to edit**
+- Only imports from `@styleos/ds`, framework primitives, or sibling components → **safe to edit**
 
 ### Rule 9: Forms Use One State Object, Not Many
 

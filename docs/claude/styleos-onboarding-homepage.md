@@ -7,6 +7,8 @@
 - Stack: React Native.
 - UI source: the current StyleOS React Native prototype plus the latest Figma homepage frame.
 - Homepage Figma frame: `StyleOS-Designs`, node `99:3295`.
+- Ask Mira card reference: latest screenshot handoff. If a dedicated Figma node is provided later, use that node as the source of truth.
+- Saved Looks carousel reference: `StyleOS-Designs`, node `99:3698`.
 - Location screen Figma wireframe: `StyleOS-Designs`, node `72:10885`.
 - This app is a fashion decision engine, not a traditional ecommerce grid.
 
@@ -87,9 +89,19 @@ Use one shell for setup screens after OTP.
   5. Upload full-body photo
 - Avatar creating, avatar ready, and location access are not progress steps.
 - Heading placement must match the phone number screen across all onboarding screens.
+- The shared shell owns the title and subtitle position. Individual setup screens must not add custom top padding, custom top margins, or screen-specific heading offsets.
+- The shared shell also owns title and subtitle typography. Individual setup screens must not override heading font family, size, weight, line height, or letter spacing.
+- All setup screen titles must use the same onboarding title typography token as the phone number screen.
+- All setup screen subtitles must use the same onboarding subtitle/body typography token.
+- The first content block below the heading/subtitle must start at the same vertical spacing token on every setup screen.
+- If a screen has large content, such as the style quiz card, shrink or scroll the content area instead of moving the heading/subtitle.
 - Use the same left and right screen margins on every onboarding screen.
 - Back arrows are not shown on OTP, name, and the setup screens unless explicitly requested.
-- The setup next action is a 48 x 48 circular icon button near the lower-right area above the keyboard when the keyboard is open.
+- The setup next action is a 48 x 48 circular icon button anchored to the bottom-right corner.
+- The circular next button must use equal visual spacing from the right edge and bottom edge.
+- Use the same spacing token for both axes. Default: `right: spacing.l` and `bottom: safeAreaInsets.bottom + spacing.l`.
+- When the keyboard is open, keep the same right inset and move the button above the keyboard using the same bottom spacing token.
+- Do not position the circular next button with mismatched values such as larger bottom spacing than right spacing.
 - Disable next actions until the current step is valid.
 
 Suggested shell contract:
@@ -211,6 +223,10 @@ React Native carousel rules:
 ### Step 4: Style Quiz
 
 - Heading: `What’s your style?`
+- Heading, subtitle, and first card position must use the same `OnboardingStepShell` layout rhythm as name, height, fashion interest, and upload photo.
+- Heading and subtitle typography must come from `OnboardingStepShell`; do not define local text styles in `StyleQuizScreen`.
+- Do not give the style quiz screen a custom top offset to fit the swipe card.
+- The swipe card should begin after the shared shell content gap, not immediately under a screen-specific heading.
 - Use up to 6 image cards initially.
 - Cards support both:
   - swipe left/right gestures
@@ -227,10 +243,14 @@ React Native carousel rules:
 
 - Heading: `See yourself in every look`
 - Supporting copy: `1 photo is all it takes. We build your style avatar so you can try on anything.`
+- Heading and supporting copy must stay exactly the same before and after the user selects an image.
+- Image selection must not change the heading text, supporting copy, typography, top position, or spacing.
+- The selected state only changes the upload box content from empty prompt to selected image preview.
 - Upload box uses dotted border in the same neutral border color as the design.
 - Upload box label: `Full-body photo`
 - Use the real device photo picker.
 - After a photo is selected, show the selected image preview in the box.
+- Keep the preview inside the same upload box frame and preserve the same content gap below the shared shell subtitle.
 - Continue is disabled until an image is selected.
 - Continue navigates to `AvatarCreating`.
 
@@ -265,7 +285,7 @@ React Native carousel rules:
 
 ## Homepage
 
-Implement the homepage from Figma node `99:3295`.
+Implement the homepage from Figma node `99:3295`, with the Ask Mira card inserted from the latest screenshot reference.
 
 ### Page Structure
 
@@ -273,15 +293,16 @@ Order must be:
 
 1. Address header
 2. Search bar
-3. `Good Morning, <name>`
-4. `Styled for you` hero card
-5. `What’s the occasion?`
-6. `Find your style in 30 seconds` banner
-7. `Great style at every price`
-8. `Shop by Brands`
-9. `Saved Looks`
-10. `New Arrivals this week`
-11. `Build looks from what you already love` banner
+3. `Ask Mira` AI stylist card
+4. `Good Morning, <name>`
+5. `Styled for you` hero card
+6. `What’s the occasion?`
+7. `Find your style in 30 seconds` banner
+8. `Great style at every price`
+9. `Shop by Brands`
+10. `Saved Looks`
+11. `New Arrivals this week`
+12. `Build looks from what you already love` banner
 
 ### Header
 
@@ -294,6 +315,31 @@ Order must be:
 - Address row is changeable and opens location editing.
 - Search bar placeholder: `Search by occasion, style, or vibe…`
 - Search bar includes search, mic, and camera icons.
+- Header action icons for notification, saved/heart, and profile must visually match.
+- Use the profile icon as the reference for action icon size, line weight, color, and optical alignment.
+- Notification and heart icons must not appear larger, bolder, or heavier than the profile icon.
+- All header action icons should use the same DS icon size token and stroke width.
+- Keep action icon hit areas consistent even if the glyph shapes have different visual widths.
+
+### Ask Mira
+
+- Place the card directly below the search bar and above the greeting.
+- The card title is `Ask Mira`.
+- The right-side helper label is `Your AI stylist`.
+- Body copy: `Ask me anything about style, outfits, or what to buy.`
+- Suggested prompts:
+  - `What's trending in Mumbai?`
+  - `Style my white t-shirt 3 ways`
+- Freeform input placeholder: `Or ask your own question...`
+- The input uses a send icon on the right, not a text submit button.
+- Use the black circular `M` avatar shown in the screenshot.
+- Use a warm neutral card surface, white prompt chips, subtle border, and large rounded corners from DS tokens.
+- Keep the card full-width within the same homepage horizontal margins as the search bar.
+- Keep internal spacing compact: header row, body copy, prompt chips, then input.
+- Prompt chips must remain single-line. If the viewport is narrow, make the prompt row horizontally scrollable rather than wrapping or truncating copy.
+- Tapping a suggested prompt opens the Mira chat or submits that prompt through a prop callback.
+- Submitting freeform text is disabled while the input is empty or whitespace-only.
+- `AskMiraCard` must receive prompt strings and submit callbacks through props; do not call AI/chat services directly from the component.
 
 ### Styled For You
 
@@ -330,6 +376,8 @@ Order must be:
 - While scrolling tabs, do not add a left margin gap before the first visible tab.
 - Product cards are 2 per row.
 - Wishlist heart inside cards must stay circular and never be squeezed.
+- Compact product-card footer labels such as `Try now` and `Popular` must use `typography.productCardMetaAction`.
+- `typography.productCardMetaAction` must render at 11px font size.
 - CTA: `Explore products`.
 
 ### Find Your Style Banner
@@ -348,6 +396,7 @@ Order must be:
   - Under ₹2999
   - Under ₹3999
 - Product cards are 2 per row.
+- Compact product-card footer labels such as `Try now` and `Popular` must use 11px `typography.productCardMetaAction`.
 - CTA: `Explore products`.
 
 ### Shop by Brands
@@ -356,17 +405,33 @@ Order must be:
 - Subcopy: `Shop by your favorite brands for every audio journey`
 - Use rounded brand logo pills in horizontal rows.
 - CTA: `View All`.
+- The next homepage section after Shop by Brands must be Saved Looks from Figma node `99:3698`.
 
 ### Saved Looks
 
 - Heading: `Saved Looks`
-- Use horizontal saved-look carousel.
+- This section is mandatory and appears immediately after `Shop by Brands`.
+- Implement from Figma node `99:3698`.
+- Use a horizontal saved-look carousel with the active card centered.
+- The centered active card is larger than the side peek cards.
+- Side cards should peek in from the left and right to communicate horizontal scrolling.
+- Match the Figma card treatment:
+  - rounded outer card
+  - subtle border
+  - warm product image background
+  - top-right circular wishlist button
+  - green `Delivered by Tomorrow` chip near the bottom of the image area
+  - bottom `Shop this look` CTA with cart icon
+- The active card should use the Figma proportions: approximately 279px wide by 405px tall on the 393px mobile frame.
+- Side peek cards should use the smaller Figma proportions: approximately 255px wide by 369px tall.
 - Each card includes:
   - look image
   - wishlist
-  - match/delivery metadata
+  - delivery metadata
   - `Shop this look` CTA with cart icon
-- Include pagination indicator.
+- Include pagination indicator below the carousel, matching the Figma 1-of-3 treatment.
+- Do not replace this section with a generic two-column product grid.
+- Do not move New Arrivals above Saved Looks.
 
 ### New Arrivals
 
@@ -378,6 +443,7 @@ Order must be:
   - brand
   - product name
   - price
+- Compact product-card footer labels such as `Try now` and `Popular` use 11px `typography.productCardMetaAction`.
 - CTA: `Explore products`.
 
 ### Wardrobe Banner
@@ -386,6 +452,78 @@ Order must be:
 - Body: `Add items from your wardrobe and we'll style them into looks you'll actually wear`
 - CTA: `Add Items`.
 - Use the dark rounded image banner from Figma.
+- Do not use locked-progress copy such as `Upload 10 items to unlock your colour analysis`.
+- Closet prompts should explain an immediate benefit without requiring a large upfront upload count.
+
+## Search / Explore Screen
+
+- Search and Explore screens must use `SafeAreaView` or the project safe-area wrapper.
+- The search header must be rendered inside the safe-area layout, not above it.
+- The first visible search row must never overlap the time, notch, status icons, or top device corner.
+- Apply top spacing to the header/search-row container itself. Padding only the scroll body is not enough.
+- Required header inset: `paddingTop: safeAreaInsets.top + spacing.l`.
+- If the search header is custom or fixed-position, read the device top inset and set the visible header container to `top: safeAreaInsets.top + spacing.l`.
+- Do not use `position: absolute`, `top: 0`, negative margins, or translucent status-bar overlap for the search header.
+- Disable any native navigator header for this screen if it causes the custom search row to start at `y = 0`.
+- The back button and search input must share one aligned row below the safe area.
+- Minimum visible top gap from the status bar content to the search row is one `spacing.l` token.
+- Use the same left and right horizontal margins as the homepage search bar.
+- The search page should feel like intent discovery, not a product catalog.
+- Search input stays at the top, followed by Mira-style suggestions, recent searches, and look-first results.
+- Do not start with a generic product grid, brand-first layout, or heavy filter wall.
+- Results should prioritize looks, outfits, try-on actions, and styling prompts.
+- Keep the structure unchanged:
+  1. Top search input row
+  2. Mira-style suggestion prompts
+  3. Recent searches
+  4. Look-first results
+- Do not ship the search page as a wireframe. Avoid plain gray blocks, empty outlined boxes, placeholder-only cards, or low-contrast section labels.
+- Use the same warm app background as the homepage, not a flat pure-white wireframe canvas.
+- The search input should feel finished:
+  - full-width rounded field
+  - white or warm surface
+  - subtle border
+  - search icon on the left
+  - mic and camera actions on the right
+  - placeholder: `Search by occasion, style, or vibe…`
+- The top row should feel like a designed search header:
+  - back icon in a consistent 40px touch target
+  - search field fills remaining width
+  - search field height matches homepage search bar
+  - header row gap uses a spacing token
+- Suggestion prompts should be polished chips, not flat wireframe pills:
+  - white/warm surface
+  - subtle border or soft shadow
+  - single-line text
+  - optional small leading icon from the DS icon catalog
+- Recent searches should use compact text chips with a search or clock-style icon. Keep them secondary, below suggestions.
+- Look-first results should use real outfit imagery or data-provided image URIs.
+- Replace blank beige placeholder rectangles with actual imagery or a real loading skeleton.
+- Loaded states must never show empty beige blocks.
+- `Trending looks for you` should be a horizontal row of finished look cards:
+  - real outfit image
+  - soft rounded corners
+  - small metadata chip
+  - `Try on me` or `Try now` action
+- `Explore by style` cards should use editorial style imagery or visual swatches, not plain empty tiles with only text.
+- `Looks under ₹1999` should use styled budget cards with outfit context, not large flat circles with only price labels.
+- `Brands Everyone's Searching` should only appear if it has finished brand logo pills/cards and enough bottom padding above the floating nav.
+- Result cards should prioritize:
+  - large look image
+  - short look title or intent
+  - one helpful styling reason
+  - primary CTA: `Try on me`
+  - secondary action: `Save look` or `Ask Mira`
+- Use complete outfit cards before individual product tiles.
+- For product-specific search results, pair the product with styling context such as `Style this with black jeans` or `Try with your closet`.
+- Use skeleton loading only while content is loading. Skeletons must use rounded image/card shapes that match the final layout and must not remain in the loaded state.
+- Empty search states should suggest useful intents such as:
+  - `wedding guest outfit`
+  - `office looks under ₹1999`
+  - `style my white shirt`
+  - `what goes with black jeans`
+- Empty states must include a clear value message, not only blank space or generic `No results`.
+- Keep the bottom navigation and any floating CTA from covering search results.
 
 ## Bottom Navigation
 
@@ -400,6 +538,13 @@ Rules:
 
 - Bottom nav appears only inside `HomeTabs`.
 - It should not appear during auth, onboarding, avatar creation, or location access.
+- Bottom nav must be floating, not stuck flush to the bottom edge.
+- Position it above the bottom safe area with a tokenized inset. Default: `bottom: safeAreaInsets.bottom + spacing.m`.
+- Use matching horizontal insets from the screen edges. Default: `left: spacing.l` and `right: spacing.l`.
+- Use a rounded surface with subtle border/shadow so it reads as a floating control.
+- Do not use the default full-width tab bar style unless it is wrapped in a floating container.
+- Do not set `bottom: 0` for the visible nav surface.
+- Screens inside `HomeTabs` must add bottom content padding so scroll content is not hidden behind the floating nav.
 - Use DS icons from `docs/claude/icons.md`.
 - Active tab uses neutral black styling.
 - Inactive tabs use muted neutral styling.
@@ -469,6 +614,7 @@ src/features/home/screens/
 src/features/home/components/
   HomeHeader.tsx
   HomeSearchBar.tsx
+  AskMiraCard.tsx
   StyledForYouHero.tsx
   HorizontalPillTabs.tsx
   LookProductCard.tsx
@@ -509,6 +655,8 @@ src/features/home/viewModels/
 - [ ] OTP cannot be reached without a valid phone number.
 - [ ] Verify cannot be tapped before all 4 OTP digits are entered.
 - [ ] OTP backspace deletes naturally across fields.
+- [ ] Setup screen headings and subtitles use the shared onboarding typography tokens.
+- [ ] Circular setup next buttons use equal bottom-right spacing and respect the bottom safe area.
 - [ ] Height picker snaps one value at a time.
 - [ ] Fashion interest allows only one selected option.
 - [ ] Style cards work through both swipe gestures and buttons.
@@ -516,9 +664,13 @@ src/features/home/viewModels/
 - [ ] Avatar creation simulates faster than 30 seconds for prototype.
 - [ ] Location comes after avatar ready and before homepage.
 - [ ] Homepage address reflects selected location.
-- [ ] Homepage matches Figma node `99:3295` section order.
+- [ ] Homepage matches this spec order while preserving Figma node `99:3295` for existing sections.
+- [ ] Ask Mira appears below search with suggested prompts and a freeform question input.
+- [ ] Search / Explore screens have safe-area top spacing and tokenized top padding.
 - [ ] Homepage tabs are clickable and horizontally scrollable.
 - [ ] Product cards are 2 per row.
 - [ ] Bottom nav contains only Home, Explore, Try-On, Cart.
+- [ ] Bottom nav floats above the bottom safe area and does not sit flush to the screen edge.
+- [ ] Home tab screens include enough bottom padding for the floating bottom nav.
 - [ ] All colors, spacing, radii, and typography come from DS tokens.
 - [ ] Loading, error, and empty states exist for every data-driven view.
