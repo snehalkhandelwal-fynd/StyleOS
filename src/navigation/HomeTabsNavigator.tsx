@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { BottomTabBar } from "../features/home/components/BottomTabBar";
+import type { ProductListingProduct } from "../features/home/components/ProductListingScreen";
 import { BrandPlpScreen } from "../features/home/screens/BrandPlpScreen";
 import { CartScreen } from "../features/home/screens/CartScreen";
 import { ExploreScreen } from "../features/home/screens/ExploreScreen";
 import { HomeScreen } from "../features/home/screens/HomeScreen";
 import type { ProductLook } from "../features/home/screens/HomeScreen";
 import { ModelLookPdpScreen } from "../features/home/screens/ModelLookPdpScreen";
+import { ProductPdpScreen } from "../features/home/screens/ProductPdpScreen";
 import { SearchDiscoveryScreen } from "../features/home/screens/SearchDiscoveryScreen";
 import { TryOnScreen } from "../features/home/screens/TryOnScreen";
 import { hasCompletedStyleProfile } from "../features/home/utils/stylePersonalization";
@@ -33,15 +35,17 @@ export function HomeTabsNavigator({
   const [activeTab, setActiveTab] = useState<HomeTabName>(initialTab);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [selectedLook, setSelectedLook] = useState<ProductLook | null>(null);
+  const [selectedProduct, setSelectedProduct] =
+    useState<ProductListingProduct | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isExploreInternalViewOpen, setIsExploreInternalViewOpen] =
     useState(false);
-  const hasStyleProfile = hasCompletedStyleProfile(draft);
 
   useEffect(() => {
     setActiveTab(initialTab);
     setSelectedBrandId(null);
     setSelectedLook(null);
+    setSelectedProduct(null);
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
   }, [initialTab]);
@@ -49,6 +53,7 @@ export function HomeTabsNavigator({
   const handleChangeTab = (tab: HomeTabName) => {
     setSelectedBrandId(null);
     setSelectedLook(null);
+    setSelectedProduct(null);
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
     setActiveTab(tab);
@@ -64,9 +69,11 @@ export function HomeTabsNavigator({
 
   const shouldShowBottomTabs =
     !selectedLook &&
+    !selectedProduct &&
     !selectedBrandId &&
     activeTab !== "Cart" &&
     !(activeTab === "Feed" && isExploreInternalViewOpen);
+  const hasStyleProfile = hasCompletedStyleProfile(draft);
 
   return (
     <View style={styles.screen}>
@@ -77,14 +84,25 @@ export function HomeTabsNavigator({
             onBack={() => setSelectedLook(null)}
           />
         ) : null}
-        {activeTab === "Home" && selectedBrandId && !selectedLook ? (
-          <BrandPlpScreen
-            brandId={selectedBrandId}
+        {activeTab === "Home" && selectedProduct && !selectedLook ? (
+          <ProductPdpScreen
             hasStyleProfile={hasStyleProfile}
-            onBack={() => setSelectedBrandId(null)}
+            onAddToCart={() => handleChangeTab("Cart")}
+            onAskMira={() => handleChangeTab("AIStylist")}
+            onBack={() => setSelectedProduct(null)}
+            onOpenLook={setSelectedLook}
+            onStartTryOn={() => handleChangeTab("TryOn")}
+            product={selectedProduct}
           />
         ) : null}
-        {activeTab === "Home" && !selectedBrandId && !selectedLook ? (
+        {activeTab === "Home" && selectedBrandId && !selectedLook && !selectedProduct ? (
+          <BrandPlpScreen
+            brandId={selectedBrandId}
+            onBack={() => setSelectedBrandId(null)}
+            onOpenProduct={setSelectedProduct}
+          />
+        ) : null}
+        {activeTab === "Home" && !selectedBrandId && !selectedLook && !selectedProduct ? (
           <HomeScreen
             draft={draft}
             isGuest={isGuest}
@@ -101,6 +119,7 @@ export function HomeTabsNavigator({
           <ExploreScreen
             hasStyleProfile={hasStyleProfile}
             onInternalViewChange={handleExploreInternalViewChange}
+            onAskMira={() => handleChangeTab("AIStylist")}
             onOpenSearch={() => setIsSearchOpen(true)}
             onStartTryOn={() => handleChangeTab("TryOn")}
           />

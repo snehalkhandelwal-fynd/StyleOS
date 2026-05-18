@@ -1,260 +1,120 @@
-import { Feather } from "@expo/vector-icons";
-import {
-  ImageBackground,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View
-} from "react-native";
-
-import {
-  brandProducts,
-  getBrandName,
-  getBrandProducts
-} from "../data/brandCatalog";
+import { getBrandName, getBrandProducts } from "../data/brandCatalog";
 import type { BrandProduct } from "../data/brandCatalog";
-import { getMerchandisingLabel } from "../utils/stylePersonalization";
-import { colors, fonts, spacing, typography } from "../../../theme";
+import {
+  ProductListingScreen,
+  type ProductListingProduct
+} from "../components/ProductListingScreen";
 
 type BrandPlpScreenProps = {
   brandId: string;
-  hasStyleProfile: boolean;
   onBack: () => void;
+  onOpenProduct?: (product: ProductListingProduct) => void;
 };
 
-const filters = ["All", "Dresses", "Workwear", "Party", "Under ₹1999"];
+const styleLabels = [
+  "Relaxed",
+  "Tailored",
+  "Soft",
+  "Everyday",
+  "Textured",
+  "Weekend"
+];
+const colorsForProducts = ["White", "Blue", "Sand", "Ivory", "Black", "Green"];
+const occasions = ["Work", "Weekend", "Vacation", "Brunch", "Date night"];
+const vibes = ["Classic", "Minimal", "Coastal", "Soft", "Street"];
+const sizeSets = [
+  ["XS", "S", "M"],
+  ["S", "M", "L"],
+  ["M", "L", "XL"],
+  ["XS", "M", "L"],
+  ["S", "L", "XL"]
+];
+const tryCounts = [
+  1200, 840, 430, 2100, 310, 1500, 680, 2400, 980, 1760, 520, 1110, 2600,
+  830, 1900, 420, 1350, 760, 1080, 620, 1430, 910, 1870, 560
+];
+const discountPercents = [40, 35, 0, 25, 50, 0, 30, 45];
+const deliveryWindows = [
+  "3 day delivery",
+  "4 day delivery",
+  "2 day delivery",
+  "5 day delivery"
+];
 
-function ProductTile({
-  displayLabel,
-  product,
-  width
-}: {
-  displayLabel: string;
-  product: BrandProduct;
-  width: number;
-}) {
-  return (
-    <Pressable accessibilityRole="button" style={[styles.productCard, { width }]}>
-      <ImageBackground
-        imageStyle={styles.productImageStyle}
-        resizeMode="cover"
-        source={{ uri: product.image }}
-        style={styles.productImage}
-      >
-        <View style={styles.matchPill}>
-          <Text style={styles.matchText}>{displayLabel}</Text>
-        </View>
-      </ImageBackground>
-      <View style={styles.productInfo}>
-        <Text numberOfLines={1} style={styles.productTitle}>
-          {product.title}
-        </Text>
-        <Text style={styles.productPrice}>{product.price}</Text>
-      </View>
-    </Pressable>
-  );
+function parsePriceValue(price: string) {
+  return Number(price.replace(/[^\d]/g, "")) || 0;
+}
+
+function formatRupeePrice(value: number) {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}
+
+function formatTryCount(count: number) {
+  if (count >= 1000) {
+    const rounded = count / 1000;
+    return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)}k tries`;
+  }
+
+  return `${count} tries`;
+}
+
+function buildBrandListingProducts(
+  sourceProducts: BrandProduct[]
+): ProductListingProduct[] {
+  if (sourceProducts.length === 0) {
+    return [];
+  }
+
+  return Array.from({ length: 24 }, (_, index) => {
+    const source = sourceProducts[index % sourceProducts.length];
+    const styleLabel = styleLabels[index % styleLabels.length];
+    const isOriginalProduct = index < sourceProducts.length;
+    const title = isOriginalProduct
+      ? source.title
+      : `${styleLabel} ${source.title.toLowerCase()}`;
+    const tryCount = tryCounts[index % tryCounts.length];
+    const priceValue = parsePriceValue(source.price);
+    const discountPercent = discountPercents[index % discountPercents.length];
+
+    return {
+      brand: getBrandName(source.brandId),
+      color: colorsForProducts[index % colorsForProducts.length],
+      deliveryText: deliveryWindows[index % deliveryWindows.length],
+      discountPercent: discountPercent || undefined,
+      id: `${source.id}-${index}`,
+      image: source.image,
+      occasion: occasions[index % occasions.length],
+      originalPrice:
+        discountPercent > 0
+          ? formatRupeePrice(priceValue / (1 - discountPercent / 100))
+          : undefined,
+      price: source.price,
+      priceValue,
+      sizeOptions: sizeSets[index % sizeSets.length],
+      styleLabel,
+      title,
+      tries: formatTryCount(tryCount),
+      tryCount,
+      vibe: vibes[index % vibes.length]
+    };
+  });
 }
 
 export function BrandPlpScreen({
   brandId,
-  hasStyleProfile,
-  onBack
+  onBack,
+  onOpenProduct
 }: BrandPlpScreenProps) {
-  const { width } = useWindowDimensions();
   const title = getBrandName(brandId);
-  const products = getBrandProducts(brandId);
-  const cardWidth = (width - spacing.screen * 2 - spacing.sm) / 2;
-  const productCount =
-    brandId === "all-brands" ? brandProducts.length : products.length;
+  const products = buildBrandListingProducts(getBrandProducts(brandId));
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Back to home"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onBack}
-          style={styles.backButton}
-        >
-          <Feather color={colors.text} name="arrow-left" size={24} />
-        </Pressable>
-        <View style={styles.headerCopy}>
-          <Text numberOfLines={1} style={styles.title}>
-            {title}
-          </Text>
-          <Text style={styles.subtitle}>{productCount} looks ready to try on</Text>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <ScrollView
-          contentContainerStyle={styles.filterTrack}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {filters.map((filter, index) => (
-            <Pressable
-              accessibilityRole="button"
-              key={filter}
-              style={[
-                styles.filterPill,
-                index === 0 ? styles.filterPillSelected : null
-              ]}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  index === 0 ? styles.filterTextSelected : null
-                ]}
-              >
-                {filter}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        <View style={styles.grid}>
-          {products.map((product, index) => (
-            <ProductTile
-              displayLabel={getMerchandisingLabel({
-                fallbackIndex: index,
-                hasStyleProfile,
-                personalizedLabel: product.match
-              })}
-              key={product.id}
-              product={product}
-              width={cardWidth}
-            />
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <ProductListingScreen
+      onBack={onBack}
+      onOpenProduct={onOpenProduct}
+      products={products}
+      subtitle={`${products.length} products`}
+      title={title}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  backButton: {
-    alignItems: "center",
-    height: 44,
-    justifyContent: "center",
-    width: 36
-  },
-  content: {
-    gap: spacing.lg,
-    paddingBottom: 128,
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.md
-  },
-  filterPill: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 36,
-    justifyContent: "center",
-    paddingHorizontal: 16
-  },
-  filterPillSelected: {
-    backgroundColor: colors.text,
-    borderWidth: 0
-  },
-  filterText: {
-    color: colors.muted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 17
-  },
-  filterTextSelected: {
-    color: colors.inverseText
-  },
-  filterTrack: {
-    gap: spacing.sm
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm
-  },
-  header: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.lg
-  },
-  headerCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  matchPill: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
-  matchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    lineHeight: 13
-  },
-  productCard: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden"
-  },
-  productImage: {
-    aspectRatio: 3 / 4,
-    backgroundColor: colors.imageSurface,
-    padding: spacing.sm
-  },
-  productImageStyle: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12
-  },
-  productInfo: {
-    gap: 3,
-    padding: 10
-  },
-  productPrice: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  productTitle: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 14
-  },
-  screen: {
-    backgroundColor: colors.background,
-    flex: 1
-  },
-  subtitle: {
-    color: colors.muted,
-    ...typography.caption
-  },
-  title: {
-    color: colors.text,
-    ...typography.sectionHeading
-  }
-});

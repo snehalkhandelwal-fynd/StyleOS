@@ -1,10 +1,9 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   ImageBackground,
-  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -19,11 +18,19 @@ import {
 } from "react-native";
 
 import { colors, fonts, spacing, typography } from "../../../theme";
+import {
+  ProductListingScreen,
+  type ProductListingProduct
+} from "../components/ProductListingScreen";
+import type { ProductLook } from "./HomeScreen";
+import { ModelLookPdpScreen } from "./ModelLookPdpScreen";
+import { ProductPdpScreen } from "./ProductPdpScreen";
 
 type ExploreScreenProps = {
   copy?: string;
   hasStyleProfile?: boolean;
   onInternalViewChange?: (isOpen: boolean) => void;
+  onAskMira?: () => void;
   onOpenSearch?: () => void;
   onStartTryOn?: (lookName?: string) => void;
   title?: string;
@@ -135,45 +142,13 @@ type OccasionTile = {
   name: string;
 };
 
-type CollectionLook = {
-  id: string;
-  image: string;
-  meta: string;
-  price?: string;
-  tone: string;
-  title: string;
-  vibe: VibeName;
-};
-
 type ActiveCollection = {
+  productCategory?: SummerCategory;
   subtitle: string;
   title: string;
   type: "trend" | "occasion" | "browse";
   vibe?: VibeName;
 };
-
-type PlpViewMode = "grid" | "list";
-type PlpSortValue =
-  | "relevance"
-  | "price-low"
-  | "price-high"
-  | "most-tried"
-  | "best-match";
-type PlpFilterKey = "size" | "color" | "price" | "occasion" | "vibe";
-type PlpFilterOption = {
-  label: string;
-  value: string;
-};
-type PlpFilterConfig = {
-  key: PlpFilterKey;
-  label: string;
-  options: PlpFilterOption[];
-};
-type PlpSheetState =
-  | { type: "filter"; key: PlpFilterKey }
-  | { type: "sort" }
-  | null;
-type PlpSelectedFilters = Partial<Record<PlpFilterKey, PlpFilterOption>>;
 
 const topInset = Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
 const pagePadding = 16;
@@ -184,56 +159,6 @@ const priceFilters = [
   { label: "Under ₹1999", value: 1999 },
   { label: "Under ₹2999", value: 2999 },
   { label: "Under ₹3999", value: 3999 }
-];
-
-const plpSortOptions: { label: string; value: PlpSortValue }[] = [
-  { label: "Relevance", value: "relevance" },
-  { label: "Price low to high", value: "price-low" },
-  { label: "Price high to low", value: "price-high" },
-  { label: "Most tried", value: "most-tried" },
-  { label: "Best match", value: "best-match" }
-];
-
-const plpFilterConfigs: PlpFilterConfig[] = [
-  {
-    key: "size",
-    label: "Size",
-    options: ["XS", "S", "M", "L", "XL"].map((size) => ({
-      label: size,
-      value: size
-    }))
-  },
-  {
-    key: "color",
-    label: "Color",
-    options: ["White", "Blue", "Sand", "Ivory", "Black", "Green"].map(
-      (color) => ({ label: color, value: color })
-    )
-  },
-  {
-    key: "price",
-    label: "Price range",
-    options: [
-      { label: "Under ₹1,000", value: "under-1000" },
-      { label: "Under ₹2,000", value: "under-2000" },
-      { label: "Under ₹3,000", value: "under-3000" },
-      { label: "Under ₹4,000", value: "under-4000" }
-    ]
-  },
-  {
-    key: "occasion",
-    label: "Occasion",
-    options: ["Work", "Weekend", "Vacation", "Brunch", "Date night"].map(
-      (occasion) => ({ label: occasion, value: occasion })
-    )
-  },
-  {
-    key: "vibe",
-    label: "Vibe",
-    options: ["Classic", "Minimal", "Coastal", "Soft", "Street"].map(
-      (vibe) => ({ label: vibe, value: vibe })
-    )
-  }
 ];
 
 const shirtProductImage =
@@ -546,7 +471,7 @@ const summerCategories: SummerCategory[] = [
         image:
           "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?auto=format&fit=crop&w=700&q=80",
         price: "₹1,299",
-        styleLabel: "Crisp everyday",
+        styleLabel: "Core piece",
         title: "White linen shirt"
       },
       {
@@ -554,7 +479,7 @@ const summerCategories: SummerCategory[] = [
         image:
           "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
         price: "₹1,799",
-        styleLabel: "Office to coast",
+        styleLabel: "Work polish",
         title: "Relaxed collar shirt"
       },
       {
@@ -750,6 +675,117 @@ const summerCategories: SummerCategory[] = [
     title: "Striped shirts"
   }
 ];
+
+function toSlug(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function singularProductLabel(title: string) {
+  const normalizedTitle = title.toLowerCase();
+
+  if (normalizedTitle.endsWith("ies")) {
+    return `${normalizedTitle.slice(0, -3)}y`;
+  }
+
+  if (normalizedTitle.endsWith("es")) {
+    return normalizedTitle.slice(0, -2);
+  }
+
+  if (normalizedTitle.endsWith("s")) {
+    return normalizedTitle.slice(0, -1);
+  }
+
+  return normalizedTitle;
+}
+
+function createProductCategory({
+  imageIndex = 0,
+  styleLabel,
+  title
+}: {
+  imageIndex?: number;
+  styleLabel: string;
+  title: string;
+}): SummerCategory {
+  const id = toSlug(title);
+  const singularTitle = singularProductLabel(title);
+  const images = [
+    ...collectionImages,
+    shirtProductImage,
+    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80"
+  ];
+  const productLabels = [
+    "Core piece",
+    "Work polish",
+    "Soft neutral",
+    "Weekend layer"
+  ];
+  const prefixes = ["White", "Relaxed", "Sand", "Easy"];
+  const prices = ["₹1,299", "₹1,799", "₹1,499", "₹1,699"];
+
+  return {
+    heroImage: images[(imageIndex + 1) % images.length],
+    id,
+    image: images[imageIndex % images.length],
+    products: productLabels.map((label, index) => ({
+      id: `${id}-${index + 1}`,
+      image: images[(imageIndex + index) % images.length],
+      price: prices[index],
+      styleLabel: label,
+      title: `${prefixes[index]} ${singularTitle}`
+    })),
+    styleLabel,
+    title
+  };
+}
+
+const trendListingCategories: Record<string, SummerCategory> = {
+  "Bold prints": createProductCategory({
+    imageIndex: 4,
+    styleLabel: "Statement patterns",
+    title: "Printed dresses"
+  }),
+  "Earthy tones": createProductCategory({
+    imageIndex: 2,
+    styleLabel: "Grounded palettes",
+    title: "Neutral co-ords"
+  }),
+  "Power tailoring": createProductCategory({
+    imageIndex: 5,
+    styleLabel: "Structured polish",
+    title: "Tailored sets"
+  }),
+  "Quiet linen": summerCategories[0],
+  "Sheer layers": createProductCategory({
+    imageIndex: 3,
+    styleLabel: "Light layering",
+    title: "Sheer layers"
+  }),
+  "Soft femme": createProductCategory({
+    imageIndex: 1,
+    styleLabel: "Romantic ease",
+    title: "Soft dresses"
+  })
+};
+
+function getTrendListingCategory(story: TrendStory) {
+  return trendListingCategories[story.name] ?? summerCategories[0];
+}
+
+function getCollectionListingCategory(collection: ActiveCollection) {
+  if (collection.productCategory) {
+    return collection.productCategory;
+  }
+
+  return createProductCategory({
+    imageIndex: collection.title.length % collectionImages.length,
+    styleLabel: collection.vibe ?? "Try-on ready",
+    title:
+      collection.type === "occasion"
+        ? `${collection.title} looks`
+        : `${collection.title} products`
+  });
+}
 
 const budgetLooks: BudgetLook[] = [
   {
@@ -966,17 +1002,23 @@ function SearchBar({ onPress }: { onPress?: () => void }) {
 
 function TrendStoryCard({
   index,
-  onExplore,
-  onTryOn,
+  onOpen,
   story
 }: {
   index: number;
-  onExplore: () => void;
-  onTryOn: () => void;
+  onOpen: () => void;
   story: TrendStory;
 }) {
   return (
-    <View style={styles.trendCard}>
+    <Pressable
+      accessibilityLabel={`Open ${story.name} products`}
+      accessibilityRole="button"
+      onPress={onOpen}
+      style={({ pressed }) => [
+        styles.trendCard,
+        pressed ? styles.pressed : null
+      ]}
+    >
       <View style={styles.trendLeft}>
         <Text style={styles.trendNumber}>{index + 1}</Text>
         <Text numberOfLines={2} style={styles.trendName}>
@@ -985,33 +1027,21 @@ function TrendStoryCard({
         <Text numberOfLines={2} style={styles.trendDescription}>
           {story.description}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onExplore}
-          style={({ pressed }) => [
-            styles.trendCta,
-            pressed ? styles.pressed : null
-          ]}
-        >
+        <View style={styles.trendCta}>
           <Text style={styles.trendCtaText}>
             Explore {story.looks}+ looks →
           </Text>
-        </Pressable>
+        </View>
       </View>
-      <Pressable
-        accessibilityLabel={`Try on ${story.name}`}
-        accessibilityRole="button"
-        onPress={onTryOn}
-        style={styles.trendImagePress}
-      >
+      <View style={styles.trendImagePress}>
         <ImageBackground
           imageStyle={styles.trendImageStyle}
           resizeMode="cover"
           source={{ uri: story.image }}
           style={styles.trendImage}
         />
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1316,221 +1346,6 @@ function SummerDaysSection({
   );
 }
 
-function getPlpFilterConfig(key: PlpFilterKey) {
-  return plpFilterConfigs.find((filter) => filter.key === key) ?? plpFilterConfigs[0];
-}
-
-function PlpFilterBar({
-  onOpenFilter,
-  onOpenSort,
-  selectedFilters,
-  selectedSort
-}: {
-  onOpenFilter: (key: PlpFilterKey) => void;
-  onOpenSort: () => void;
-  selectedFilters: PlpSelectedFilters;
-  selectedSort: PlpSortValue;
-}) {
-  const selectedSortOption = plpSortOptions.find(
-    (option) => option.value === selectedSort
-  );
-  const sortLabel =
-    selectedSort === "relevance" ? "Sort" : selectedSortOption?.label ?? "Sort";
-
-  return (
-    <View style={styles.plpFilterBar}>
-      <ScrollView
-        contentContainerStyle={styles.plpFilterTrack}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={onOpenSort}
-          style={[
-            styles.plpFilterPill,
-            selectedSort !== "relevance" ? styles.plpFilterPillSelected : null
-          ]}
-        >
-          <Ionicons
-            color={selectedSort !== "relevance" ? colors.inverseText : colors.text}
-            name="swap-vertical-outline"
-            size={14}
-          />
-          <Text
-            style={[
-              styles.plpFilterText,
-              selectedSort !== "relevance" ? styles.plpFilterTextSelected : null
-            ]}
-          >
-            {sortLabel}
-          </Text>
-        </Pressable>
-        {plpFilterConfigs.map((filter) => {
-          const selectedFilter = selectedFilters[filter.key];
-
-          return (
-            <Pressable
-              accessibilityRole="button"
-              key={filter.key}
-              onPress={() => onOpenFilter(filter.key)}
-              style={[
-                styles.plpFilterPill,
-                selectedFilter ? styles.plpFilterPillSelected : null
-              ]}
-            >
-              <Text
-                style={[
-                  styles.plpFilterText,
-                  selectedFilter ? styles.plpFilterTextSelected : null
-                ]}
-              >
-                {selectedFilter?.label ?? filter.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-function PlpOptionsSheet({
-  onClose,
-  onSelectFilter,
-  onSelectSort,
-  selectedFilters,
-  selectedSort,
-  sheet
-}: {
-  onClose: () => void;
-  onSelectFilter: (key: PlpFilterKey, option: PlpFilterOption) => void;
-  onSelectSort: (value: PlpSortValue) => void;
-  selectedFilters: PlpSelectedFilters;
-  selectedSort: PlpSortValue;
-  sheet: PlpSheetState;
-}) {
-  const filterConfig =
-    sheet?.type === "filter" ? getPlpFilterConfig(sheet.key) : null;
-  const title = sheet?.type === "sort" ? "Sort" : filterConfig?.label ?? "";
-  const options =
-    sheet?.type === "sort" ? plpSortOptions : filterConfig?.options ?? [];
-
-  return (
-    <Modal
-      animationType="slide"
-      onRequestClose={onClose}
-      transparent
-      visible={Boolean(sheet)}
-    >
-      <View style={styles.plpSheetRoot}>
-        <Pressable
-          accessibilityLabel="Close product options"
-          accessibilityRole="button"
-          onPress={onClose}
-          style={styles.plpSheetScrim}
-        />
-        <View style={styles.plpSheet}>
-          <View style={styles.plpSheetHandle} />
-          <Text style={styles.plpSheetTitle}>{title}</Text>
-          {options.map((option) => {
-            const isSelected =
-              sheet?.type === "sort"
-                ? option.value === selectedSort
-                : option.value === selectedFilters[sheet?.key ?? "size"]?.value;
-
-            return (
-              <Pressable
-                accessibilityRole="button"
-                key={option.value}
-                onPress={() => {
-                  if (sheet?.type === "sort") {
-                    onSelectSort(option.value as PlpSortValue);
-                  } else if (sheet?.type === "filter") {
-                    onSelectFilter(sheet.key, option);
-                  }
-
-                  onClose();
-                }}
-                style={styles.plpSheetOption}
-              >
-                <Text
-                  style={[
-                    styles.plpSheetOptionText,
-                    isSelected ? styles.plpSheetOptionTextSelected : null
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                {isSelected ? (
-                  <Feather color={colors.text} name="check" size={18} />
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function SummerProductCard({
-  product,
-  showMatchScore,
-  width
-}: {
-  product: SummerProduct;
-  showMatchScore: boolean;
-  width: number;
-}) {
-  const hasMatchScore = showMatchScore && Boolean(product.match);
-  const hasTryCount =
-    typeof product.tryCount === "number" &&
-    product.tryCount >= 100 &&
-    Boolean(product.tries);
-
-  return (
-    <View style={[styles.summerProductCard, { width }]}>
-      <ImageBackground
-        imageStyle={styles.summerProductImageStyle}
-        resizeMode="cover"
-        source={{ uri: product.image }}
-        style={styles.summerProductImage}
-      >
-        <View style={styles.plpSaveWrap}>
-          <Pressable accessibilityRole="button" style={styles.plpSaveButton}>
-            <Feather color={colors.text} name="heart" size={14} />
-          </Pressable>
-        </View>
-        <View style={styles.plpImageMetaStack}>
-          {hasMatchScore ? (
-            <View style={styles.plpMatchPill}>
-              <Text style={styles.plpMatchText}>{product.match}</Text>
-            </View>
-          ) : null}
-          {hasTryCount ? (
-            <View style={styles.plpTryPill}>
-              <Text style={styles.plpTryCount}>{product.tries}</Text>
-            </View>
-          ) : null}
-        </View>
-      </ImageBackground>
-      <View style={styles.summerProductInfo}>
-        <Text numberOfLines={1} style={styles.summerProductTitle}>
-          {product.title}
-        </Text>
-        <Text style={styles.summerProductPrice}>{product.price}</Text>
-        <Text numberOfLines={1} style={styles.summerProductBrand}>
-          {product.brand ?? "Trends"}
-        </Text>
-        <Text numberOfLines={1} style={styles.summerProductLabel}>
-          {product.styleLabel}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 function BudgetLookCard({
   item,
   onTryOn,
@@ -1640,12 +1455,12 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
     "https://images.unsplash.com/photo-1603217040830-34473db521a9?auto=format&fit=crop&w=700&q=80"
   ];
   const styleFamilies = [
-    "Work-ready",
-    "Weekend",
-    "Travel light",
-    "Easy fit",
-    "Brunch-ready",
-    "Office to coast"
+    "Relaxed",
+    "Tailored",
+    "Soft",
+    "Everyday",
+    "Textured",
+    "Weekend"
   ];
   const colorsForProducts = ["White", "Blue", "Sand", "Ivory", "Black", "Green"];
   const occasions = ["Work", "Weekend", "Vacation", "Brunch", "Date night"];
@@ -1677,7 +1492,14 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
     "₹2,799",
     "₹3,299"
   ];
-  const singularTitle = category.title.toLowerCase().replace(/s$/, "");
+  const discountPercents = [40, 35, 0, 25, 50, 0, 30, 45, 0, 20];
+  const deliveryWindows = [
+    "3 day delivery",
+    "4 day delivery",
+    "2 day delivery",
+    "5 day delivery"
+  ];
+  const singularTitle = singularProductLabel(category.title);
 
   return Array.from({ length: 24 }, (_, index) => {
     const source = category.products[index % category.products.length];
@@ -1695,6 +1517,8 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
       index < category.products.length
         ? source.price
         : alternatePrices[index % alternatePrices.length];
+    const priceValue = parsePriceValue(price);
+    const discountPercent = discountPercents[index % discountPercents.length];
 
     return {
       ...source,
@@ -1709,8 +1533,14 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
       match: `${matchScore}% your style`,
       matchScore,
       occasion: occasions[index % occasions.length],
+      deliveryText: deliveryWindows[index % deliveryWindows.length],
+      discountPercent: discountPercent || undefined,
+      originalPrice:
+        discountPercent > 0
+          ? formatRupeePrice(priceValue / (1 - discountPercent / 100))
+          : undefined,
       price,
-      priceValue: parsePriceValue(price),
+      priceValue,
       sizeOptions: sizeSets[index % sizeSets.length],
       styleLabel,
       tags: source.tags ?? [
@@ -1730,6 +1560,10 @@ function parsePriceValue(price: string) {
   return Number(price.replace(/[^\d]/g, "")) || 0;
 }
 
+function formatRupeePrice(value: number) {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}
+
 function formatTryCount(count: number) {
   if (count >= 1000) {
     const rounded = count / 1000;
@@ -1739,286 +1573,115 @@ function formatTryCount(count: number) {
   return `${count} tries`;
 }
 
-function getPriceLimit(value: string) {
-  return Number(value.replace(/[^\d]/g, "")) || Number.POSITIVE_INFINITY;
-}
-
-function getFilteredSummerProducts(
-  products: SummerProduct[],
-  selectedFilters: PlpSelectedFilters
-) {
-  return products.filter((product) => {
-    const selectedSize = selectedFilters.size;
-    const selectedColor = selectedFilters.color;
-    const selectedPrice = selectedFilters.price;
-    const selectedOccasion = selectedFilters.occasion;
-    const selectedVibe = selectedFilters.vibe;
-
-    if (
-      selectedSize &&
-      !product.sizeOptions?.includes(selectedSize.value)
-    ) {
-      return false;
-    }
-
-    if (selectedColor && product.color !== selectedColor.value) {
-      return false;
-    }
-
-    if (
-      selectedPrice &&
-      (product.priceValue ?? parsePriceValue(product.price)) >
-        getPriceLimit(selectedPrice.value)
-    ) {
-      return false;
-    }
-
-    if (selectedOccasion && product.occasion !== selectedOccasion.value) {
-      return false;
-    }
-
-    if (selectedVibe && product.vibe !== selectedVibe.value) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
-function getSortedSummerProducts(
-  products: SummerProduct[],
-  selectedSort: PlpSortValue
-) {
-  const sortedProducts = [...products];
-
-  if (selectedSort === "price-low") {
-    return sortedProducts.sort(
-      (a, b) =>
-        (a.priceValue ?? parsePriceValue(a.price)) -
-        (b.priceValue ?? parsePriceValue(b.price))
-    );
-  }
-
-  if (selectedSort === "price-high") {
-    return sortedProducts.sort(
-      (a, b) =>
-        (b.priceValue ?? parsePriceValue(b.price)) -
-        (a.priceValue ?? parsePriceValue(a.price))
-    );
-  }
-
-  if (selectedSort === "most-tried") {
-    return sortedProducts.sort((a, b) => (b.tryCount ?? 0) - (a.tryCount ?? 0));
-  }
-
-  if (selectedSort === "best-match") {
-    return sortedProducts.sort(
-      (a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0)
-    );
-  }
-
-  return sortedProducts;
-}
-
-function buildCollectionLooks(collection: ActiveCollection): CollectionLook[] {
-  const vibe = collection.vibe ?? "Classic";
-  const tones = ["#E2DED4", "#D8E2E4", "#E8D7B9", "#E7D5DC", "#DCE8E1", "#E5DDCE"];
-
-  return Array.from({ length: 8 }, (_, index) => ({
-    id: `${collection.title}-${index}`,
-    image: collectionImages[index % collectionImages.length],
-    meta: index % 2 === 0 ? "3 pieces · Try on ready" : "4 pieces · Complete look",
-    price: index % 2 === 0 ? "₹4,899" : "₹6,299",
-    title: `${collection.title} look ${index + 1}`,
-    tone: tones[index % tones.length],
-    vibe
-  }));
-}
-
 function CollectionGridView({
   collection,
-  onBack,
-  onStartTryOn
+  hasStyleProfile,
+  onAskMira,
+  onStartTryOn,
+  onBack
 }: {
   collection: ActiveCollection;
+  hasStyleProfile?: boolean;
+  onAskMira?: () => void;
+  onStartTryOn?: (lookName?: string) => void;
   onBack: () => void;
-  onStartTryOn: (lookName?: string) => void;
 }) {
-  const { width } = useWindowDimensions();
-  const cardWidth = (width - pagePadding * 2 - spacing.sm) / 2;
-  const looks = useMemo(() => buildCollectionLooks(collection), [collection]);
+  const [selectedProduct, setSelectedProduct] =
+    useState<ProductListingProduct | null>(null);
+  const [selectedLook, setSelectedLook] = useState<ProductLook | null>(null);
+  const category = useMemo(
+    () => getCollectionListingCategory(collection),
+    [collection]
+  );
+  const products = useMemo(
+    () => buildSummerListingProducts(category),
+    [category]
+  );
+
+  if (selectedLook) {
+    return (
+      <ModelLookPdpScreen
+        look={selectedLook}
+        onBack={() => setSelectedLook(null)}
+      />
+    );
+  }
+
+  if (selectedProduct) {
+    return (
+      <ProductPdpScreen
+        hasStyleProfile={hasStyleProfile}
+        onAskMira={onAskMira}
+        onBack={() => setSelectedProduct(null)}
+        onOpenLook={setSelectedLook}
+        onStartTryOn={onStartTryOn}
+        product={selectedProduct}
+      />
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.collectionHeader}>
-        <Pressable
-          accessibilityLabel="Back to Explore"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onBack}
-          style={styles.backButton}
-        >
-          <Feather color={colors.text} name="arrow-left" size={23} />
-        </Pressable>
-        <View style={styles.collectionHeaderCopy}>
-          <Text numberOfLines={1} style={styles.collectionTitle}>
-            {collection.title}
-          </Text>
-          <Text style={styles.collectionSubtitle}>{collection.subtitle}</Text>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.collectionGrid}
-        showsVerticalScrollIndicator={false}
-      >
-        {looks.map((look) => (
-          <View
-            key={look.id}
-            style={[styles.collectionLookCard, { width: cardWidth }]}
-          >
-            <ImageBackground
-              imageStyle={styles.collectionLookImageStyle}
-              resizeMode="cover"
-              source={{ uri: look.image }}
-              style={[
-                styles.collectionLookImage,
-                { backgroundColor: look.tone }
-              ]}
-            >
-              <Text style={styles.smallTag}>{look.vibe}</Text>
-            </ImageBackground>
-            <View style={styles.collectionLookInfo}>
-              <Text numberOfLines={1} style={styles.collectionLookTitle}>
-                {look.title}
-              </Text>
-              <Text style={styles.collectionLookMeta}>{look.meta}</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => onStartTryOn(look.title)}
-                style={styles.collectionTryButton}
-              >
-                <Text style={styles.collectionTryText}>Try on</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+    <ProductListingScreen
+      onBack={onBack}
+      onOpenProduct={setSelectedProduct}
+      products={products}
+      subtitle={`${products.length} products`}
+      title={category.title}
+    />
   );
 }
 
 function SummerCategoryListingView({
   category,
   hasStyleProfile,
+  onAskMira,
+  onStartTryOn,
   onBack
 }: {
   category: SummerCategory;
-  hasStyleProfile: boolean;
+  hasStyleProfile?: boolean;
+  onAskMira?: () => void;
+  onStartTryOn?: (lookName?: string) => void;
   onBack: () => void;
 }) {
-  const { width } = useWindowDimensions();
-  const [selectedSort, setSelectedSort] =
-    useState<PlpSortValue>("relevance");
-  const [selectedFilters, setSelectedFilters] =
-    useState<PlpSelectedFilters>({});
-  const [activeSheet, setActiveSheet] = useState<PlpSheetState>(null);
-  const [viewMode, setViewMode] = useState<PlpViewMode>("grid");
-  const cardWidth =
-    viewMode === "grid"
-      ? (width - pagePadding * 2 - spacing.sm) / 2
-      : width - pagePadding * 2;
+  const [selectedProduct, setSelectedProduct] =
+    useState<ProductListingProduct | null>(null);
+  const [selectedLook, setSelectedLook] = useState<ProductLook | null>(null);
   const products = useMemo(
     () => buildSummerListingProducts(category),
     [category]
   );
-  const displayedProducts = useMemo(() => {
-    const filteredProducts = getFilteredSummerProducts(
-      products,
-      selectedFilters
-    );
 
-    return getSortedSummerProducts(filteredProducts, selectedSort);
-  }, [products, selectedFilters, selectedSort]);
+  if (selectedLook) {
+    return (
+      <ModelLookPdpScreen
+        look={selectedLook}
+        onBack={() => setSelectedLook(null)}
+      />
+    );
+  }
+
+  if (selectedProduct) {
+    return (
+      <ProductPdpScreen
+        hasStyleProfile={hasStyleProfile}
+        onAskMira={onAskMira}
+        onBack={() => setSelectedProduct(null)}
+        onOpenLook={setSelectedLook}
+        onStartTryOn={onStartTryOn}
+        product={selectedProduct}
+      />
+    );
+  }
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.plpHeader}>
-        <Pressable
-          accessibilityLabel="Back to Explore"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onBack}
-          style={styles.backButton}
-        >
-          <Feather color={colors.text} name="chevron-left" size={24} />
-        </Pressable>
-        <View style={styles.plpHeaderCopy}>
-          <Text numberOfLines={1} style={styles.plpTitle}>
-            {category.title}
-          </Text>
-          <Text style={styles.plpSubtitle}>
-            {products.length} products from Trends
-          </Text>
-        </View>
-        <Pressable
-          accessibilityLabel={
-            viewMode === "grid" ? "Switch to list view" : "Switch to grid view"
-          }
-          accessibilityRole="button"
-          onPress={() =>
-            setViewMode((current) => (current === "grid" ? "list" : "grid"))
-          }
-          style={styles.plpViewToggle}
-        >
-          <Feather
-            color={colors.text}
-            name={viewMode === "grid" ? "grid" : "list"}
-            size={20}
-          />
-        </Pressable>
-      </View>
-      <PlpFilterBar
-        onOpenFilter={(key) => setActiveSheet({ key, type: "filter" })}
-        onOpenSort={() => setActiveSheet({ type: "sort" })}
-        selectedFilters={selectedFilters}
-        selectedSort={selectedSort}
-      />
-
-      <ScrollView
-        contentContainerStyle={styles.plpContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.plpGrid}>
-          {displayedProducts.map((product) => (
-            <SummerProductCard
-              key={product.id}
-              product={product}
-              showMatchScore={hasStyleProfile}
-              width={cardWidth}
-            />
-          ))}
-        </View>
-        {displayedProducts.length === 0 ? (
-          <View style={styles.plpEmptyState}>
-            <Text style={styles.plpEmptyTitle}>No pieces in this mix</Text>
-            <Text style={styles.plpEmptyText}>
-              Try another size, color, or vibe to keep styling.
-            </Text>
-          </View>
-        ) : null}
-      </ScrollView>
-      <PlpOptionsSheet
-        onClose={() => setActiveSheet(null)}
-        onSelectFilter={(key, option) =>
-          setSelectedFilters((current) => ({ ...current, [key]: option }))
-        }
-        onSelectSort={setSelectedSort}
-        selectedFilters={selectedFilters}
-        selectedSort={selectedSort}
-        sheet={activeSheet}
-      />
-    </View>
+    <ProductListingScreen
+      onBack={onBack}
+      onOpenProduct={setSelectedProduct}
+      products={products}
+      subtitle={`${products.length} products`}
+      title={category.title}
+    />
   );
 }
 
@@ -2116,8 +1779,9 @@ function PlaceholderScreen({
 
 export function ExploreScreen({
   copy,
-  hasStyleProfile = false,
+  hasStyleProfile,
   onInternalViewChange,
+  onAskMira,
   onOpenSearch,
   onStartTryOn = () => undefined,
   title
@@ -2240,6 +1904,8 @@ export function ExploreScreen({
     return (
       <CollectionGridView
         collection={activeCollection}
+        hasStyleProfile={hasStyleProfile}
+        onAskMira={onAskMira}
         onBack={() => setActiveCollection(null)}
         onStartTryOn={onStartTryOn}
       />
@@ -2251,7 +1917,9 @@ export function ExploreScreen({
       <SummerCategoryListingView
         category={activeSummerCategory}
         hasStyleProfile={hasStyleProfile}
+        onAskMira={onAskMira}
         onBack={() => setActiveSummerCategory(null)}
+        onStartTryOn={onStartTryOn}
       />
     );
   }
@@ -2289,15 +1957,17 @@ export function ExploreScreen({
               <TrendStoryCard
                 index={index}
                 key={story.id}
-                onExplore={() =>
+                onOpen={() => {
+                  const productCategory = getTrendListingCategory(story);
+
                   openCollection({
+                    productCategory,
                     subtitle: `${story.looks}+ complete looks ready to try on`,
-                    title: story.name,
+                    title: productCategory.title,
                     type: "trend",
                     vibe: story.vibes[0]
-                  })
-                }
-                onTryOn={() => onStartTryOn(story.name)}
+                  });
+                }}
                 story={story}
               />
             ))}
@@ -3024,364 +2694,6 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     color: colors.text,
     ...typography.displayHeadline
-  },
-  plpContent: {
-    gap: spacing.md,
-    paddingBottom: 0,
-    paddingHorizontal: pagePadding,
-    paddingTop: spacing.md
-  },
-  plpCount: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  plpEmptyState: {
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xxl
-  },
-  plpEmptyText: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: spacing.xs,
-    textAlign: "center"
-  },
-  plpEmptyTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 20
-  },
-  plpFilterBar: {
-    backgroundColor: colors.background,
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    height: 44,
-    justifyContent: "center"
-  },
-  plpFilterPill: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: 5,
-    height: 32,
-    justifyContent: "center",
-    paddingHorizontal: 12
-  },
-  plpFilterPillSelected: {
-    backgroundColor: colors.inverse,
-    borderWidth: 0
-  },
-  plpFilterText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  plpFilterTextSelected: {
-    color: colors.inverseText
-  },
-  plpFilterTrack: {
-    gap: spacing.xs,
-    paddingLeft: pagePadding,
-    paddingHorizontal: pagePadding
-  },
-  plpGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm
-  },
-  plpHeader: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    flexDirection: "row",
-    gap: spacing.sm,
-    minHeight: 64,
-    paddingBottom: 10,
-    paddingHorizontal: pagePadding,
-    paddingTop: spacing.md
-  },
-  plpHeaderActions: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.xs
-  },
-  plpHeaderCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  plpImageMetaStack: {
-    alignItems: "flex-start",
-    bottom: 8,
-    gap: 2,
-    left: 8,
-    position: "absolute"
-  },
-  plpIconButton: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 17,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 34,
-    justifyContent: "center",
-    width: 34
-  },
-  plpImageTag: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    bottom: 8,
-    color: colors.muted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    left: 8,
-    lineHeight: 13,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    position: "absolute"
-  },
-  plpMatchPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
-  plpMatchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    lineHeight: 13
-  },
-  plpIntroCard: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.md,
-    padding: spacing.md
-  },
-  plpIntroCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  plpIntroCta: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.inverse,
-    borderRadius: 999,
-    marginTop: spacing.sm,
-    paddingHorizontal: 13,
-    paddingVertical: 7
-  },
-  plpIntroCtaText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14
-  },
-  plpIntroEyebrow: {
-    color: colors.muted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 0,
-    lineHeight: 13,
-    textTransform: "uppercase"
-  },
-  plpIntroImage: {
-    backgroundColor: colors.imageSurface,
-    borderRadius: 12,
-    height: 112,
-    overflow: "hidden",
-    width: 92
-  },
-  plpIntroImageStyle: {
-    borderRadius: 12
-  },
-  plpIntroText: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 5
-  },
-  plpIntroTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 17,
-    lineHeight: 21,
-    marginTop: 3
-  },
-  plpSaveWrap: {
-    position: "absolute",
-    right: 8,
-    top: 8,
-    zIndex: 2
-  },
-  plpSaveButton: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 15,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 30,
-    justifyContent: "center",
-    width: 30
-  },
-  plpSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: spacing.xxl,
-    paddingHorizontal: pagePadding,
-    paddingTop: spacing.sm
-  },
-  plpSheetHandle: {
-    alignSelf: "center",
-    backgroundColor: colors.border,
-    borderRadius: 999,
-    height: 4,
-    marginBottom: spacing.lg,
-    width: 40
-  },
-  plpSheetOption: {
-    alignItems: "center",
-    borderBottomColor: colors.border,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    minHeight: 50,
-    paddingVertical: spacing.sm
-  },
-  plpSheetOptionText: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 20
-  },
-  plpSheetOptionTextSelected: {
-    color: colors.text,
-    fontFamily: fonts.heading
-  },
-  plpSheetRoot: {
-    flex: 1,
-    justifyContent: "flex-end"
-  },
-  plpSheetScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 10, 10, 0.34)"
-  },
-  plpSheetTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23,
-    marginBottom: spacing.sm
-  },
-  plpSortButton: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 2,
-    height: 30,
-    justifyContent: "center",
-    paddingLeft: 10
-  },
-  plpSortText: {
-    color: colors.muted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  plpStyleBanner: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.md,
-    justifyContent: "space-between",
-    padding: spacing.lg
-  },
-  plpStyleBannerCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  plpStyleBannerCta: {
-    alignItems: "center",
-    backgroundColor: colors.inverse,
-    borderRadius: 999,
-    height: 36,
-    justifyContent: "center",
-    paddingHorizontal: 14
-  },
-  plpStyleBannerCtaText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  plpStyleBannerText: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 3
-  },
-  plpStyleBannerTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 20
-  },
-  plpSubtitle: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 17,
-    marginTop: 2
-  },
-  plpTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 20,
-    lineHeight: 25
-  },
-  plpToolbar: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-  plpTryCount: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 10,
-    lineHeight: 13
-  },
-  plpTryPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
-  plpViewToggle: {
-    alignItems: "center",
-    height: 44,
-    justifyContent: "center",
-    width: 44
   },
   pressed: {
     opacity: 0.72
