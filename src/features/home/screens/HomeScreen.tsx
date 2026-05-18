@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -9,7 +10,6 @@ import {
   NativeSyntheticEvent,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   StatusBar,
@@ -25,16 +25,19 @@ import {
   getMerchandisingLabel,
   hasCompletedStyleProfile
 } from "../utils/stylePersonalization";
-import { colors, fonts, layout, spacing } from "../../../theme";
+import { colors, fonts, spacing } from "../../../theme";
 
 const AnimatedHeaderView = Animated.createAnimatedComponent(View);
+const homeHeaderTopInset =
+  Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
 
 type HomeScreenProps = {
   draft: OnboardingDraft;
   isGuest: boolean;
   onChangeAddress: () => void;
   onOpenBrand: (brandId: string) => void;
-  onOpenExplore: () => void;
+  onOpenCart: () => void;
+  onOpenLook: (look: ProductLook) => void;
   onOpenSearch: () => void;
   onStartStyleQuiz: () => void;
 };
@@ -58,6 +61,8 @@ type ProductLook = {
   tries: string;
   vibe: string;
 };
+
+export type { OutfitPiece, OutfitPieceKind, ProductLook };
 
 const demoAvatar = require("../../../assets/bodyimage.png");
 
@@ -245,21 +250,12 @@ const occasionFilters = [
   "Festive"
 ];
 
-const miraChips = [
-  "What's trending in Mumbai?",
-  "Style my white t-shirt 3 ways",
-  "Outfit for a beach wedding under ₹3,000",
-  "What colours suit warm skin tones?",
-  "Pack for a 4-day Goa trip"
-];
+const priceFilters = ["Under ₹999", "Under ₹1999", "Under ₹2999", "Under ₹3999"];
 
-const priceLooks = looks.slice(1, 5);
 const demoOutfits = [looks[0].image, looks[1].image, looks[3].image];
 const wishlistHeartColor = "#D92D20";
 const headerActionIconSize = 22;
 const headerActionStrokeWidth = 1.8;
-const homeHeaderTopPadding =
-  Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) + spacing.md : 56;
 
 function HeaderTruckIcon() {
   return (
@@ -298,32 +294,6 @@ function HeaderCameraIcon() {
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
       <Path d="M20 17.091C20 17.4767 19.8468 17.8467 19.574 18.1195C19.3012 18.3923 18.9312 18.5455 18.5455 18.5455H5.45455C5.06878 18.5455 4.69881 18.3923 4.42603 18.1195C4.15325 17.8467 4 17.4767 4 17.091V9.09095C4 8.70518 4.15325 8.33521 4.42603 8.06243C4.69881 7.78965 5.06878 7.63641 5.45455 7.63641H8.36364L9.81818 5.45459H14.1818L15.6364 7.63641H18.5455C18.9312 7.63641 19.3012 7.78965 19.574 8.06243C19.8468 8.33521 20 8.70518 20 9.09095V17.091Z" stroke="#AAA8A7" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
       <Path d="M11.9999 15.6364C13.6066 15.6364 14.909 14.334 14.909 12.7273C14.909 11.1207 13.6066 9.81824 11.9999 9.81824C10.3933 9.81824 9.09082 11.1207 9.09082 12.7273C9.09082 14.334 10.3933 15.6364 11.9999 15.6364Z" stroke="#AAA8A7" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-function HeaderProfileIcon() {
-  return (
-    <Svg
-      width={headerActionIconSize}
-      height={headerActionIconSize}
-      viewBox="0 0 24 24"
-      fill="none"
-    >
-      <Path
-        d="M12 11.25C14.0711 11.25 15.75 9.57107 15.75 7.5C15.75 5.42893 14.0711 3.75 12 3.75C9.92893 3.75 8.25 5.42893 8.25 7.5C8.25 9.57107 9.92893 11.25 12 11.25Z"
-        stroke={colors.text}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={headerActionStrokeWidth}
-      />
-      <Path
-        d="M5.25 20.25C5.25 16.5221 8.27208 13.5 12 13.5C15.7279 13.5 18.75 16.5221 18.75 20.25"
-        stroke={colors.text}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={headerActionStrokeWidth}
-      />
     </Svg>
   );
 }
@@ -371,11 +341,13 @@ function TopNavigation({
   address,
   hasBorder,
   onChangeAddress,
+  onOpenCart,
   onOpenSearch
 }: {
   address: string;
   hasBorder: boolean;
   onChangeAddress: () => void;
+  onOpenCart: () => void;
   onOpenSearch: () => void;
 }) {
   return (
@@ -393,6 +365,33 @@ function TopNavigation({
           </Text>
           <Feather color="#8F8E8C" name="chevron-down" size={22} />
         </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            accessibilityLabel="Notifications"
+            accessibilityRole="button"
+            style={styles.headerIconButton}
+          >
+            <Feather
+              color={colors.text}
+              name="bell"
+              size={headerActionIconSize}
+              strokeWidth={headerActionStrokeWidth}
+            />
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Cart"
+            accessibilityRole="button"
+            onPress={onOpenCart}
+            style={styles.headerIconButton}
+          >
+            <Feather
+              color={colors.text}
+              name="shopping-cart"
+              size={headerActionIconSize}
+              strokeWidth={headerActionStrokeWidth}
+            />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.searchActionRow}>
@@ -411,57 +410,44 @@ function TopNavigation({
             <HeaderCameraIcon />
           </View>
         </Pressable>
-        <View style={styles.headerActions}>
-          <Pressable accessibilityLabel="Notifications" accessibilityRole="button" style={styles.headerIconButton}>
-            <Feather
-              color={colors.text}
-              name="bell"
-              size={headerActionIconSize}
-              strokeWidth={headerActionStrokeWidth}
-            />
-          </Pressable>
-          <Pressable accessibilityLabel="Profile" accessibilityRole="button" style={styles.headerIconButton}>
-            <HeaderProfileIcon />
-          </Pressable>
-        </View>
       </View>
     </View>
   );
 }
 
 function IntelligenceStrip({
-  hasStyleProfile,
   onStartStyleQuiz
 }: {
   hasStyleProfile: boolean;
   onStartStyleQuiz: () => void;
 }) {
-  const title = hasStyleProfile
-    ? "Add 5 more items to unlock outfit suggestions"
-    : "Make this feel more like you.";
-  const subtitle = hasStyleProfile
-    ? undefined
-    : "Answer 5 quick style swipes for better looks.";
-  const icon = hasStyleProfile ? "shopping-bag" : "bell";
-
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={hasStyleProfile ? undefined : onStartStyleQuiz}
-      style={styles.intelligenceStrip}
+      onPress={onStartStyleQuiz}
+      style={({ pressed }) => [
+        styles.intelligenceStrip,
+        pressed ? styles.pressed : null
+      ]}
     >
-      <Feather color={colors.text} name={icon} size={14} />
-      <View style={styles.intelligenceCopy}>
-        <Text numberOfLines={1} style={styles.intelligenceTitle}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text numberOfLines={1} style={styles.intelligenceSubtitle}>
-            {subtitle}
+      <LinearGradient
+        colors={[colors.surfaceTertiary, colors.surface, colors.cream]}
+        end={{ x: 1, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        style={styles.intelligenceGradient}
+      >
+        <View style={styles.intelligenceCopy}>
+          <Text numberOfLines={1} style={styles.intelligenceTitle}>
+            Find your style faster
           </Text>
-        ) : null}
-      </View>
-      <Feather color={colors.soft} name="chevron-right" size={14} />
+          <Text numberOfLines={1} style={styles.intelligenceSubtitle}>
+            Swipe 5 looks so we can improve your matches.
+          </Text>
+        </View>
+        <View style={styles.intelligenceArrow}>
+          <Feather color={colors.text} name="arrow-right" size={18} />
+        </View>
+      </LinearGradient>
     </Pressable>
   );
 }
@@ -478,24 +464,17 @@ function OccasionFilters({
       contentContainerStyle={styles.filterTrack}
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={styles.filterRail}
+      style={styles.filterScroller}
     >
-      {occasionFilters.map((filter, index) => {
+      {occasionFilters.map((filter) => {
         const isSelected = selected === filter;
-        const isFirst = index === 0;
-        const isLast = index === occasionFilters.length - 1;
 
         return (
           <Pressable
             accessibilityRole="button"
             key={filter}
             onPress={() => onSelect(filter)}
-            style={[
-              styles.filterPill,
-              isFirst ? styles.filterPillFirst : null,
-              isLast ? styles.filterPillLast : null,
-              isSelected ? styles.filterPillSelected : null
-            ]}
+            style={[styles.filterPill, isSelected ? styles.filterPillSelected : null]}
           >
             <Text
               style={[
@@ -651,18 +630,29 @@ function OutfitPieceChips({ pieces }: { pieces: OutfitPiece[] }) {
 function OccasionLookCard({
   displayLabel,
   isWishlisted,
+  onOpen,
   onToggleWishlist,
   product,
   width
 }: {
   displayLabel: string;
   isWishlisted: boolean;
+  onOpen: () => void;
   onToggleWishlist: () => void;
   product: ProductLook;
   width: number;
 }) {
   return (
-    <View style={[styles.occasionLookCard, { width }]}>
+    <Pressable
+      accessibilityLabel={`Open ${product.title} look`}
+      accessibilityRole="button"
+      onPress={onOpen}
+      style={({ pressed }) => [
+        styles.occasionLookCard,
+        { width },
+        pressed ? styles.pressed : null
+      ]}
+    >
       <ImageBackground
         imageStyle={styles.occasionLookImageStyle}
         resizeMode="cover"
@@ -679,13 +669,14 @@ function OccasionLookCard({
           {displayLabel}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 function OccasionSection({
   cardWidth,
   hasStyleProfile,
+  onOpenLook,
   onSelect,
   onToggleWishlist,
   products,
@@ -694,6 +685,7 @@ function OccasionSection({
 }: {
   cardWidth: number;
   hasStyleProfile: boolean;
+  onOpenLook: (look: ProductLook) => void;
   onSelect: (filter: string) => void;
   onToggleWishlist: (productId: string) => void;
   products: ProductLook[];
@@ -714,6 +706,7 @@ function OccasionSection({
             })}
             isWishlisted={wishlistProductIds.has(product.id)}
             key={product.id}
+            onOpen={() => onOpenLook(product)}
             onToggleWishlist={() => onToggleWishlist(product.id)}
             product={product}
             width={cardWidth}
@@ -947,48 +940,6 @@ function TrendingSection({
   );
 }
 
-function AskMiraCard() {
-  return (
-    <View style={styles.miraCard}>
-      <View style={styles.miraPaddedBlock}>
-        <View style={styles.miraHeader}>
-          <View style={styles.miraAvatar}>
-            <Text style={styles.miraAvatarText}>M</Text>
-          </View>
-          <Text style={styles.miraTitle}>Ask Mira</Text>
-          <Text style={styles.miraLabel}>Your AI stylist</Text>
-        </View>
-        <Text style={styles.miraHeadline}>
-          Not sure what to wear or buy?
-        </Text>
-        <Text style={styles.miraSubtext}>
-          Ask Mira for styling ideas, trends, or outfit help.
-        </Text>
-      </View>
-      <ScrollView
-        contentContainerStyle={styles.miraChipTrack}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.miraChipRail}
-      >
-        {miraChips.map((chip) => (
-          <Pressable accessibilityRole="button" key={chip} style={styles.miraChip}>
-            <Text style={styles.miraChipText}>{chip}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-      <View style={[styles.miraPaddedBlock, styles.miraInputBlock]}>
-        <Pressable accessibilityRole="button" style={styles.miraInput}>
-          <Text numberOfLines={1} style={styles.miraPlaceholder}>
-            Or ask your own question...
-          </Text>
-          <Feather color={colors.text} name="send" size={18} />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 function ColourAnalysisCard() {
   const swatches = ["#D7C0A5", "#856955", "#CBA46B", "#6A7B5B", "#362E2A"];
 
@@ -1001,10 +952,7 @@ function ColourAnalysisCard() {
       </View>
       <Text style={styles.colourTitle}>Find your best colours</Text>
       <Text style={styles.colourCopy}>
-        Discover shades that suit your skin tone and use them to filter looks.
-      </Text>
-      <Text style={styles.colourUnlockCopy}>
-        Add 5 closet items to see colour-based outfit ideas.
+        Discover shades that suit you and use them to filter looks.
       </Text>
       <Pressable accessibilityRole="button" style={styles.unlockButton}>
         <Text style={styles.unlockButtonText}>Start colour scan</Text>
@@ -1147,12 +1095,14 @@ function ShopByBrandsSection({
 function SavedLookCard({
   cardHeight,
   imageHeight,
+  onOpenLook,
   onToggleWishlist,
   product,
   width
 }: {
   cardHeight: number;
   imageHeight: number;
+  onOpenLook: () => void;
   onToggleWishlist: () => void;
   product: ProductLook;
   width: number;
@@ -1175,8 +1125,15 @@ function SavedLookCard({
       </ImageBackground>
 
       <View style={styles.savedLookFooter}>
-        <Pressable accessibilityRole="button" style={styles.shopLookButton}>
-          <Feather color="#1557C0" name="shopping-cart" size={20} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={onOpenLook}
+          style={({ pressed }) => [
+            styles.shopLookButton,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <Feather color={colors.text} name="shopping-cart" size={18} />
           <Text style={styles.shopLookText}>Shop this look</Text>
         </Pressable>
       </View>
@@ -1186,44 +1143,134 @@ function SavedLookCard({
 
 function SavedLooksSection({
   cardWidth,
-  onOpenExplore,
+  onOpenLook,
   onToggleWishlist,
   products,
   screenWidth
 }: {
   cardWidth: number;
-  onOpenExplore: () => void;
+  onOpenLook: (product: ProductLook) => void;
   onToggleWishlist: (productId: string) => void;
   products: ProductLook[];
   screenWidth: number;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const railRef = useRef<ScrollView | null>(null);
+  const activeRenderedIndexRef = useRef(0);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const cardGap = 12;
   const cardHeight = Math.round(cardWidth * 1.45);
-  const imageHeight = cardHeight - 72;
-  const sideScale = 255 / 279;
+  const imageHeight = cardHeight - 64;
   const snapInterval = cardWidth + cardGap;
+  const canLoop = products.length > 1;
+  const renderedProducts = canLoop
+    ? [...products, ...products, ...products]
+    : products;
+  const loopOffset = canLoop ? products.length : 0;
+  const initialOffset = loopOffset * snapInterval;
   const sideInset = Math.max((screenWidth - cardWidth) / 2, spacing.screen);
+
+  useEffect(() => {
+    activeRenderedIndexRef.current = loopOffset;
+    scrollX.setValue(initialOffset);
+    setActiveIndex(0);
+    railRef.current?.scrollTo({ animated: false, x: initialOffset, y: 0 });
+  }, [initialOffset, loopOffset, scrollX]);
+
+  useEffect(() => {
+    if (!canLoop) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      const nextRenderedIndex = activeRenderedIndexRef.current + 1;
+      const nextOffset = nextRenderedIndex * snapInterval;
+      const nextRealIndex =
+        (nextRenderedIndex - loopOffset + products.length) % products.length;
+
+      activeRenderedIndexRef.current = nextRenderedIndex;
+      railRef.current?.scrollTo({
+        animated: true,
+        x: nextOffset,
+        y: 0
+      });
+      setActiveIndex(nextRealIndex);
+
+      if (nextRenderedIndex >= loopOffset + products.length) {
+        if (resetTimerRef.current) {
+          clearTimeout(resetTimerRef.current);
+        }
+
+        resetTimerRef.current = setTimeout(() => {
+          activeRenderedIndexRef.current = loopOffset;
+          scrollX.setValue(initialOffset);
+          railRef.current?.scrollTo({
+            animated: false,
+            x: initialOffset,
+            y: 0
+          });
+        }, 700);
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(timer);
+
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, [
+    canLoop,
+    initialOffset,
+    loopOffset,
+    products.length,
+    scrollX,
+    snapInterval
+  ]);
 
   const handleScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>
   ) => {
-    const nextIndex = Math.round(
+    const renderedIndex = Math.round(
       event.nativeEvent.contentOffset.x / snapInterval
     );
 
-    setActiveIndex(Math.min(products.length - 1, Math.max(0, nextIndex)));
-  };
+    if (canLoop && renderedIndex < loopOffset) {
+      const wrappedIndex = renderedIndex + products.length;
+      const wrappedOffset = wrappedIndex * snapInterval;
+      const wrappedRealIndex =
+        (wrappedIndex - loopOffset + products.length) % products.length;
 
-  if (products.length === 0) {
-    return (
-      <View style={styles.savedLooksSection}>
-        <Text style={styles.savedLooksTitle}>Continue where you left off.</Text>
-        <SavedLooksEmptyBanner onOpenExplore={onOpenExplore} />
-      </View>
+      activeRenderedIndexRef.current = wrappedIndex;
+      setActiveIndex(wrappedRealIndex);
+      scrollX.setValue(wrappedOffset);
+      railRef.current?.scrollTo({ animated: false, x: wrappedOffset, y: 0 });
+      return;
+    }
+
+    if (canLoop && renderedIndex >= loopOffset + products.length) {
+      const wrappedIndex = renderedIndex - products.length;
+      const wrappedOffset = wrappedIndex * snapInterval;
+      const wrappedRealIndex =
+        (wrappedIndex - loopOffset + products.length) % products.length;
+
+      activeRenderedIndexRef.current = wrappedIndex;
+      setActiveIndex(wrappedRealIndex);
+      scrollX.setValue(wrappedOffset);
+      railRef.current?.scrollTo({ animated: false, x: wrappedOffset, y: 0 });
+      return;
+    }
+
+    activeRenderedIndexRef.current = renderedIndex;
+    setActiveIndex(
+      Math.min(
+        products.length - 1,
+        Math.max(0, renderedIndex - loopOffset)
+      )
     );
-  }
+  };
 
   return (
     <View style={styles.savedLooksSection}>
@@ -1235,6 +1282,8 @@ function SavedLooksSection({
         ]}
         decelerationRate="fast"
         horizontal
+        ref={railRef}
+        contentOffset={{ x: initialOffset, y: 0 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: true }
@@ -1245,7 +1294,7 @@ function SavedLooksSection({
         snapToAlignment="start"
         snapToInterval={snapInterval}
       >
-        {products.map((product, index) => {
+        {renderedProducts.map((product, index) => {
           const inputRange = [
             (index - 1) * snapInterval,
             index * snapInterval,
@@ -1254,22 +1303,24 @@ function SavedLooksSection({
           const scale = scrollX.interpolate({
             extrapolate: "clamp",
             inputRange,
-            outputRange: [sideScale, 1, sideScale]
+            outputRange: [0.82, 1, 0.82]
           });
-          const translateY = scrollX.interpolate({
+          const opacity = scrollX.interpolate({
             extrapolate: "clamp",
             inputRange,
-            outputRange: [18, 0, 18]
+            outputRange: [0.82, 1, 0.82]
           });
+          const isLastRenderedCard = index === renderedProducts.length - 1;
 
           return (
             <Animated.View
-              key={`saved-${product.id}`}
+              key={`saved-${product.id}-${index}`}
               style={[
                 styles.savedLookSlide,
                 {
-                  marginRight: index === products.length - 1 ? 0 : cardGap,
-                  transform: [{ translateY }, { scale }],
+                  marginRight: isLastRenderedCard ? 0 : cardGap,
+                  opacity,
+                  transform: [{ scale }],
                   width: cardWidth
                 }
               ]}
@@ -1277,6 +1328,7 @@ function SavedLooksSection({
               <SavedLookCard
                 cardHeight={cardHeight}
                 imageHeight={imageHeight}
+                onOpenLook={() => onOpenLook(product)}
                 onToggleWishlist={() => onToggleWishlist(product.id)}
                 product={product}
                 width={cardWidth}
@@ -1287,14 +1339,9 @@ function SavedLooksSection({
       </Animated.ScrollView>
 
       <View style={styles.savedPagination}>
-        <View style={styles.savedCountPill}>
-          <Text style={styles.savedCountText}>
-            {activeIndex + 1}/{products.length}
-          </Text>
-        </View>
         {products.map((product, index) => (
           <View
-            key={`saved-dot-${product.id}`}
+            key={`saved-dot-${product.id}-${index}`}
             style={[
               styles.savedDot,
               index === activeIndex ? styles.savedDotActive : null
@@ -1306,29 +1353,7 @@ function SavedLooksSection({
   );
 }
 
-function SavedLooksEmptyBanner({
-  onOpenExplore
-}: {
-  onOpenExplore: () => void;
-}) {
-  return (
-    <View style={styles.savedLooksEmptyBanner}>
-      <Text style={styles.savedLooksEmptyCopy}>Save looks you like.</Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onOpenExplore}
-        style={({ pressed }) => [
-          styles.savedLooksEmptyButton,
-          pressed ? styles.pressed : null
-        ]}
-      >
-        <Text style={styles.savedLooksEmptyButtonText}>start exploring</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function PriceLookCard({
+function PriceStyleLookCard({
   isWishlisted,
   onToggleWishlist,
   product,
@@ -1339,55 +1364,81 @@ function PriceLookCard({
   product: ProductLook;
   width: number;
 }) {
+  const imageHeight = Math.round(width * 1.24);
+
   return (
     <View style={[styles.priceLookCard, { width }]}>
       <ImageBackground
         imageStyle={styles.priceLookImageStyle}
         resizeMode="cover"
         source={{ uri: product.image }}
-        style={styles.priceLookImage}
+        style={[styles.priceLookImage, { height: imageHeight }]}
       >
         <View style={styles.priceLookSaveWrap}>
           <SaveButton onPress={onToggleWishlist} saved={isWishlisted} />
         </View>
       </ImageBackground>
       <View style={styles.priceLookFooter}>
-        <Text numberOfLines={1} style={styles.priceLookPrice}>
-          {product.price}
+        <OutfitPieceChips pieces={product.outfitItems.slice(0, 3)} />
+        <Text numberOfLines={1} style={styles.priceLookMatch}>
+          {product.match}
         </Text>
-        <Pressable
-          accessibilityLabel={`Try on ${product.title}`}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.priceLookTryButton,
-            pressed ? styles.pressed : null
-          ]}
-        >
-          <Text style={styles.priceLookTryText}>Try on me</Text>
-        </Pressable>
       </View>
     </View>
   );
 }
 
-function PriceSection({
+function PriceStyleSection({
   cardWidth,
   onToggleWishlist,
+  selectedPrice,
+  setSelectedPrice,
   wishlistProductIds
 }: {
   cardWidth: number;
   onToggleWishlist: (productId: string) => void;
+  selectedPrice: string;
+  setSelectedPrice: (filter: string) => void;
   wishlistProductIds: Set<string>;
 }) {
+  const products = looks.slice(0, 2);
+
   return (
-    <View style={styles.section}>
-      <SectionHeader
-        subtitle="Budget-friendly looks you can try before deciding"
-        title="Great style at every price"
-      />
-      <View style={styles.productGrid}>
-        {priceLooks.map((product) => (
-          <PriceLookCard
+    <View style={styles.priceStyleSection}>
+      <Text style={styles.priceStyleTitle}>Great style at every price</Text>
+      <ScrollView
+        contentContainerStyle={styles.priceFilterTrack}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      >
+        {priceFilters.map((filter) => {
+          const isSelected = selectedPrice === filter;
+
+          return (
+            <Pressable
+              accessibilityRole="button"
+              key={filter}
+              onPress={() => setSelectedPrice(filter)}
+              style={[
+                styles.priceFilterPill,
+                isSelected ? styles.priceFilterPillSelected : null
+              ]}
+            >
+              <Text
+                style={[
+                  styles.priceFilterText,
+                  isSelected ? styles.priceFilterTextSelected : null
+                ]}
+              >
+                {filter}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <View style={styles.priceLookRow}>
+        {products.map((product) => (
+          <PriceStyleLookCard
             isWishlisted={wishlistProductIds.has(product.id)}
             key={`price-${product.id}`}
             onToggleWishlist={() => onToggleWishlist(product.id)}
@@ -1396,14 +1447,8 @@ function PriceSection({
           />
         ))}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.priceSectionCta,
-          pressed ? styles.pressed : null
-        ]}
-      >
-        <Text style={styles.priceSectionCtaText}>See more looks</Text>
+      <Pressable accessibilityRole="button" style={styles.priceExploreButton}>
+        <Text style={styles.priceExploreButtonText}>Explore products</Text>
       </Pressable>
     </View>
   );
@@ -1459,7 +1504,8 @@ export function HomeScreen({
   draft,
   onChangeAddress,
   onOpenBrand,
-  onOpenExplore,
+  onOpenCart,
+  onOpenLook,
   onOpenSearch,
   onStartStyleQuiz
 }: HomeScreenProps) {
@@ -1470,13 +1516,15 @@ export function HomeScreen({
   const [headerHeight, setHeaderHeight] = useState(0);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [selectedOccasion, setSelectedOccasion] = useState("Work");
+  const [selectedPrice, setSelectedPrice] = useState(priceFilters[0]);
   const [wishlistProductIds, setWishlistProductIds] = useState<Set<string>>(
     () => new Set()
   );
   const address = getShortDeliveryAddress(draft.address);
   const hasStyleProfile = hasCompletedStyleProfile(draft);
   const cardWidth = (width - spacing.screen * 2 - spacing.sm) / 2;
-  const savedLookCardWidth = Math.min(width - 114, 279);
+  const priceCardWidth = (width - spacing.screen * 2 - spacing.md) / 2;
+  const savedLookCardWidth = Math.min(width * 0.68, 268);
 
   const filteredLooks = useMemo(() => {
     return looks.filter(
@@ -1485,10 +1533,13 @@ export function HomeScreen({
       (look) => look.vibe.toLowerCase() !== selectedOccasion.toLowerCase()
     ));
   }, [selectedOccasion]);
-  const savedLooks = useMemo(
-    () => looks.filter((look) => wishlistProductIds.has(look.id)),
-    [wishlistProductIds]
-  );
+  const savedLooks = useMemo(() => {
+    const wishlistedLooks = looks.filter((look) =>
+      wishlistProductIds.has(look.id)
+    );
+
+    return (wishlistedLooks.length > 0 ? wishlistedLooks : looks).slice(0, 5);
+  }, [wishlistProductIds]);
 
   const handleToggleWishlist = (productId: string) => {
     setWishlistProductIds((current) => {
@@ -1554,7 +1605,7 @@ export function HomeScreen({
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <View style={styles.screen}>
       <AnimatedHeaderView
         onLayout={(event) => {
           const measuredHeight = event.nativeEvent.layout.height;
@@ -1572,6 +1623,7 @@ export function HomeScreen({
           address={address}
           hasBorder={false}
           onChangeAddress={onChangeAddress}
+          onOpenCart={onOpenCart}
           onOpenSearch={onOpenSearch}
         />
       </AnimatedHeaderView>
@@ -1579,7 +1631,7 @@ export function HomeScreen({
       <Animated.ScrollView
         contentContainerStyle={[
           styles.feed,
-          { paddingTop: headerHeight || 160 }
+          { paddingTop: headerHeight || 152 }
         ]}
         onScroll={handleHomeScroll}
         scrollEventThrottle={16}
@@ -1594,6 +1646,7 @@ export function HomeScreen({
         <OccasionSection
           cardWidth={cardWidth}
           hasStyleProfile={hasStyleProfile}
+          onOpenLook={onOpenLook}
           onToggleWishlist={handleToggleWishlist}
           onSelect={setSelectedOccasion}
           products={filteredLooks}
@@ -1601,24 +1654,25 @@ export function HomeScreen({
           wishlistProductIds={wishlistProductIds}
         />
         <WardrobeIntelligenceCard />
-        <AskMiraCard />
-        <ColourAnalysisCard />
         <ShopByBrandsSection onBrandPress={onOpenBrand} />
+        <PriceStyleSection
+          cardWidth={priceCardWidth}
+          onToggleWishlist={handleToggleWishlist}
+          selectedPrice={selectedPrice}
+          setSelectedPrice={setSelectedPrice}
+          wishlistProductIds={wishlistProductIds}
+        />
         <SavedLooksSection
           cardWidth={savedLookCardWidth}
-          onOpenExplore={onOpenExplore}
+          onOpenLook={onOpenLook}
           onToggleWishlist={handleToggleWishlist}
           products={savedLooks}
           screenWidth={width}
         />
-        <PriceSection
-          cardWidth={cardWidth}
-          onToggleWishlist={handleToggleWishlist}
-          wishlistProductIds={wishlistProductIds}
-        />
+        <ColourAnalysisCard />
         <NewArrivalsSection />
       </Animated.ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1629,7 +1683,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
-    width: 130
+    width: 154
   },
   arrivalImage: {
     aspectRatio: 3 / 4,
@@ -1639,20 +1693,20 @@ const styles = StyleSheet.create({
   },
   arrivalInfo: {
     backgroundColor: colors.background,
-    padding: 9
+    padding: 12
   },
   arrivalName: {
     color: colors.text,
     fontFamily: fonts.heading,
-    fontSize: 11,
-    lineHeight: 14
+    fontSize: 14,
+    lineHeight: 18
   },
   arrivalPrice: {
     color: colors.muted,
     fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 3
+    fontSize: 14,
+    lineHeight: 18,
+    marginTop: 4
   },
   arrivalSaveWrap: {
     alignItems: "flex-end"
@@ -1702,9 +1756,9 @@ const styles = StyleSheet.create({
   },
   brandSectionTitle: {
     color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 22,
-    lineHeight: 28.6,
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    lineHeight: 25,
     textAlign: "center"
   },
   brandViewAllButton: {
@@ -1728,21 +1782,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 19.5,
-    marginTop: 6
-  },
-  colourUnlockCopy: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 19.5,
-    marginTop: spacing.sm
+    marginTop: 4
   },
   colourTitle: {
     color: colors.text,
     fontFamily: fonts.heading,
     fontSize: 18,
     lineHeight: 22.5,
-    marginTop: 12
+    marginTop: 10
   },
   creamCard: {
     backgroundColor: colors.surface,
@@ -1750,7 +1797,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     marginHorizontal: spacing.screen,
-    padding: spacing.lg
+    padding: spacing.md
   },
   closetCard: {
     alignSelf: "stretch"
@@ -1857,9 +1904,22 @@ const styles = StyleSheet.create({
     height: 220,
     justifyContent: "center"
   },
+  discountPill: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.text,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3
+  },
+  discountText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13
+  },
   feed: {
     gap: spacing.xl,
-    paddingBottom: layout.bottomNavScrollPadding
+    paddingBottom: 96
   },
   filterPill: {
     alignItems: "center",
@@ -1884,17 +1944,12 @@ const styles = StyleSheet.create({
   filterTextSelected: {
     color: colors.inverseText
   },
-  filterTrack: {
-    gap: spacing.sm
-  },
-  filterPillFirst: {
-    marginLeft: spacing.screen
-  },
-  filterPillLast: {
-    marginRight: spacing.screen
-  },
-  filterRail: {
+  filterScroller: {
     marginHorizontal: -spacing.screen
+  },
+  filterTrack: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.screen
   },
   ghostCard: {
     alignItems: "center",
@@ -1931,39 +1986,58 @@ const styles = StyleSheet.create({
   ghostWrap: {
     alignItems: "center"
   },
-  intelligenceStrip: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    flexDirection: "row",
+  horizontalCards: {
     gap: spacing.sm,
+    paddingHorizontal: spacing.screen
+  },
+  intelligenceStrip: {
+    borderRadius: 18,
     marginHorizontal: spacing.screen,
-    paddingHorizontal: 14,
-    paddingVertical: 10
+    overflow: "hidden"
+  },
+  intelligenceGradient: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: spacing.md,
+    padding: spacing.lg
   },
   intelligenceCopy: {
     flex: 1,
     minWidth: 0
   },
+  intelligenceArrow: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.secondaryBorder,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 34,
+    justifyContent: "center",
+    width: 34
+  },
   intelligenceSubtitle: {
     color: colors.muted,
     fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4
   },
   intelligenceTitle: {
     color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 18
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    lineHeight: 23
   },
   locationButton: {
     alignItems: "center",
     flex: 1,
     flexDirection: "row",
     gap: spacing.sm,
-    minHeight: 52
+    minHeight: 36,
+    minWidth: 0
   },
   locationText: {
     color: colors.text,
@@ -1986,107 +2060,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 13
   },
-  miraAvatar: {
-    alignItems: "center",
-    backgroundColor: colors.text,
-    borderRadius: 16,
-    height: 32,
-    justifyContent: "center",
-    width: 32
-  },
-  miraAvatarText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 16
-  },
-  miraCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginHorizontal: spacing.screen,
-    paddingVertical: spacing.md
-  },
-  miraChip: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 34,
-    justifyContent: "center",
-    paddingHorizontal: 12
-  },
-  miraChipText: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16
-  },
-  miraChipRail: {
-    marginTop: spacing.md
-  },
-  miraChipTrack: {
-    gap: spacing.sm,
-    paddingHorizontal: 0
-  },
-  miraHeadline: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23,
-    marginTop: 14
-  },
-  miraSubtext: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 19.5,
-    marginTop: 4
-  },
-  miraHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm
-  },
-  miraInput: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    height: 44,
-    justifyContent: "space-between",
-    paddingHorizontal: 14
-  },
-  miraLabel: {
-    color: colors.soft,
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: "right"
-  },
-  miraPlaceholder: {
-    color: "#BBBBBB",
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 18
-  },
-  miraTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 20
-  },
-  miraPaddedBlock: {
-    paddingHorizontal: spacing.lg
-  },
-  miraInputBlock: {
-    marginTop: spacing.md
-  },
   navRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -2096,7 +2069,7 @@ const styles = StyleSheet.create({
   headerActions: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 14
+    gap: spacing.md
   },
   headerIconButton: {
     alignItems: "center",
@@ -2180,74 +2153,27 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.screen
   },
+  originalPrice: {
+    color: colors.soft,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 18,
+    textDecorationLine: "line-through"
+  },
   paletteSwatch: {
-    borderRadius: 8,
+    borderRadius: 7,
     flex: 1,
-    height: 28
+    height: 22
   },
   pressed: {
     opacity: 0.72,
     transform: [{ scale: 0.98 }]
   },
-  priceLookCard: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden"
-  },
-  priceLookFooter: {
-    backgroundColor: colors.background,
-    padding: 10
-  },
-  priceLookImage: {
-    aspectRatio: 3 / 4,
-    alignItems: "flex-end",
-    backgroundColor: colors.imageSurface,
-    padding: spacing.sm
-  },
-  priceLookImageStyle: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12
-  },
-  priceLookPrice: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 13,
-    lineHeight: 17
-  },
-  priceLookSaveWrap: {
-    alignItems: "flex-end"
-  },
-  priceLookTryButton: {
+  priceRow: {
     alignItems: "center",
-    backgroundColor: colors.text,
-    borderRadius: 8,
-    height: 36,
-    justifyContent: "center",
-    marginTop: 8
-  },
-  priceLookTryText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 15
-  },
-  priceSectionCta: {
-    alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: colors.text,
-    borderRadius: 24,
-    height: 50,
-    justifyContent: "center",
-    marginTop: spacing.xs,
-    width: "100%"
-  },
-  priceSectionCtaText: {
-    color: colors.inverseText,
-    fontFamily: fonts.cta,
-    fontSize: 15,
-    lineHeight: 19
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4
   },
   productBottomRow: {
     alignItems: "flex-end",
@@ -2308,6 +2234,96 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: 44
   },
+  priceExploreButton: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: colors.inverse,
+    borderRadius: 32,
+    height: 48,
+    justifyContent: "center",
+    paddingHorizontal: 56
+  },
+  priceExploreButtonText: {
+    color: colors.inverseText,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 24
+  },
+  priceFilterPill: {
+    alignItems: "center",
+    backgroundColor: "#F0F0F0",
+    borderRadius: 999,
+    height: 30,
+    justifyContent: "center",
+    paddingHorizontal: 17
+  },
+  priceFilterPillSelected: {
+    backgroundColor: colors.inverse
+  },
+  priceFilterText: {
+    color: "rgba(0, 0, 0, 0.8)",
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 20
+  },
+  priceFilterTextSelected: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium
+  },
+  priceFilterTrack: {
+    gap: spacing.sm,
+    paddingRight: spacing.screen
+  },
+  priceLookCard: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    overflow: "hidden"
+  },
+  priceLookFooter: {
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    flexDirection: "row",
+    height: 28,
+    justifyContent: "space-between",
+    paddingHorizontal: 8
+  },
+  priceLookImage: {
+    backgroundColor: colors.imageSurface,
+    overflow: "hidden",
+    padding: 8
+  },
+  priceLookImageStyle: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12
+  },
+  priceLookMatch: {
+    color: colors.text,
+    flexShrink: 1,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "right"
+  },
+  priceLookRow: {
+    flexDirection: "row",
+    gap: spacing.md
+  },
+  priceLookSaveWrap: {
+    alignItems: "flex-end"
+  },
+  priceStyleSection: {
+    gap: spacing.xl,
+    paddingHorizontal: spacing.screen,
+    paddingVertical: spacing.xl
+  },
+  priceStyleTitle: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    lineHeight: 25
+  },
   saveButton: {
     alignItems: "center",
     backgroundColor: colors.background,
@@ -2358,9 +2374,9 @@ const styles = StyleSheet.create({
   },
   savedLookFooter: {
     backgroundColor: colors.background,
-    height: 72,
+    height: 64,
     justifyContent: "center",
-    paddingHorizontal: 12
+    paddingHorizontal: 10
   },
   savedLookImage: {
     alignItems: "center",
@@ -2387,40 +2403,13 @@ const styles = StyleSheet.create({
   savedLooksTitle: {
     color: colors.text,
     fontFamily: fonts.heading,
-    fontSize: 26,
-    lineHeight: 31,
+    fontSize: 20,
+    lineHeight: 25,
     paddingHorizontal: spacing.screen
   },
-  savedLooksEmptyBanner: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: spacing.md,
-    marginHorizontal: spacing.screen,
-    padding: spacing.lg
-  },
-  savedLooksEmptyButton: {
-    alignItems: "center",
-    backgroundColor: colors.text,
-    borderRadius: 24,
-    height: 48,
-    justifyContent: "center"
-  },
-  savedLooksEmptyButtonText: {
-    color: colors.inverseText,
-    fontFamily: fonts.cta,
-    fontSize: 14,
-    lineHeight: 18
-  },
-  savedLooksEmptyCopy: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23
-  },
   savedLooksTrack: {
-    alignItems: "flex-start"
+    alignItems: "flex-start",
+    paddingVertical: spacing.sm
   },
   savedLookSlide: {
     alignItems: "center"
@@ -2446,16 +2435,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
-    flex: 1,
     flexDirection: "row",
     height: 44,
     paddingHorizontal: 16
   },
   searchActionRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 14,
-    marginTop: spacing.md
+    marginTop: spacing.sm
   },
   searchIcons: {
     alignItems: "center",
@@ -2543,12 +2528,13 @@ const styles = StyleSheet.create({
   },
   shopLookButton: {
     alignItems: "center",
-    borderColor: "#CFE1FF",
+    backgroundColor: colors.background,
+    borderColor: colors.secondaryBorder,
     borderRadius: 24,
     borderWidth: 1,
     flexDirection: "row",
     gap: spacing.sm,
-    height: 48,
+    height: 44,
     justifyContent: "center"
   },
   shopLookText: {
@@ -2563,9 +2549,9 @@ const styles = StyleSheet.create({
   },
   topNav: {
     backgroundColor: colors.background,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
-    paddingTop: homeHeaderTopPadding,
+    paddingTop: homeHeaderTopInset + spacing.sm,
     zIndex: 4
   },
   topNavScrolled: {
@@ -2594,9 +2580,9 @@ const styles = StyleSheet.create({
     borderColor: colors.secondaryBorder,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    height: 42,
+    height: 38,
     justifyContent: "center",
-    marginTop: spacing.md
+    marginTop: spacing.sm
   },
   unlockButtonText: {
     color: colors.text,

@@ -19,6 +19,7 @@ export type HomeTabParamList = {
   Feed: undefined;
   AIStylist: undefined;
   Cart: undefined;
+  Profile: undefined;
 };
 
 export type RootRouteName = keyof RootStackParamList;

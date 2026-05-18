@@ -45,10 +45,10 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
             }}
             style={({ pressed }) => [
               styles.changePhotoButton,
-              pressed ? styles.addButtonPressed : null
+              pressed ? styles.changePhotoButtonPressed : null
             ]}
           >
-            <Ionicons color={colors.text} name="camera-outline" size={15} />
+            <Ionicons color={colors.text} name="camera-outline" size={14} />
             <Text style={styles.changePhotoText}>Change photo</Text>
           </Pressable>
         </>
@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: spacing.xl,
     padding: spacing.xl,
+    position: "relative",
     width: "100%"
   },
   boxWithPreview: {
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surfaceTranslucent,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     gap: 5,
@@ -121,7 +122,15 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     position: "absolute",
     right: spacing.md,
+    shadowColor: "#000000",
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
     top: spacing.md
+  },
+  changePhotoButtonPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }]
   },
   changePhotoText: {
     color: colors.text,

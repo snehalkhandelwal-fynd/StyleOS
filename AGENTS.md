@@ -1,5 +1,15 @@
 # Project Instructions for Codex
 
+## Workspace Rule
+
+For this project, only work inside:
+
+`/Users/Snehalkhandelwal/Documents/Projects/claude-rules-style-os-app`
+
+Do not read from, copy from, edit, run Expo from, or otherwise use:
+
+`/Users/Snehalkhandelwal/Documents/Projects/claude-rules-style-os`
+
 This project is a mobile-first fashion-tech application focused on virtual try-on, styling, wardrobe intelligence, and fashion decision-making.
 
 Before designing, reviewing, or modifying any UI screen, follow the UI/UX product review guidance in:

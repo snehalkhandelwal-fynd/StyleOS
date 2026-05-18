@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
+  Image,
   ImageBackground,
   Platform,
   Pressable,
@@ -15,6 +16,7 @@ import {
 import type { TextInput as TextInputType } from "react-native";
 
 import { colors, fonts, radii, spacing, typography } from "../../../theme";
+import { brandRows, type Brand } from "../data/brandCatalog";
 
 type SearchDiscoveryScreenProps = {
   onClose: () => void;
@@ -131,11 +133,6 @@ const budgetFilters: BudgetFilter[] = [
   }
 ];
 
-const brandRows = [
-  ["Trends", "H&M", "Zara", "Mango"],
-  ["Westside", "Levi's", "Nike", "Uniqlo"]
-];
-
 const webTextInputReset =
   Platform.OS === "web"
     ? ({
@@ -151,7 +148,6 @@ function SectionTitle({ title }: { title: string }) {
 function RecentChip({ label }: { label: string }) {
   return (
     <Pressable accessibilityRole="button" style={styles.recentChip}>
-      <Feather color={colors.soft} name="clock" size={14} />
       <Text numberOfLines={1} style={styles.recentChipText}>
         {label}
       </Text>
@@ -167,24 +163,7 @@ function TrendingLookCard({ look }: { look: TrendingLook }) {
         resizeMode="cover"
         source={{ uri: look.image }}
         style={styles.lookImageFrame}
-      >
-        <View style={styles.lookMetaPill}>
-          <Text numberOfLines={1} style={styles.lookMetaText}>
-            {look.meta}
-          </Text>
-        </View>
-      </ImageBackground>
-      <View style={styles.lookFooter}>
-        <View style={styles.lookCopy}>
-          <Text numberOfLines={1} style={styles.lookTitle}>
-            {look.title}
-          </Text>
-          <Text numberOfLines={1} style={styles.lookReason}>
-            See it on you before you decide
-          </Text>
-        </View>
-        <Text style={styles.lookAction}>{look.action}</Text>
-      </View>
+      />
     </Pressable>
   );
 }
@@ -221,6 +200,25 @@ function BudgetCard({ filter }: { filter: BudgetFilter }) {
         <Text style={styles.budgetText}>{filter.label}</Text>
         <Text style={styles.budgetSubcopy}>{filter.subcopy}</Text>
       </ImageBackground>
+    </Pressable>
+  );
+}
+
+function SearchBrandLogoPill({ brand }: { brand: Brand }) {
+  return (
+    <Pressable
+      accessibilityLabel={`Search ${brand.name}`}
+      accessibilityRole="button"
+      style={styles.brandLogoPill}
+    >
+      <Image
+        resizeMode="contain"
+        source={brand.logoImage}
+        style={{
+          height: brand.logoHeight,
+          width: brand.logoWidth
+        }}
+      />
     </Pressable>
   );
 }
@@ -343,23 +341,23 @@ export function SearchDiscoveryScreen({ onClose }: SearchDiscoveryScreenProps) {
 
           <View style={styles.section}>
             <SectionTitle title="Brands Everyone’s Searching" />
-            <ScrollView
-              contentContainerStyle={styles.brandTrack}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            >
+            <View style={styles.brandPanel}>
               {brandRows.map((row, rowIndex) => (
-                <View key={`brand-row-${rowIndex}`} style={styles.brandRow}>
+                <ScrollView
+                  contentContainerStyle={styles.brandLogoTrack}
+                  horizontal
+                  key={`brand-row-${rowIndex}`}
+                  showsHorizontalScrollIndicator={false}
+                >
                   {row.map((brand) => (
-                    <Pressable accessibilityRole="button" key={brand} style={styles.brandPill}>
-                      <Text numberOfLines={1} style={styles.brandText}>
-                        {brand}
-                      </Text>
-                    </Pressable>
+                    <SearchBrandLogoPill
+                      brand={brand}
+                      key={`${brand.id}-${rowIndex}`}
+                    />
                   ))}
-                </View>
+                </ScrollView>
               ))}
-            </ScrollView>
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -374,30 +372,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 40
   },
-  brandPill: {
+  brandLogoPill: {
     alignItems: "center",
     backgroundColor: colors.background,
-    borderColor: colors.border,
     borderRadius: radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 44,
+    height: 40,
     justifyContent: "center",
-    width: 134
+    overflow: "hidden",
+    width: 105
   },
-  brandRow: {
-    flexDirection: "row",
-    gap: spacing.sm
-  },
-  brandText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 17
-  },
-  brandTrack: {
-    flexDirection: "column",
-    gap: spacing.md,
+  brandLogoTrack: {
+    gap: 6,
     paddingRight: spacing.screen
+  },
+  brandPanel: {
+    backgroundColor: colors.brandBand,
+    borderRadius: radii.card,
+    gap: spacing.md,
+    marginRight: spacing.screen,
+    overflow: "hidden",
+    paddingVertical: spacing.lg
   },
   budgetCard: {
     borderRadius: 62,
@@ -471,6 +465,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
+    height: 196,
     overflow: "hidden",
     width: 156
   },
@@ -485,13 +480,10 @@ const styles = StyleSheet.create({
     padding: spacing.sm
   },
   lookImage: {
-    borderTopLeftRadius: radii.card,
-    borderTopRightRadius: radii.card
+    borderRadius: radii.card
   },
   lookImageFrame: {
-    height: 196,
-    justifyContent: "flex-end",
-    padding: spacing.sm,
+    flex: 1,
     width: "100%"
   },
   lookMetaPill: {
@@ -527,7 +519,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
-    gap: spacing.xs,
     height: 40,
     justifyContent: "center",
     paddingHorizontal: 16
@@ -590,9 +581,9 @@ const styles = StyleSheet.create({
   },
   styleTile: {
     borderRadius: radii.card,
-    height: 148,
+    height: 132,
     overflow: "hidden",
-    width: 148
+    width: 132
   },
   styleTileContent: {
     flex: 1,

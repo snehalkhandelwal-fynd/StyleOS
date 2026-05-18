@@ -17,7 +17,7 @@ import {
 } from "../data/brandCatalog";
 import type { BrandProduct } from "../data/brandCatalog";
 import { getMerchandisingLabel } from "../utils/stylePersonalization";
-import { colors, fonts, layout, spacing, typography } from "../../../theme";
+import { colors, fonts, spacing, typography } from "../../../theme";
 
 type BrandPlpScreenProps = {
   brandId: string;
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.lg,
-    paddingBottom: layout.bottomNavScrollPadding,
+    paddingBottom: 128,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md
   },

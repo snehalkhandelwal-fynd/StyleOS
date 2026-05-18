@@ -1,6 +1,6 @@
 import { SafeAreaView, StyleSheet, Text } from "react-native";
 
-import { colors, layout, spacing, typography } from "../../../theme";
+import { colors, spacing, typography } from "../../../theme";
 
 export function TryOnScreen() {
   return (
@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.sm,
     padding: spacing.screen,
-    paddingBottom: layout.bottomNavScrollPadding,
+    paddingBottom: 128,
     paddingTop: spacing.xxl
   },
   title: {

@@ -13,8 +13,6 @@ import { colors, spacing, typography } from "../../../theme";
 import { onboardingHeadingTop } from "../layout";
 import { CircularNextButton } from "./CircularNextButton";
 
-const nextButtonSideInset = Platform.OS === "ios" ? 50 : spacing.screen;
-
 type OnboardingStepShellProps = {
   children: ReactNode;
   currentStep?: 1 | 2 | 3 | 4 | 5;
@@ -85,10 +83,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   nextButton: {
-    alignItems: "flex-end",
+    alignItems: "center",
     bottom: spacing.screen,
+    height: 64,
+    justifyContent: "center",
     position: "absolute",
-    right: nextButtonSideInset
+    right: spacing.screen,
+    width: 64
   },
   safeArea: {
     backgroundColor: colors.background,

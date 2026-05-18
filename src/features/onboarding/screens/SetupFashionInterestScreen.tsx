@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import { colors, spacing, typography } from "../../../theme";
+import { spacing } from "../../../theme";
 import { FashionInterestCard } from "../components/FashionInterestCard";
 import { OnboardingStepShell } from "../components/OnboardingStepShell";
 import type { FashionInterest } from "../viewModels/useOnboardingViewModel";
@@ -39,10 +39,10 @@ export function SetupFashionInterestScreen({
         disabled: !interest,
         onPress: onContinue
       }}
+      subtitle="You can change this later"
       title="What do you want to explore?"
     >
       <View style={styles.body}>
-        <Text style={styles.reassurance}>You can change this later</Text>
         <View style={styles.cards}>
           {interestOptions.map((option) => (
             <FashionInterestCard
@@ -67,10 +67,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.lg,
     paddingTop: spacing.xl
-  },
-  reassurance: {
-    color: colors.soft,
-    textAlign: "left",
-    ...typography.caption
   }
 });

@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 4,
     justifyContent: "center",
-    marginTop: spacing.md
+    marginTop: spacing.xl
   }
 });

@@ -45,6 +45,7 @@ type StyleSwipeActionsProps = {
 const swipeThreshold = 80;
 const swipeExitDistance = 520;
 const cardRadius = 20;
+const deckStackOffset = 24;
 
 function XIcon() {
   return (
@@ -93,8 +94,9 @@ function DeckCard({
         {
           height: cardHeight,
           opacity: index === 1 ? 0.75 : 0.45,
+          top: deckStackOffset,
           transform: [
-            { translateY: index === 1 ? 12 : 24 },
+            { translateY: index === 1 ? -12 : -deckStackOffset },
             { scale: index === 1 ? 0.96 : 0.92 }
           ],
           width: cardWidth,
@@ -251,6 +253,7 @@ export const StyleSwipeCard = forwardRef<
           styles.currentCard,
           {
             height: cardHeight,
+            top: deckStackOffset,
             transform: [
               { translateX: dragX },
               { rotate: cardRotation },
@@ -335,9 +338,9 @@ const styles = StyleSheet.create({
   actionCircle: {
     alignItems: "center",
     borderRadius: radii.pill,
-    height: 72,
+    height: 55,
     justifyContent: "center",
-    width: 72
+    width: 55
   },
   actionItem: {
     alignItems: "center",
