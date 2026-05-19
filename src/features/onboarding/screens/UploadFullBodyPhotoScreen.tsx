@@ -35,6 +35,8 @@ export function UploadFullBodyPhotoScreen({
 
 const styles = StyleSheet.create({
   body: {
+    flex: 1,
+    paddingBottom: 96,
     zIndex: 2
-  },
+  }
 });

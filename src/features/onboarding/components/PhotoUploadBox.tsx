@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
-import { colors, fonts, spacing } from "../../../theme";
-import { avatarImageFrameStyles } from "./AvatarImageFrame";
+import { colors, fonts, radii, spacing } from "../../../theme";
 import { openPhotoSourceDrawer } from "../utils/photoPicker";
 
 type PhotoUploadBoxProps = {
@@ -10,7 +11,15 @@ type PhotoUploadBoxProps = {
   uri?: string;
 };
 
-const bodyGuideImage = require("../../../assets/bodyimage.png");
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+const exampleModelImage = require("../../../assets/upload-example.png");
+
+const photoGuidelines: { icon: IoniconName; text: string }[] = [
+  { icon: "body-outline", text: "Full body, face & feet visible" },
+  { icon: "person-remove-outline", text: "Just you — no pets or friends" },
+  { icon: "sunny-outline", text: "Good lighting, not blurry" }
+];
 
 export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
   const openPhotoDrawer = () => {
@@ -19,13 +28,12 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
 
   return (
     <Pressable
-      accessibilityLabel="Add your photo"
+      accessibilityLabel="Upload your full-body photo"
       accessibilityRole="button"
       onPress={openPhotoDrawer}
       style={({ pressed }) => [
         styles.box,
-        !uri ? styles.emptyBox : null,
-        uri ? styles.boxWithPreview : null,
+        uri ? styles.boxWithPreview : styles.emptyBox,
         pressed ? styles.pressed : null
       ]}
     >
@@ -34,7 +42,7 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
           <Image
             resizeMode="cover"
             source={{ uri }}
-            style={avatarImageFrameStyles.image}
+            style={styles.previewImage}
           />
           <Pressable
             accessibilityLabel="Change photo"
@@ -54,61 +62,77 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
         </>
       ) : (
         <View style={styles.emptyState}>
-          <Image
-            resizeMode="contain"
-            source={bodyGuideImage}
-            style={styles.guideImage}
-          />
-          <Pressable
-            accessibilityLabel="Choose photo source"
-            accessibilityRole="button"
-            onPress={(event) => {
-              event.stopPropagation();
-              openPhotoDrawer();
-            }}
-            style={({ pressed }) => [
-              styles.addButton,
-              pressed ? styles.addButtonPressed : null
-            ]}
-          >
-            <Ionicons color={colors.text} name="add" size={34} />
-          </Pressable>
-          <Text style={styles.label}>Add your photo</Text>
+          <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Defs>
+              <Pattern
+                height={18}
+                id="uploadDots"
+                patternUnits="userSpaceOnUse"
+                width={18}
+              >
+                <Circle cx={2} cy={2} fill={colors.border} r={1.2} />
+              </Pattern>
+            </Defs>
+            <Rect fill="url(#uploadDots)" height="100%" width="100%" />
+          </Svg>
+
+          <View style={styles.examplePill}>
+            <Text style={styles.examplePillText}>EXAMPLE</Text>
+          </View>
+
+          <View style={styles.exampleArea}>
+            <View style={styles.exampleFrame}>
+              <Image
+                resizeMode="cover"
+                source={exampleModelImage}
+                style={styles.exampleImage}
+              />
+            </View>
+          </View>
+
+          <View style={styles.guidelineRow}>
+            {photoGuidelines.map((guideline) => (
+              <View key={guideline.text} style={styles.guidelineItem}>
+                <View style={styles.guidelineIcon}>
+                  <Ionicons
+                    color={colors.text}
+                    name={guideline.icon}
+                    size={16}
+                  />
+                </View>
+                <Text style={styles.guidelineText}>{guideline.text}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.uploadCta}>
+            <Ionicons
+              color={colors.inverseText}
+              name="cloud-upload-outline"
+              size={18}
+            />
+            <Text style={styles.uploadCtaText}>Add your photo</Text>
+          </View>
+
           <Text style={styles.privacy}>
             Your photo is private and only used for try-on
           </Text>
         </View>
       )}
-
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  addButton: {
-    alignItems: "center",
-    borderColor: "#D8D4CA",
-    borderRadius: 22,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: "center",
-    width: 44
-  },
-  addButtonPressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.98 }]
-  },
   box: {
-    alignItems: "center",
-    ...avatarImageFrameStyles.frame,
-    justifyContent: "center",
+    borderRadius: 20,
+    flex: 1,
     marginTop: spacing.xl,
-    padding: spacing.xl,
-    position: "relative",
+    overflow: "hidden",
     width: "100%"
   },
   boxWithPreview: {
-    padding: 0
+    backgroundColor: colors.surface
   },
   changePhotoButton: {
     alignItems: "center",
@@ -138,39 +162,105 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 15
   },
-  emptyState: {
-    alignItems: "center",
-    gap: spacing.sm,
-    height: "100%",
-    justifyContent: "center",
-    width: "100%"
-  },
   emptyBox: {
+    backgroundColor: colors.surface,
     borderColor: "#B9AFA2",
     borderStyle: "dashed",
     borderWidth: 2
   },
-  guideImage: {
-    height: "48%",
-    marginBottom: spacing.xs,
-    width: "62%"
+  emptyState: {
+    flex: 1,
+    padding: spacing.lg
   },
-  label: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 20
+  exampleArea: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center"
   },
-  privacy: {
+  exampleFrame: {
+    aspectRatio: 3 / 4,
+    backgroundColor: colors.imageSurface,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    width: "60%"
+  },
+  exampleImage: {
+    height: "100%",
+    width: "100%"
+  },
+  examplePill: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.text,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  examplePillText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 12
+  },
+  guidelineIcon: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  guidelineItem: {
+    alignItems: "center",
+    flex: 1,
+    gap: 6
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md
+  },
+  guidelineText: {
     color: colors.muted,
     fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16.8,
+    fontSize: 11,
+    lineHeight: 14,
     textAlign: "center"
   },
   pressed: {
-    backgroundColor: colors.imageSurface,
-    transform: [{ scale: 0.98 }]
+    opacity: 0.92
   },
-  preview: {}
+  previewImage: {
+    height: "100%",
+    width: "100%"
+  },
+  privacy: {
+    color: colors.soft,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: spacing.sm,
+    textAlign: "center"
+  },
+  uploadCta: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    backgroundColor: colors.inverse,
+    borderRadius: radii.button,
+    flexDirection: "row",
+    gap: 8,
+    height: 48,
+    justifyContent: "center",
+    marginTop: spacing.md
+  },
+  uploadCtaText: {
+    color: colors.inverseText,
+    fontFamily: fonts.cta,
+    fontSize: 14,
+    lineHeight: 17
+  }
 });
