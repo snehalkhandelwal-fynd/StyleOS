@@ -18,10 +18,14 @@ build/
 .metro-health-check*
 ios/Pods/
 ios/build/
+ios/.xcode.env.local
 android/.gradle/
 android/build/
 android/app/build/
 *.xcuserstate
+
+# Local backups
+ios.local-backup/
 
 # Env
 .env
