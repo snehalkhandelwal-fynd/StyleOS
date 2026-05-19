@@ -1,3 +1,4 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -13,8 +14,9 @@ import {
 } from "react-native";
 
 import { colors, fonts, spacing, typography } from "../../../theme";
+import { formatRupeeAmount, getRupeeValue } from "../data/lookPieces";
 
-type CartItem = {
+export type CartItem = {
   brand: string;
   color: string;
   id: string;
@@ -35,13 +37,13 @@ type Coupon = {
   terms: string;
 };
 
-const cartItems: CartItem[] = [
+const defaultCartItems: CartItem[] = [
   {
     brand: "Trends",
     color: "Ivory",
     id: "cart-blazer-dress",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=600&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     originalPrice: "₹4,599",
     price: "₹2,300",
     quantity: 1,
@@ -53,7 +55,7 @@ const cartItems: CartItem[] = [
     color: "Oxblood",
     id: "cart-cropped-jacket",
     image:
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     price: "₹2,300",
     quantity: 1,
     size: "S",
@@ -197,15 +199,36 @@ function CartItemCard({ item }: { item: CartItem }) {
   );
 }
 
-function CartItemsSection() {
+function EmptyCartState() {
+  return (
+    <View style={styles.emptyCartCard}>
+      <View style={styles.emptyCartIcon}>
+        <Feather color={colors.muted} name="shopping-bag" size={21} />
+      </View>
+      <Text style={styles.emptyCartTitle}>Your cart is empty</Text>
+      <Text style={styles.emptyCartCopy}>
+        Add pieces from a look to review sizes and checkout here.
+      </Text>
+    </View>
+  );
+}
+
+function CartItemsSection({ items }: { items: CartItem[] }) {
   return (
     <View style={styles.section}>
-      <SectionHeader icon="trash-2" title={`Cart items (${cartItems.length})`} />
-      <View style={styles.cartList}>
-        {cartItems.map((item) => (
-          <CartItemCard item={item} key={item.id} />
-        ))}
-      </View>
+      <SectionHeader
+        icon={items.length > 0 ? "trash-2" : undefined}
+        title={`Cart items (${items.length})`}
+      />
+      {items.length > 0 ? (
+        <View style={styles.cartList}>
+          {items.map((item) => (
+            <CartItemCard item={item} key={item.id} />
+          ))}
+        </View>
+      ) : (
+        <EmptyCartState />
+      )}
     </View>
   );
 }
@@ -569,12 +592,40 @@ function LoyaltySection() {
   );
 }
 
-function PriceSummary() {
+function getCartTotals(items: CartItem[]) {
+  const itemTotal = items.reduce(
+    (sum, item) => sum + getRupeeValue(item.price) * item.quantity,
+    0
+  );
+  const originalTotal = items.reduce(
+    (sum, item) =>
+      sum + getRupeeValue(item.originalPrice ?? item.price) * item.quantity,
+    0
+  );
+  const discount = Math.max(0, originalTotal - itemTotal);
+
+  return {
+    discount,
+    itemTotal,
+    total: itemTotal
+  };
+}
+
+function PriceSummary({ items }: { items: CartItem[] }) {
+  const totals = getCartTotals(items);
   const rows = [
-    ["Bag total", "₹9,633"],
-    ["Discount", "-₹2,299", "success"],
-    ["Sub total", "₹7,334"],
-    ["GST (18%)", "₹174"]
+    ["Item total", formatRupeeAmount(totals.itemTotal)],
+    ...(totals.discount > 0
+      ? [
+          [
+            "Discount",
+            `-${formatRupeeAmount(totals.discount)}`,
+            "success"
+          ]
+        ]
+      : []),
+    ["Sub total", formatRupeeAmount(totals.total)],
+    ["GST", "Included"]
   ];
 
   return (
@@ -592,21 +643,41 @@ function PriceSummary() {
       </View>
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>₹7,308</Text>
+        <Text style={styles.totalValue}>{formatRupeeAmount(totals.total)}</Text>
       </View>
     </View>
   );
 }
 
-function CheckoutDock() {
+function CheckoutDock({ items }: { items: CartItem[] }) {
+  const totals = getCartTotals(items);
+  const hasItems = items.length > 0;
+  const savingsLabel =
+    !hasItems
+      ? "Add a look to see your checkout total"
+      : totals.discount > 0
+      ? `You saved ${formatRupeeAmount(totals.discount)} on this purchase`
+      : "Try-on ready pieces are waiting in your cart";
+
   return (
     <View pointerEvents="box-none" style={styles.checkoutDock}>
       <View style={styles.savingsStrip}>
-        <Text style={styles.savingsText}>You saved ₹2,125 on this purchase</Text>
+        <Text style={styles.savingsText}>{savingsLabel}</Text>
       </View>
       <View style={styles.checkoutSurface}>
-        <Pressable accessibilityRole="button" style={styles.payButton}>
-          <Text style={styles.payButtonText}>Continue to Pay ₹7,308</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={!hasItems}
+          style={[
+            styles.payButton,
+            !hasItems ? styles.payButtonDisabled : null
+          ]}
+        >
+          <Text style={styles.payButtonText}>
+            {hasItems
+              ? `Continue to Pay ${formatRupeeAmount(totals.total)}`
+              : "Add items to continue"}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -614,10 +685,12 @@ function CheckoutDock() {
 }
 
 type CartScreenProps = {
+  items?: CartItem[];
   onBack?: () => void;
 };
 
-export function CartScreen({ onBack }: CartScreenProps) {
+export function CartScreen({ items = defaultCartItems, onBack }: CartScreenProps) {
+  const cartItems = items;
   const [appliedOffer, setAppliedOffer] = useState<string | null>(defaultOffer);
   const [appliedGiftCard, setAppliedGiftCard] = useState<string | null>(null);
   const [isCouponPageOpen, setIsCouponPageOpen] = useState(false);
@@ -655,7 +728,7 @@ export function CartScreen({ onBack }: CartScreenProps) {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <CartItemsSection />
+          <CartItemsSection items={cartItems} />
           <OffersSection
             appliedOffer={appliedOffer}
             onApplyOffer={setAppliedOffer}
@@ -668,9 +741,9 @@ export function CartScreen({ onBack }: CartScreenProps) {
             onRemoveGiftCard={() => setAppliedGiftCard(null)}
           />
           <LoyaltySection />
-          <PriceSummary />
+          <PriceSummary items={cartItems} />
         </ScrollView>
-        <CheckoutDock />
+        <CheckoutDock items={cartItems} />
       </View>
     </SafeAreaView>
   );
@@ -986,6 +1059,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18
   },
+  emptyCartCard: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTertiary,
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl
+  },
+  emptyCartCopy: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center"
+  },
+  emptyCartIcon: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderRadius: 22,
+    height: 44,
+    justifyContent: "center",
+    width: 44
+  },
+  emptyCartTitle: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    lineHeight: 21
+  },
   giftCard: {
     alignItems: "center",
     backgroundColor: colors.surfaceTertiary,
@@ -1182,6 +1286,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: 52,
     justifyContent: "center"
+  },
+  payButtonDisabled: {
+    backgroundColor: colors.soft
   },
   payButtonText: {
     color: colors.inverseText,

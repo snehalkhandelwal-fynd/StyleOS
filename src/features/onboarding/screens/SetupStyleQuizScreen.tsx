@@ -7,7 +7,7 @@ import {
   View
 } from "react-native";
 
-import { styleCards } from "../../../data/styleQuiz";
+import { getStyleCardsForFashionInterest } from "../../../data/styleQuiz";
 import { colors, fonts, spacing } from "../../../theme";
 import { OnboardingStepShell } from "../components/OnboardingStepShell";
 import {
@@ -16,14 +16,17 @@ import {
   type StylePreference,
   type StyleSwipeCardHandle
 } from "../components/StyleSwipeCard";
+import type { FashionInterest } from "../viewModels/useOnboardingViewModel";
 
 type SetupStyleQuizScreenProps = {
+  fashionInterest?: FashionInterest;
   onComplete: () => void;
   onPreference: (styleId: string, preference: StylePreference) => void;
   onSkip: () => void;
 };
 
 export function SetupStyleQuizScreen({
+  fashionInterest,
   onComplete,
   onPreference,
   onSkip
@@ -31,7 +34,10 @@ export function SetupStyleQuizScreen({
   const { height, width } = useWindowDimensions();
   const deckRef = useRef<StyleSwipeCardHandle | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const visibleCards = useMemo(() => styleCards.slice(0, 6), []);
+  const visibleCards = useMemo(
+    () => getStyleCardsForFashionInterest(fashionInterest).slice(0, 5),
+    [fashionInterest]
+  );
   const currentCard = visibleCards[currentIndex];
   const nextCards = visibleCards.slice(currentIndex + 1, currentIndex + 3);
   const cardWidth = width - 40;
@@ -70,7 +76,7 @@ export function SetupStyleQuizScreen({
   return (
     <OnboardingStepShell
       currentStep={4}
-      subtitle="Swipe on 6 looks. We'll learn your taste."
+      subtitle="Swipe 5 looks. We'll learn your taste."
       title="What’s your style?"
     >
       <View style={styles.content}>

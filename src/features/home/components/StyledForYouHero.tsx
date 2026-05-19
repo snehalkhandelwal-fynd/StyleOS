@@ -14,7 +14,7 @@ export function StyledForYouHero() {
     >
       <View style={styles.deliveryChip}>
         <Ionicons color={colors.inverseText} name="checkmark-circle-outline" size={16} />
-        <Text style={styles.deliveryText}>Delivered by Tomorrow</Text>
+        <Text style={styles.deliveryText}>Delivery in 2 days</Text>
       </View>
 
       <View style={styles.matchPill}>

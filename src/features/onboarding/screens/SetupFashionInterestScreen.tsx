@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
+import { prototypeProductImages } from "../../home/data/prototypeProductImages";
 import { spacing } from "../../../theme";
 import { FashionInterestCard } from "../components/FashionInterestCard";
 import { OnboardingStepShell } from "../components/OnboardingStepShell";
@@ -13,14 +14,12 @@ type SetupFashionInterestScreenProps = {
 
 const interestOptions = [
   {
-    image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.maje.pinkRelaxedSet,
     label: "Women’s clothing",
     value: "womens"
   },
   {
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.men.tailoredLook,
     label: "Men’s clothing",
     value: "mens"
   }

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { colors, spacing, typography } from "../../../theme";
+import { prototypeProductImages } from "../../home/data/prototypeProductImages";
 import { AvatarImageFrame } from "../components/AvatarImageFrame";
 import { OnboardingStepShell } from "../components/OnboardingStepShell";
 
@@ -10,8 +11,7 @@ type AvatarCreatingScreenProps = {
   photoUri?: string;
 };
 
-const fallbackAvatar =
-  "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80";
+const fallbackAvatar = prototypeProductImages.maje.greenDenimTop;
 const twoLineSubtitleOffset = 21;
 
 export function AvatarCreatingScreen({

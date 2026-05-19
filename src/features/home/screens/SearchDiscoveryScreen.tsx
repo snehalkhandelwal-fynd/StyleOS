@@ -1,3 +1,4 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -16,6 +17,7 @@ import {
 import type { TextInput as TextInputType } from "react-native";
 
 import { colors, fonts, radii, spacing, typography } from "../../../theme";
+import { BrandLogoMark } from "../components/BrandLogoMark";
 import { brandRows, type Brand } from "../data/brandCatalog";
 
 type SearchDiscoveryScreenProps = {
@@ -52,28 +54,27 @@ const trendingLooks: TrendingLook[] = [
   {
     action: "Try now",
     image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     meta: "Dinner-ready",
     title: "Soft evening set"
   },
   {
     action: "Try now",
     image:
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     meta: "Vacation",
     title: "Travel denim"
   },
   {
     action: "Try now",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     meta: "Work-ready",
     title: "Linen city look"
   },
   {
     action: "Try now",
-    image:
-      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.maje.sheerPartyDress,
     meta: "Party",
     title: "Satin night out"
   }
@@ -81,26 +82,25 @@ const trendingLooks: TrendingLook[] = [
 
 const styleTiles: StyleTile[] = [
   {
-    image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
     label: "Minimal",
     subcopy: "Clean layers"
   },
   {
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     label: "Streetwear",
     subcopy: "Easy edge"
   },
   {
     image:
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.beigeTrench,
     label: "Chic",
     subcopy: "Polished fits"
   },
   {
     image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     label: "Corporate",
     subcopy: "Work polish"
   }
@@ -108,26 +108,25 @@ const styleTiles: StyleTile[] = [
 
 const budgetFilters: BudgetFilter[] = [
   {
-    image:
-      "https://images.unsplash.com/photo-1506629905607-d405d7d3b0d2?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.maje.greenDenimTop,
     label: "Under ₹999",
     subcopy: "Try casual looks"
   },
   {
     image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     label: "Under ₹1999",
     subcopy: "Styled outfits"
   },
   {
     image:
-      "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.whitePinstripeSuit,
     label: "Under ₹2999",
     subcopy: "Smart sets"
   },
   {
     image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     label: "Under ₹3999",
     subcopy: "Complete looks"
   }
@@ -211,13 +210,10 @@ function SearchBrandLogoPill({ brand }: { brand: Brand }) {
       accessibilityRole="button"
       style={styles.brandLogoPill}
     >
-      <Image
-        resizeMode="contain"
-        source={brand.logoImage}
-        style={{
-          height: brand.logoHeight,
-          width: brand.logoWidth
-        }}
+      <BrandLogoMark
+        height={brand.logoHeight}
+        variant={brand.logoVariant}
+        width={brand.logoWidth}
       />
     </Pressable>
   );
@@ -349,10 +345,10 @@ export function SearchDiscoveryScreen({ onClose }: SearchDiscoveryScreenProps) {
                   key={`brand-row-${rowIndex}`}
                   showsHorizontalScrollIndicator={false}
                 >
-                  {row.map((brand) => (
+                  {row.map((brand, index) => (
                     <SearchBrandLogoPill
                       brand={brand}
-                      key={`${brand.id}-${rowIndex}`}
+                      key={`${brand.id}-${rowIndex}-${index}`}
                     />
                   ))}
                 </ScrollView>

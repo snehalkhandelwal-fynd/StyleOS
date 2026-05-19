@@ -262,10 +262,10 @@ function HeroCard() {
       <Image source={{ uri: figmaAssets.hero }} style={styles.heroImage} resizeMode="cover" />
       <View style={styles.deliveryChip}>
         <Icon color={colors.inverseText} name="check" size={16} strokeWidth={1.6} />
-        <Text style={styles.deliveryChipText}>Delivered by Tomorrow</Text>
+        <Text style={styles.deliveryChipText}>Delivery in 2 days</Text>
       </View>
       <View style={styles.matchPill}>
-        <Text style={styles.matchText}>91% your style</Text>
+        <Text style={styles.matchText}>91% match</Text>
       </View>
       <Pressable style={styles.heroHeart}>
         <Icon color={colors.text} name="heart" size={22} strokeWidth={1.8} />
@@ -293,7 +293,7 @@ function LookTileCard({ image }: ProductCardData) {
       </View>
       <View style={styles.lookFooter}>
         <SwatchStack />
-        <Text style={styles.lookMatchText}>91% your style</Text>
+        <Text style={styles.lookMatchText}>91% match</Text>
       </View>
     </View>
   );
@@ -449,8 +449,8 @@ function SavedLookCard({ image, index }: { image: string; index: number }) {
       </View>
       <View style={styles.savedFooter}>
         <View style={styles.savedMatchRow}>
-          <Text style={styles.savedMatch}>91% your style</Text>
-          <Text style={styles.savedDelivery}>Delivered by Tomorrow</Text>
+          <Text style={styles.savedMatch}>91% match</Text>
+          <Text style={styles.savedDelivery}>Delivery in 4 days</Text>
         </View>
         <Pressable style={styles.savedShopButton}>
           <Icon color={colors.text} name="cart" size={18} strokeWidth={1.5} />

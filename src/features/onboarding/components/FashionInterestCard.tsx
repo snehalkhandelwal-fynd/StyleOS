@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, radii, spacing, typography } from "../../../theme";
@@ -35,6 +36,15 @@ export function FashionInterestCard({
         style={styles.image}
       />
       <View style={styles.overlay} />
+      <LinearGradient
+        colors={[
+          "rgba(255, 255, 255, 0)",
+          "rgba(255, 255, 255, 0.18)",
+          "rgba(255, 255, 255, 0.42)"
+        ]}
+        pointerEvents="none"
+        style={styles.copyGradient}
+      />
       {isSelected ? (
         <View style={styles.checkWrap}>
           <Ionicons color={colors.inverseText} name="checkmark" size={18} />
@@ -77,19 +87,26 @@ const styles = StyleSheet.create({
     right: spacing.md,
     zIndex: 2
   },
+  copyGradient: {
+    bottom: 0,
+    height: "42%",
+    left: 0,
+    position: "absolute",
+    right: 0
+  },
   image: {
     ...StyleSheet.absoluteFillObject,
     height: "100%",
     width: "100%"
   },
   label: {
-    color: colors.inverseText,
+    color: colors.text,
     fontFamily: typography.sectionHeading.fontFamily,
     fontSize: 18,
     lineHeight: 23
   },
   overlay: {
-    backgroundColor: colors.scrimMedium,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     bottom: 0,
     left: 0,
     position: "absolute",

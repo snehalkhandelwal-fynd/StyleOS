@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   FlatList,
   ImageBackground,
@@ -186,6 +187,15 @@ export function SplashScreen({ onExplore, onGetStarted }: SplashScreenProps) {
                 style={[styles.card, { width: cardWidth }]}
               >
                 <View style={styles.overlay} />
+                <LinearGradient
+                  colors={[
+                    "rgba(255, 255, 255, 0)",
+                    "rgba(255, 255, 255, 0.18)",
+                    "rgba(255, 255, 255, 0.42)"
+                  ]}
+                  pointerEvents="none"
+                  style={styles.copyGradient}
+                />
                 <View style={styles.cardCopy}>
                   <Text style={styles.kicker}>{item.kicker}</Text>
                   <Text style={styles.cardTitle}>{item.title}</Text>
@@ -251,7 +261,8 @@ const styles = StyleSheet.create({
   },
   cardCopy: {
     gap: spacing.sm,
-    padding: spacing.lg
+    padding: spacing.lg,
+    zIndex: 1
   },
   cardFrame: {
     alignItems: "center",
@@ -262,17 +273,24 @@ const styles = StyleSheet.create({
     borderRadius: radii.card
   },
   cardSubtitle: {
-    color: colors.inverseText,
+    color: colors.text,
     ...typography.bodyLarge
   },
   cardTitle: {
-    color: colors.inverseText,
+    color: colors.text,
     ...typography.displayHeadline
   },
   carouselWrap: {
     flex: 1,
     justifyContent: "center",
     overflow: "hidden"
+  },
+  copyGradient: {
+    bottom: 0,
+    height: "44%",
+    left: 0,
+    position: "absolute",
+    right: 0
   },
   dot: {
     backgroundColor: colors.border,
@@ -288,11 +306,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg
   },
   kicker: {
-    color: colors.inverseText,
+    color: colors.text,
     ...typography.caption
   },
   overlay: {
-    backgroundColor: colors.scrimSoft,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
     borderRadius: radii.card,
     bottom: 0,
     left: 0,

@@ -8,6 +8,13 @@ type SavedLookCarouselProps = {
   savedLooks: SavedLook[];
 };
 
+const deliveryWindows = [
+  "Delivery in 2 days",
+  "Delivery in 4 days",
+  "Delivery in 3 days",
+  "Delivery in 5 days"
+];
+
 export function SavedLookCarousel({ savedLooks }: SavedLookCarouselProps) {
   return (
     <View style={styles.section}>
@@ -18,7 +25,7 @@ export function SavedLookCarousel({ savedLooks }: SavedLookCarouselProps) {
         horizontal
         showsHorizontalScrollIndicator={false}
       >
-        {savedLooks.map((look) => (
+        {savedLooks.map((look, index) => (
           <View key={look.id} style={styles.card}>
             <View style={styles.imageFrame}>
               <Image resizeMode="cover" source={{ uri: look.image }} style={styles.image} />
@@ -33,7 +40,9 @@ export function SavedLookCarousel({ savedLooks }: SavedLookCarouselProps) {
             <View style={styles.footer}>
               <View style={styles.metaRow}>
                 <Text style={styles.metaText}>Popular</Text>
-                <Text style={styles.metaText}>Delivered by Tomorrow</Text>
+                <Text style={styles.metaText}>
+                  {deliveryWindows[index % deliveryWindows.length]}
+                </Text>
               </View>
               <Pressable accessibilityRole="button" style={styles.shopButton}>
                 <Ionicons color={colors.text} name="cart-outline" size={18} />
