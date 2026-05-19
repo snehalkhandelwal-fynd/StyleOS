@@ -57,6 +57,12 @@ export const prototypeProductImages = {
   },
   men: {
     tailoredLook: assetUri(require("../../../../Images/man.webp"))
+  },
+  shopThisLook: {
+    brownBag: assetUri(require("../../../../Images/brownbag.jpg")),
+    brownShoes: assetUri(require("../../../../Images/brownshoes.jpg")),
+    yellowPants: assetUri(require("../../../../Images/yellow pants.jpg")),
+    yellowTop: assetUri(require("../../../../Images/yellow top.jpg"))
   }
 } as const;
 

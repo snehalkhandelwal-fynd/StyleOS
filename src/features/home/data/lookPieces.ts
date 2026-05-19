@@ -14,18 +14,27 @@ export type LookPiece = {
 };
 
 const defaultPieceImages = {
-  bag: prototypeProductImages.maje.stripedScarfDenim,
-  bottom: prototypeProductImages.sandro.whitePinstripeSuit,
+  accessory: prototypeProductImages.maje.stripedScarfDenim,
+  bag: prototypeProductImages.shopThisLook.brownBag,
+  bottom: prototypeProductImages.shopThisLook.yellowPants,
   dress: prototypeProductImages.maje.beigeCrochetDress,
   jacket: prototypeProductImages.sandro.brownJacket,
-  shoe: prototypeProductImages.sandro.brownJacket,
-  top: prototypeProductImages.sandro.whitePinstripeSuit
+  shoe: prototypeProductImages.shopThisLook.brownShoes,
+  top: prototypeProductImages.shopThisLook.yellowTop
 } satisfies Record<OutfitPieceKind, string>;
 
 const defaultPieceInfo: Record<
   OutfitPieceKind,
   Omit<LookPiece, "id" | "kind">
 > = {
+  accessory: {
+    brand: "Maje",
+    category: "Accessory",
+    image: defaultPieceImages.accessory,
+    name: "Printed silk scarf",
+    price: "₹999",
+    sizes: ["One"]
+  },
   bag: {
     brand: "Maje",
     category: "Bag",
@@ -111,10 +120,36 @@ export function buildLookPieces(look: ProductLook) {
 }
 
 export const pieceAlternatives: Record<OutfitPieceKind, LookPiece[]> = {
+  accessory: [
+    createPiece("accessory", 0, {
+      brand: "Maje",
+      image: prototypeProductImages.maje.stripedScarfDenim,
+      name: "Printed silk scarf",
+      price: "₹999"
+    }),
+    createPiece("accessory", 1, {
+      brand: "Sandro",
+      image: prototypeProductImages.sandro.beigeTrench,
+      name: "Slim leather belt",
+      price: "₹1,299"
+    }),
+    createPiece("accessory", 2, {
+      brand: "Trends",
+      image: prototypeProductImages.maje.ivoryMiniDress,
+      name: "Gold hoop earrings",
+      price: "₹799"
+    }),
+    createPiece("accessory", 3, {
+      brand: "Maje",
+      image: prototypeProductImages.maje.navyCoatDress,
+      name: "Layered pendant set",
+      price: "₹1,499"
+    })
+  ],
   bag: [
     createPiece("bag", 0, {
       brand: "Maje",
-      image: prototypeProductImages.maje.stripedScarfDenim,
+      image: prototypeProductImages.shopThisLook.brownBag,
       name: "Structured mini bag",
       price: "₹2,499"
     }),
@@ -146,7 +181,7 @@ export const pieceAlternatives: Record<OutfitPieceKind, LookPiece[]> = {
     }),
     createPiece("bottom", 2, {
       brand: "Trends",
-      image: prototypeProductImages.sandro.navyTailoredSet,
+      image: prototypeProductImages.shopThisLook.yellowPants,
       name: "Linen city pants",
       price: "₹2,799"
     }),
@@ -224,7 +259,7 @@ export const pieceAlternatives: Record<OutfitPieceKind, LookPiece[]> = {
     }),
     createPiece("shoe", 1, {
       brand: "Maje",
-      image: prototypeProductImages.maje.stripedScarfDenim,
+      image: prototypeProductImages.shopThisLook.brownShoes,
       name: "Clean slingbacks",
       price: "₹2,799"
     }),
@@ -272,7 +307,7 @@ export const pieceAlternatives: Record<OutfitPieceKind, LookPiece[]> = {
     }),
     createPiece("top", 4, {
       brand: "Trends",
-      image: prototypeProductImages.maje.beigeCrochetDress,
+      image: prototypeProductImages.shopThisLook.yellowTop,
       isOwned: false,
       name: "Relaxed cotton tee",
       price: "₹1,299"

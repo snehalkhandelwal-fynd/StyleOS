@@ -25,6 +25,7 @@ import { onboardingHeadingTop } from "../layout";
 type PhoneSignInScreenProps = {
   onChangeCountry: (country: CountryOption) => void;
   onChangePhone: (value: string) => void;
+  onSkip: () => void;
   onSubmit: () => void;
   phoneNumber: string;
   selectedCountry: CountryOption;
@@ -41,6 +42,7 @@ const webTextInputReset =
 export function PhoneSignInScreen({
   onChangeCountry,
   onChangePhone,
+  onSkip,
   onSubmit,
   phoneNumber,
   selectedCountry
@@ -71,6 +73,19 @@ export function PhoneSignInScreen({
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.content}>
+        <Pressable
+          accessibilityLabel="Skip sign in"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onSkip}
+          style={({ pressed }) => [
+            styles.skip,
+            pressed ? styles.skipPressed : null
+          ]}
+        >
+          <Text style={styles.skipText}>Skip</Text>
+        </Pressable>
+
         <Text style={styles.title}>What's your phone number?</Text>
 
         <View style={styles.form}>
@@ -174,6 +189,20 @@ const styles = StyleSheet.create({
   screen: {
     backgroundColor: colors.background,
     flex: 1
+  },
+  skip: {
+    paddingVertical: spacing.xs,
+    position: "absolute",
+    right: spacing.screen,
+    top: spacing.xs,
+    zIndex: 20
+  },
+  skipPressed: {
+    opacity: 0.6
+  },
+  skipText: {
+    color: colors.muted,
+    ...typography.bodyLarge
   },
   title: {
     color: colors.text,

@@ -15,14 +15,21 @@ import {
 
 import { BottomTabBar } from "../features/home/components/BottomTabBar";
 import type { ProductListingProduct } from "../features/home/components/ProductListingScreen";
-import type { LookPiece } from "../features/home/data/lookPieces";
+import { AccountScreen } from "../features/home/screens/AccountScreen";
+import {
+  getRupeeValue,
+  type LookPiece
+} from "../features/home/data/lookPieces";
 import { BrandPlpScreen } from "../features/home/screens/BrandPlpScreen";
-import { CartScreen } from "../features/home/screens/CartScreen";
+import { CartScreen, type CartItem } from "../features/home/screens/CartScreen";
 import { ClosetScreen } from "../features/home/screens/ClosetScreen";
 import { ExploreScreen } from "../features/home/screens/ExploreScreen";
 import { HomeScreen } from "../features/home/screens/HomeScreen";
 import type { ProductLook } from "../features/home/screens/HomeScreen";
-import { ModelLookPdpScreen } from "../features/home/screens/ModelLookPdpScreen";
+import {
+  ModelLookPdpScreen,
+  type ShopThisLookCartItem
+} from "../features/home/screens/ModelLookPdpScreen";
 import { ProductPdpScreen } from "../features/home/screens/ProductPdpScreen";
 import { SearchDiscoveryScreen } from "../features/home/screens/SearchDiscoveryScreen";
 import {
@@ -62,6 +69,77 @@ type TryOnRenderState = {
   startedAt: number | null;
   status: "idle" | "ready" | "rendering";
 };
+
+function toProductListingProductFromLookPiece(
+  piece: LookPiece,
+  look?: ProductLook
+): ProductListingProduct {
+  return {
+    brand: piece.brand,
+    id: `look-piece-${piece.id}`,
+    image: piece.image,
+    match: look?.match,
+    occasion: look?.vibe,
+    price: piece.price,
+    priceValue: getRupeeValue(piece.price),
+    sizeOptions: piece.sizes,
+    styleLabel: piece.category,
+    title: piece.name,
+    tries: look?.tries,
+    vibe: look?.vibe
+  };
+}
+
+const cartColorByPieceKind: Record<LookPiece["kind"], string> = {
+  accessory: "As shown",
+  bag: "As shown",
+  bottom: "Neutral",
+  dress: "As shown",
+  jacket: "As shown",
+  shoe: "As shown",
+  top: "Ivory"
+};
+
+function getCartItemCount(items: CartItem[]) {
+  return items.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+function toCartItemFromLookSelection(
+  item: ShopThisLookCartItem,
+  look?: ProductLook
+): CartItem {
+  const { piece, size } = item;
+
+  return {
+    brand: piece.brand,
+    color: cartColorByPieceKind[piece.kind],
+    id: `${look?.id ?? "look"}-${piece.id}-${size}`,
+    image: piece.image,
+    price: piece.price,
+    quantity: 1,
+    size,
+    title: piece.name
+  };
+}
+
+function toCartItemFromProduct(product: ProductListingProduct): CartItem {
+  const size =
+    product.sizeOptions?.[Math.min(1, product.sizeOptions.length - 1)] ??
+    product.sizeOptions?.[0] ??
+    "One";
+
+  return {
+    brand: product.brand ?? "Stylus",
+    color: product.color ?? "As shown",
+    id: `product-${product.id}-${size}`,
+    image: product.image,
+    originalPrice: product.originalPrice,
+    price: product.price,
+    quantity: 1,
+    size,
+    title: product.title
+  };
+}
 
 const renderStatusTopInset =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
@@ -222,6 +300,7 @@ export function HomeTabsNavigator({
   const [lookSnapshots, setLookSnapshots] = useState<
     Record<string, LookSessionSnapshot>
   >({});
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartCount, setCartCount] = useState(0);
 
   const clearRenderTimer = useCallback(() => {
@@ -458,6 +537,66 @@ export function HomeTabsNavigator({
     setActiveTab(tab);
   };
 
+  const addCartItems = useCallback((items: CartItem[]) => {
+    if (items.length === 0) {
+      return;
+    }
+
+    setCartItems((current) => [
+      ...current,
+      ...items.map((item, index) => ({
+        ...item,
+        id: `${item.id}-cart-${current.length + index + 1}`
+      }))
+    ]);
+    setCartCount((current) => current + getCartItemCount(items));
+  }, []);
+
+  const handleClearCart = useCallback(() => {
+    setCartItems([]);
+    setCartCount(0);
+  }, []);
+
+  const handleUpdateCartItemQuantity = useCallback(
+    (itemId: string, nextQuantity: number) => {
+      setCartItems((currentItems) => {
+        const nextItems =
+          nextQuantity <= 0
+            ? currentItems.filter((item) => item.id !== itemId)
+            : currentItems.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      quantity: nextQuantity
+                    }
+                  : item
+              );
+
+        setCartCount(getCartItemCount(nextItems));
+        return nextItems;
+      });
+    },
+    []
+  );
+
+  const handleAddSelectedLookToCart = useCallback(
+    (items: ShopThisLookCartItem[]) => {
+      const nextCartItems = items.map((item) =>
+        toCartItemFromLookSelection(item, selectedLook ?? undefined)
+      );
+
+      addCartItems(nextCartItems);
+    },
+    [addCartItems, selectedLook]
+  );
+
+  const handleAddProductToCart = useCallback(
+    (product: ProductListingProduct) => {
+      addCartItems([toCartItemFromProduct(product)]);
+    },
+    [addCartItems]
+  );
+
   const handleExploreInternalViewChange = useCallback((isOpen: boolean) => {
     setIsExploreInternalViewOpen(isOpen);
   }, []);
@@ -565,10 +704,15 @@ export function HomeTabsNavigator({
   }, []);
 
   const handleAddShopPieceToCart = useCallback(
-    (_piece: LookPiece, _size: string) => {
-      setCartCount((current) => current + 1);
+    (piece: LookPiece, size: string) => {
+      addCartItems([
+        toCartItemFromLookSelection(
+          { piece, size },
+          tryOnEntry?.look ?? undefined
+        )
+      ]);
     },
-    []
+    [addCartItems, tryOnEntry?.look]
   );
 
   const handleViewCartFromShopLook = useCallback(() => {
@@ -606,6 +750,30 @@ export function HomeTabsNavigator({
     },
     []
   );
+
+  const handleOpenProductFromLookPiece = useCallback(
+    (piece: LookPiece) => {
+      setSelectedProductReturnTab(null);
+      setSelectedProduct(
+        toProductListingProductFromLookPiece(piece, selectedLook ?? undefined)
+      );
+      setSelectedBrandId(null);
+      setIsSearchOpen(false);
+      setIsExploreInternalViewOpen(false);
+      setActiveTab("Home");
+    },
+    [selectedLook]
+  );
+
+  const handleOpenLookFromProductPdp = useCallback((look: ProductLook) => {
+    setSelectedProduct(null);
+    setSelectedProductReturnTab(null);
+    setSelectedLook(look);
+    setSelectedBrandId(null);
+    setIsSearchOpen(false);
+    setIsExploreInternalViewOpen(false);
+    setActiveTab("Home");
+  }, []);
 
   const handleOpenProductFromTryOn = useCallback(
     (product: ProductListingProduct) => {
@@ -669,12 +837,27 @@ export function HomeTabsNavigator({
   return (
     <View style={styles.screen}>
       <View style={styles.content}>
-        {activeTab === "Home" && selectedLook ? (
+        {activeTab === "Home" && selectedProduct ? (
+          <ProductPdpScreen
+            cartCount={cartCount}
+            hasStyleProfile={hasStyleProfile}
+            onAddToCart={() => handleAddProductToCart(selectedProduct)}
+            onAskMira={() => handleChangeTab("AIStylist")}
+            onBack={handleProductPdpBack}
+            onOpenCart={() => handleChangeTab("Cart")}
+            onOpenLook={handleOpenLookFromProductPdp}
+            onOpenSearch={() => setIsSearchOpen(true)}
+            onStartTryOn={(context) => openTryOnSession(undefined, context)}
+            product={selectedProduct}
+          />
+        ) : null}
+        {activeTab === "Home" && selectedLook && !selectedProduct ? (
           <ModelLookPdpScreen
             cartCount={cartCount}
+            hasStyleProfile={hasStyleProfile}
             initialIsSaved={selectedLookSnapshot?.isSaved}
             look={selectedLook}
-            onAddToCart={() => handleChangeTab("Cart")}
+            onAddToCart={handleAddSelectedLookToCart}
             onAskMira={() => handleChangeTab("AIStylist")}
             onBack={() => setSelectedLook(null)}
             onLookSavedChange={(isSaved) => {
@@ -690,26 +873,16 @@ export function HomeTabsNavigator({
               }));
             }}
             onOpenCart={() => handleChangeTab("Cart")}
+            onOpenPieceProduct={handleOpenProductFromLookPiece}
             onStartTryOn={(context) => openTryOnSession(selectedLook, context)}
             pieceOverrides={selectedLookSnapshot?.pieces}
-          />
-        ) : null}
-        {activeTab === "Home" && selectedProduct && !selectedLook ? (
-          <ProductPdpScreen
-            hasStyleProfile={hasStyleProfile}
-            onAddToCart={() => handleChangeTab("Cart")}
-            onAskMira={() => handleChangeTab("AIStylist")}
-            onBack={handleProductPdpBack}
-            onOpenCart={() => handleChangeTab("Cart")}
-            onOpenLook={setSelectedLook}
-            onOpenSearch={() => setIsSearchOpen(true)}
-            onStartTryOn={(context) => openTryOnSession(undefined, context)}
-            product={selectedProduct}
           />
         ) : null}
         {activeTab === "Home" && selectedBrandId && !selectedLook && !selectedProduct ? (
           <BrandPlpScreen
             brandId={selectedBrandId}
+            cartCount={cartCount}
+            hasStyleProfile={hasStyleProfile}
             onBack={() => setSelectedBrandId(null)}
             onOpenCart={() => handleChangeTab("Cart")}
             onOpenProduct={handleOpenProductFromBrand}
@@ -717,12 +890,12 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "Home" && !selectedBrandId && !selectedLook && !selectedProduct ? (
           <HomeScreen
+            cartCount={cartCount}
             draft={draft}
             isGuest={isGuest}
             onChangeAddress={onChangeAddress}
             onOpenBrand={setSelectedBrandId}
             onOpenCart={() => handleChangeTab("Cart")}
-            onOpenCloset={() => handleChangeTab("Closet")}
             onOpenLook={setSelectedLook}
             onOpenSearch={() => setIsSearchOpen(true)}
             onStartStyleQuiz={onStartStyleQuiz}
@@ -730,10 +903,9 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "TryOn" && selectedProduct ? (
           <ProductPdpScreen
+            cartCount={cartCount}
             hasStyleProfile={hasStyleProfile}
-            onAddToCart={() =>
-              setCartCount((current) => current + 1)
-            }
+            onAddToCart={() => handleAddProductToCart(selectedProduct)}
             onAskMira={() => handleChangeTab("AIStylist")}
             onBack={handleProductPdpBack}
             onOpenCart={handleViewCartFromShopLook}
@@ -745,6 +917,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "TryOn" && !selectedProduct && isTryOnShopLookOpen ? (
           <ShopThisLookScreen
+            cartCount={cartCount}
             look={tryOnEntry?.look}
             onAddPieceToCart={handleAddShopPieceToCart}
             onBack={handleBackFromShopLook}
@@ -755,6 +928,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "TryOn" && !selectedProduct && !isTryOnShopLookOpen ? (
           <TryOnScreen
+            cartCount={cartCount}
             draft={draft}
             initialIsSaved={tryOnLookSnapshot?.isSaved}
             initialPieces={tryOnLookSnapshot?.pieces}
@@ -779,6 +953,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "Feed" ? (
           <ExploreScreen
+            cartCount={cartCount}
             hasStyleProfile={hasStyleProfile}
             onInternalViewChange={handleExploreInternalViewChange}
             onAskMira={() => handleChangeTab("AIStylist")}
@@ -794,12 +969,23 @@ export function HomeTabsNavigator({
           />
         ) : null}
         {activeTab === "Cart" ? (
-          <CartScreen onBack={() => handleChangeTab("Home")} />
+          <CartScreen
+            items={cartItems}
+            onBack={() => handleChangeTab("Home")}
+            onClearCart={handleClearCart}
+            onUpdateItemQuantity={handleUpdateCartItemQuantity}
+          />
         ) : null}
         {activeTab === "Profile" ? (
-          <ExploreScreen
-            copy="Manage your measurements, style profile, saved looks, and account details."
-            title="Profile"
+          <AccountScreen
+            appVersion="1.0.1"
+            user={{
+              avatarUri: draft.avatarUri,
+              name: draft.name?.trim() || "Guest",
+              phoneNumber: draft.phone
+                ? `${draft.phone.countryCode} ${draft.phone.phoneNumber}`
+                : undefined
+            }}
           />
         ) : null}
       </View>

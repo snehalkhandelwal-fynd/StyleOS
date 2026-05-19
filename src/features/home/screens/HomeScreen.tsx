@@ -7,6 +7,7 @@ import {
   Easing,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -23,6 +24,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingViewModel";
+import { CartCountBadge } from "../components/CartCountBadge";
 import { BrandLogoMark } from "../components/BrandLogoMark";
 import {
   isMatchLabel,
@@ -33,25 +35,32 @@ import {
   getMerchandisingLabel,
   hasCompletedStyleProfile
 } from "../utils/stylePersonalization";
-import { colors, fonts, spacing } from "../../../theme";
+import { colors, fonts, radii, spacing } from "../../../theme";
 
 const AnimatedHeaderView = Animated.createAnimatedComponent(View);
 const homeHeaderTopInset =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
 
 type HomeScreenProps = {
+  cartCount?: number;
   draft: OnboardingDraft;
   isGuest: boolean;
   onChangeAddress: () => void;
   onOpenBrand: (brandId: string) => void;
   onOpenCart: () => void;
-  onOpenCloset: () => void;
   onOpenLook: (look: ProductLook) => void;
   onOpenSearch: () => void;
   onStartStyleQuiz: () => void;
 };
 
-type OutfitPieceKind = "bag" | "bottom" | "dress" | "jacket" | "shoe" | "top";
+type OutfitPieceKind =
+  | "accessory"
+  | "bag"
+  | "bottom"
+  | "dress"
+  | "jacket"
+  | "shoe"
+  | "top";
 
 type OutfitPiece = {
   image?: string;
@@ -74,26 +83,14 @@ type ProductLook = {
 
 export type { OutfitPiece, OutfitPieceKind, ProductLook };
 
-type IntelligenceStripConfig = {
-  kind: "styleQuiz" | "wardrobe" | "priceDrop" | "inactive" | "arrivingOrder";
-  subtitle: string;
-  title: string;
-};
-
-type IntelligenceStripInput = {
-  arrivingOrderBrand?: string;
-  hasArrivingOrder: boolean;
-  hasNewLooksSinceLastVisit: boolean;
-  hasStyleProfile: boolean;
-  wardrobeItemCount: number;
-  wishlistPriceDropCount: number;
-};
-
 const demoAvatar = require("../../../assets/bodyimage.png");
+const colourAnalysisImage = require("../../../assets/colour-analysis.png");
+const heroStyleQuizImage = require("../../../assets/hero-style-quiz.jpg");
 const shoeProductImage = prototypeProductImages.sandro.brownJacket;
 const bagProductImage = prototypeProductImages.maje.stripedScarfDenim;
 
 const fallbackOutfitPieceImages: Record<OutfitPieceKind, string> = {
+  accessory: prototypeProductImages.maje.stripedScarfDenim,
   bag: bagProductImage,
   bottom: prototypeProductImages.maje.blueScarfTrousers,
   dress: prototypeProductImages.maje.beigeCrochetDress,
@@ -330,64 +327,56 @@ const savedLookDeliveryWindows = [
   "Delivery in 6 days"
 ];
 
+type HeroSpotlightAction = "styleQuiz" | "explore";
+
+type HeroSpotlight = {
+  action: HeroSpotlightAction;
+  body: string;
+  ctaLabel: string;
+  eyebrow: string;
+  id: string;
+  image: ImageSourcePropType;
+  title: string;
+};
+
+const heroSpotlights: HeroSpotlight[] = [
+  {
+    action: "styleQuiz",
+    body: "Swipe on looks you love so Mira learns your taste.",
+    ctaLabel: "Start swiping",
+    eyebrow: "Style match",
+    id: "hero-style-quiz",
+    image: heroStyleQuizImage,
+    title: "Find your style in 30 seconds"
+  },
+  {
+    action: "explore",
+    body: "Try any look on your avatar before you decide.",
+    ctaLabel: "Try a look",
+    eyebrow: "Virtual try-on",
+    id: "hero-try-on",
+    image: {
+      uri: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1200&q=80"
+    },
+    title: "See it on you, first"
+  },
+  {
+    action: "explore",
+    body: "New arrivals styled for the week ahead.",
+    ctaLabel: "Explore the edit",
+    eyebrow: "This week",
+    id: "hero-weekly-edit",
+    image: {
+      uri: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80"
+    },
+    title: "Fresh drops, picked for you"
+  }
+];
+
 const demoOutfits = [looks[0].image, looks[1].image, looks[3].image];
 const wishlistHeartColor = "#D92D20";
 const headerActionIconSize = 22;
 const headerActionStrokeWidth = 1.8;
-const homeWardrobeItemCount = 0;
-
-function getIntelligenceStripConfig({
-  arrivingOrderBrand,
-  hasArrivingOrder,
-  hasNewLooksSinceLastVisit,
-  hasStyleProfile,
-  wardrobeItemCount,
-  wishlistPriceDropCount
-}: IntelligenceStripInput): IntelligenceStripConfig | null {
-  if (!hasStyleProfile) {
-    return {
-      kind: "styleQuiz",
-      subtitle: "Swipe 5 looks so we can improve your matches.",
-      title: "Find your style faster"
-    };
-  }
-
-  if (wardrobeItemCount === 0) {
-    return {
-      kind: "wardrobe",
-      subtitle: "We'll style it for you.",
-      title: "Add items from your wardrobe"
-    };
-  }
-
-  if (wishlistPriceDropCount > 0) {
-    return {
-      kind: "priceDrop",
-      subtitle: "Revisit saved pieces before your size goes.",
-      title: `Price dropped on ${wishlistPriceDropCount} saved item${
-        wishlistPriceDropCount === 1 ? "" : "s"
-      }`
-    };
-  }
-
-  if (hasNewLooksSinceLastVisit) {
-    return {
-      kind: "inactive",
-      subtitle: "See what changed while you were away.",
-      title: "New looks added since your last visit"
-    };
-  }
-
-  if (hasArrivingOrder) {
-    return {
-      kind: "arrivingOrder",
-      subtitle: "Style it 3 ways with pieces you already have.",
-      title: `Your ${arrivingOrderBrand ?? "Trends"} order arrives today`
-    };
-  }
-
-  return null;
-}
 
 function HeaderTruckIcon() {
   return (
@@ -471,12 +460,14 @@ function getShortDeliveryAddress(address?: string) {
 
 function TopNavigation({
   address,
+  cartCount = 0,
   hasBorder,
   onChangeAddress,
   onOpenCart,
   onOpenSearch
 }: {
   address: string;
+  cartCount?: number;
   hasBorder: boolean;
   onChangeAddress: () => void;
   onOpenCart: () => void;
@@ -522,6 +513,7 @@ function TopNavigation({
               size={headerActionIconSize}
               strokeWidth={headerActionStrokeWidth}
             />
+            <CartCountBadge count={cartCount} />
           </Pressable>
         </View>
       </View>
@@ -547,54 +539,110 @@ function TopNavigation({
   );
 }
 
-function IntelligenceStrip({
-  config,
-  onOpenCloset,
-  onStartStyleQuiz
+function HeroSpotlightCarousel({
+  onExplore,
+  onStartStyleQuiz,
+  width
 }: {
-  config: IntelligenceStripConfig;
-  onOpenCloset: () => void;
+  onExplore: () => void;
   onStartStyleQuiz: () => void;
+  width: number;
 }) {
-  const handlePress = () => {
-    if (config.kind === "styleQuiz") {
-      onStartStyleQuiz();
-      return;
-    }
+  const [activeIndex, setActiveIndex] = useState(0);
+  const peek = 30;
+  const cardGap = spacing.md;
+  const cardWidth = width - spacing.screen * 2 - peek;
+  const cardHeight = Math.round(cardWidth * 1.364);
+  const snapInterval = cardWidth + cardGap;
+  const lastIndex = heroSpotlights.length - 1;
 
-    if (config.kind === "wardrobe") {
-      onOpenCloset();
-    }
+  const handleScrollEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>
+  ) => {
+    const index = Math.round(
+      event.nativeEvent.contentOffset.x / snapInterval
+    );
+    setActiveIndex(Math.min(lastIndex, Math.max(0, index)));
   };
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={handlePress}
-      style={({ pressed }) => [
-        styles.intelligenceStrip,
-        pressed ? styles.pressed : null
-      ]}
-    >
-      <LinearGradient
-        colors={[colors.surfaceTertiary, colors.surface, colors.cream]}
-        end={{ x: 1, y: 1 }}
-        start={{ x: 0, y: 0 }}
-        style={styles.intelligenceGradient}
+    <View style={styles.heroCarousel}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.heroTrack,
+          { paddingRight: spacing.screen + peek }
+        ]}
+        decelerationRate="fast"
+        horizontal
+        onMomentumScrollEnd={handleScrollEnd}
+        scrollEventThrottle={16}
+        showsHorizontalScrollIndicator={false}
+        snapToAlignment="start"
+        snapToInterval={snapInterval}
       >
-        <View style={styles.intelligenceCopy}>
-          <Text numberOfLines={1} style={styles.intelligenceTitle}>
-            {config.title}
-          </Text>
-          <Text numberOfLines={1} style={styles.intelligenceSubtitle}>
-            {config.subtitle}
-          </Text>
-        </View>
-        <View style={styles.intelligenceArrow}>
-          <Feather color={colors.text} name="arrow-right" size={18} />
-        </View>
-      </LinearGradient>
-    </Pressable>
+        {heroSpotlights.map((item, index) => (
+          <Pressable
+            accessibilityRole="button"
+            key={item.id}
+            onPress={
+              item.action === "styleQuiz" ? onStartStyleQuiz : onExplore
+            }
+            style={({ pressed }) => [
+              styles.heroSlide,
+              {
+                height: cardHeight,
+                marginRight: index === lastIndex ? 0 : cardGap,
+                width: cardWidth
+              },
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <ImageBackground
+              imageStyle={styles.heroImageRadius}
+              resizeMode="cover"
+              source={item.image}
+              style={styles.heroImage}
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(10, 10, 10, 0)",
+                  "rgba(10, 10, 10, 0.18)",
+                  "rgba(10, 10, 10, 0.86)"
+                ]}
+                style={styles.heroScrim}
+              />
+              <View style={styles.heroEyebrowPill}>
+                <Text style={styles.heroEyebrowText}>{item.eyebrow}</Text>
+              </View>
+              <View style={styles.heroContent}>
+                <Text style={styles.heroTitle}>{item.title}</Text>
+                <Text style={styles.heroBody}>{item.body}</Text>
+                <View style={styles.heroCta}>
+                  <Text style={styles.heroCtaText}>{item.ctaLabel}</Text>
+                  <Feather
+                    color={colors.text}
+                    name="arrow-right"
+                    size={15}
+                  />
+                </View>
+              </View>
+            </ImageBackground>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      <View style={styles.heroDots}>
+        {heroSpotlights.map((item, index) => (
+          <View
+            key={`hero-dot-${item.id}`}
+            style={[
+              styles.heroDot,
+              index === activeIndex ? styles.heroDotActive : null
+            ]}
+          />
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -1012,9 +1060,21 @@ function TrendingSection({
 
 function ColourAnalysisCard() {
   const swatches = ["#D7C0A5", "#856955", "#CBA46B", "#6A7B5B", "#362E2A"];
+  const { width } = useWindowDimensions();
+  const colourImageWidth = width - spacing.screen * 2;
+  const colourImageHeight = Math.round(colourImageWidth * (434 / 1006));
 
   return (
     <View style={styles.creamCard}>
+      <Image
+        accessibilityLabel="Skin tone analysis with recommended colour palette"
+        resizeMode="cover"
+        source={colourAnalysisImage}
+        style={[
+          styles.colourImage,
+          { height: colourImageHeight, width: colourImageWidth }
+        ]}
+      />
       <View style={styles.swatchRow}>
         {swatches.map((swatch) => (
           <View key={swatch} style={[styles.paletteSwatch, { backgroundColor: swatch }]} />
@@ -1426,12 +1486,14 @@ function SavedLooksSection({
 }
 
 function PriceStyleLookCard({
+  displayLabel,
   isWishlisted,
   onToggleWishlist,
   product,
   style,
   width
 }: {
+  displayLabel: string;
   isWishlisted: boolean;
   onToggleWishlist: () => void;
   product: ProductLook;
@@ -1454,14 +1516,20 @@ function PriceStyleLookCard({
       </ImageBackground>
       <View style={styles.priceLookFooter}>
         <OutfitPieceChips pieces={product.outfitItems.slice(0, 3)} />
-        <MatchRibbonTag
-          height={24}
-          label={product.match}
-          mirrored
-          style={styles.priceLookMatchRibbon}
-          textStyle={styles.smallMatchRibbonText}
-          width={84}
-        />
+        {isMatchLabel(displayLabel) ? (
+          <MatchRibbonTag
+            height={24}
+            label={displayLabel}
+            mirrored
+            style={styles.priceLookMatchRibbon}
+            textStyle={styles.smallMatchRibbonText}
+            width={84}
+          />
+        ) : (
+          <Text numberOfLines={1} style={styles.priceLookLabel}>
+            {displayLabel}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -1469,12 +1537,14 @@ function PriceStyleLookCard({
 
 function PriceStyleSection({
   cardWidth,
+  hasStyleProfile,
   onToggleWishlist,
   selectedPrice,
   setSelectedPrice,
   wishlistProductIds
 }: {
   cardWidth: number;
+  hasStyleProfile: boolean;
   onToggleWishlist: (productId: string) => void;
   selectedPrice: string;
   setSelectedPrice: (filter: string) => void;
@@ -1523,6 +1593,11 @@ function PriceStyleSection({
       >
         {products.map((product, index) => (
           <PriceStyleLookCard
+            displayLabel={getMerchandisingLabel({
+              fallbackIndex: index,
+              hasStyleProfile,
+              personalizedLabel: product.match
+            })}
             isWishlisted={wishlistProductIds.has(product.id)}
             key={`price-${product.id}`}
             onToggleWishlist={() => onToggleWishlist(product.id)}
@@ -1589,11 +1664,11 @@ function NewArrivalsSection() {
 }
 
 export function HomeScreen({
+  cartCount = 0,
   draft,
   onChangeAddress,
   onOpenBrand,
   onOpenCart,
-  onOpenCloset,
   onOpenLook,
   onOpenSearch,
   onStartStyleQuiz
@@ -1610,13 +1685,6 @@ export function HomeScreen({
   );
   const address = getShortDeliveryAddress(draft.address);
   const hasStyleProfile = hasCompletedStyleProfile(draft);
-  const intelligenceStripConfig = getIntelligenceStripConfig({
-    hasArrivingOrder: false,
-    hasNewLooksSinceLastVisit: false,
-    hasStyleProfile,
-    wardrobeItemCount: homeWardrobeItemCount,
-    wishlistPriceDropCount: 0
-  });
   const cardWidth = (width - spacing.screen * 2 - spacing.sm) / 2;
   const savedLookCardWidth = Math.min(width * 0.68, 268);
 
@@ -1715,6 +1783,7 @@ export function HomeScreen({
       >
         <TopNavigation
           address={address}
+          cartCount={cartCount}
           hasBorder={false}
           onChangeAddress={onChangeAddress}
           onOpenCart={onOpenCart}
@@ -1731,15 +1800,13 @@ export function HomeScreen({
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {intelligenceStripConfig ? (
-          <View style={styles.topCluster}>
-            <IntelligenceStrip
-              config={intelligenceStripConfig}
-              onOpenCloset={onOpenCloset}
-              onStartStyleQuiz={onStartStyleQuiz}
-            />
-          </View>
-        ) : null}
+        <View style={styles.topCluster}>
+          <HeroSpotlightCarousel
+            onExplore={onOpenSearch}
+            onStartStyleQuiz={onStartStyleQuiz}
+            width={width}
+          />
+        </View>
         <OccasionSection
           cardWidth={cardWidth}
           hasStyleProfile={hasStyleProfile}
@@ -1873,6 +1940,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19.5,
     marginTop: 4
+  },
+  colourImage: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    marginBottom: spacing.md,
+    marginHorizontal: -spacing.md,
+    marginTop: -spacing.md
   },
   colourTitle: {
     color: colors.text,
@@ -2076,50 +2150,99 @@ const styles = StyleSheet.create({
   ghostWrap: {
     alignItems: "center"
   },
+  heroBody: {
+    color: colors.inverseText,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+    opacity: 0.9
+  },
+  heroCarousel: {
+    gap: spacing.md
+  },
+  heroContent: {
+    padding: spacing.lg
+  },
+  heroCta: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: colors.background,
+    borderRadius: radii.pill,
+    flexDirection: "row",
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9
+  },
+  heroCtaText: {
+    color: colors.text,
+    fontFamily: fonts.cta,
+    fontSize: 13,
+    lineHeight: 16
+  },
+  heroDot: {
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    height: 6,
+    width: 6
+  },
+  heroDotActive: {
+    backgroundColor: colors.text,
+    width: 18
+  },
+  heroDots: {
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center"
+  },
+  heroEyebrowPill: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.surfaceTranslucent,
+    borderRadius: radii.pill,
+    margin: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5
+  },
+  heroEyebrowText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 0.2,
+    lineHeight: 14
+  },
+  heroImage: {
+    flex: 1,
+    justifyContent: "space-between"
+  },
+  heroImageRadius: {
+    borderRadius: 20
+  },
+  heroScrim: {
+    borderRadius: 20,
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0
+  },
+  heroSlide: {
+    backgroundColor: colors.imageSurface,
+    borderRadius: 20,
+    overflow: "hidden"
+  },
+  heroTitle: {
+    color: colors.inverseText,
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    lineHeight: 27
+  },
+  heroTrack: {
+    paddingLeft: spacing.screen
+  },
   horizontalCards: {
     gap: spacing.sm,
     paddingHorizontal: spacing.screen
-  },
-  intelligenceStrip: {
-    borderRadius: 18,
-    marginHorizontal: spacing.screen,
-    overflow: "hidden"
-  },
-  intelligenceGradient: {
-    alignItems: "center",
-    borderColor: colors.border,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.md,
-    padding: spacing.lg
-  },
-  intelligenceCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  intelligenceArrow: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.secondaryBorder,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 34,
-    justifyContent: "center",
-    width: 34
-  },
-  intelligenceSubtitle: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4
-  },
-  intelligenceTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23
   },
   locationButton: {
     alignItems: "center",
@@ -2169,6 +2292,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 32,
     justifyContent: "center",
+    position: "relative",
     width: 32
   },
   occasionGrid: {
@@ -2409,6 +2533,14 @@ const styles = StyleSheet.create({
   priceLookImageStyle: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
+  },
+  priceLookLabel: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13,
+    marginLeft: spacing.xs,
+    maxWidth: 76
   },
   priceLookMatchRibbon: {
     marginLeft: spacing.xs,

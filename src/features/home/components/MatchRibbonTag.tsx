@@ -18,12 +18,91 @@ type MatchRibbonTagProps = {
   width?: number;
 };
 
+type Point = {
+  x: number;
+  y: number;
+};
+
 export function isMatchLabel(label?: string) {
   if (!label) {
     return false;
   }
 
   return label.toLowerCase().includes("match") || /^\d+%$/.test(label.trim());
+}
+
+function formatPathNumber(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function getPointDistance(a: Point, b: Point) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function getPointToward(from: Point, to: Point, distance: number) {
+  const length = getPointDistance(from, to);
+
+  if (length === 0) {
+    return from;
+  }
+
+  return {
+    x: from.x + ((to.x - from.x) / length) * distance,
+    y: from.y + ((to.y - from.y) / length) * distance
+  };
+}
+
+function getRoundedRibbonPath({
+  cornerRadius,
+  height,
+  mirrored,
+  notchDepth,
+  width
+}: {
+  cornerRadius: number;
+  height: number;
+  mirrored: boolean;
+  notchDepth: number;
+  width: number;
+}) {
+  const points: Point[] = mirrored
+    ? [
+        { x: 0, y: 0 },
+        { x: notchDepth, y: height / 2 },
+        { x: 0, y: height },
+        { x: width, y: height },
+        { x: width, y: 0 }
+      ]
+    : [
+        { x: 0, y: 0 },
+        { x: width, y: 0 },
+        { x: width - notchDepth, y: height / 2 },
+        { x: width, y: height },
+        { x: 0, y: height }
+      ];
+  const firstPoint = getPointToward(points[0], points[1], cornerRadius);
+  let path = `M${formatPathNumber(firstPoint.x)} ${formatPathNumber(firstPoint.y)}`;
+
+  for (let index = 1; index <= points.length; index += 1) {
+    const current = points[index % points.length];
+    const previous = points[(index - 1 + points.length) % points.length];
+    const next = points[(index + 1) % points.length];
+    const radius = Math.max(
+      0,
+      Math.min(
+        cornerRadius,
+        getPointDistance(current, previous) / 2,
+        getPointDistance(current, next) / 2
+      )
+    );
+    const beforeCorner = getPointToward(current, previous, radius);
+    const afterCorner = getPointToward(current, next, radius);
+
+    path += ` L${formatPathNumber(beforeCorner.x)} ${formatPathNumber(beforeCorner.y)}`;
+    path += ` Q${formatPathNumber(current.x)} ${formatPathNumber(current.y)} ${formatPathNumber(afterCorner.x)} ${formatPathNumber(afterCorner.y)}`;
+  }
+
+  return `${path} Z`;
 }
 
 export function MatchRibbonTag({
@@ -35,6 +114,7 @@ export function MatchRibbonTag({
   width = 94
 }: MatchRibbonTagProps) {
   const notchDepth = Math.round(height * 0.46);
+  const cornerRadius = Math.min(3, height * 0.12);
 
   return (
     <View style={[styles.container, { height, width }, style]}>
@@ -58,11 +138,13 @@ export function MatchRibbonTag({
           </LinearGradient>
         </Defs>
         <Path
-          d={
-            mirrored
-              ? `M0 0 L${notchDepth} ${height / 2} L0 ${height} H${width} V0 Z`
-              : `M0 0 H${width} L${width - notchDepth} ${height / 2} L${width} ${height} H0 Z`
-          }
+          d={getRoundedRibbonPath({
+            cornerRadius,
+            height,
+            mirrored,
+            notchDepth,
+            width
+          })}
           fill="url(#matchRibbonCreamGradient)"
         />
       </Svg>

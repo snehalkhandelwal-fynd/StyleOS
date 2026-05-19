@@ -1,10 +1,11 @@
 import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
   type LayoutChangeEvent,
+  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -21,6 +22,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import { colors, fonts, spacing } from "../../../theme";
+import { CartCountBadge } from "../components/CartCountBadge";
 import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
 import {
@@ -30,15 +32,22 @@ import {
   type LookPiece
 } from "../data/lookPieces";
 
+export type ShopThisLookCartItem = {
+  piece: LookPiece;
+  size: string;
+};
+
 type ModelLookPdpScreenProps = {
   cartCount?: number;
+  hasStyleProfile?: boolean;
   initialIsSaved?: boolean;
   look: ProductLook;
-  onAddToCart?: () => void;
+  onAddToCart?: (items: ShopThisLookCartItem[]) => void;
   onAskMira?: () => void;
   onBack: () => void;
   onLookSavedChange?: (isSaved: boolean) => void;
   onOpenCart?: () => void;
+  onOpenPieceProduct?: (piece: LookPiece) => void;
   onOpenWishlist?: () => void;
   onShareLook?: () => void;
   onStartTryOn?: (context?: string) => void;
@@ -198,13 +207,7 @@ function LookPdpHeader({
           ]}
         >
           <Feather color={colors.text} name="shopping-cart" size={24} />
-          {cartCount > 0 ? (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>
-                {cartCount > 9 ? "9+" : cartCount}
-              </Text>
-            </View>
-          ) : null}
+          <CartCountBadge count={cartCount} />
         </Pressable>
       </View>
     </View>
@@ -212,12 +215,14 @@ function LookPdpHeader({
 }
 
 function HeroLookImage({
+  hasStyleProfile,
   heroHeight,
   isSaved,
   look,
   onOpenSimilar,
   onSave
 }: {
+  hasStyleProfile: boolean;
   heroHeight: number;
   isSaved: boolean;
   look: ProductLook;
@@ -259,12 +264,20 @@ function HeroLookImage({
         <WishlistHeartIcon saved={isSaved} size={23} />
       </Pressable>
 
-      <MatchRibbonTag
-        height={30}
-        label={look.match}
-        style={styles.heroMatchTag}
-        width={98}
-      />
+      {hasStyleProfile ? (
+        <MatchRibbonTag
+          height={30}
+          label={look.match}
+          style={styles.heroMatchTag}
+          width={98}
+        />
+      ) : (
+        <View style={styles.heroContextTag}>
+          <Text numberOfLines={1} style={styles.heroContextText}>
+            {look.vibe}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -328,6 +341,12 @@ const shopThisLookPieceOrder: Array<LookPiece["kind"]> = [
   "bag",
   "shoe"
 ];
+const shopThisLookImageByKind: Partial<Record<LookPiece["kind"], string>> = {
+  bag: prototypeProductImages.shopThisLook.brownBag,
+  bottom: prototypeProductImages.shopThisLook.yellowPants,
+  shoe: prototypeProductImages.shopThisLook.brownShoes,
+  top: prototypeProductImages.shopThisLook.yellowTop
+};
 
 function getShopThisLookPieces(pieces: LookPiece[]) {
   const piecesByKind = new Map<LookPiece["kind"], LookPiece>();
@@ -343,7 +362,11 @@ function getShopThisLookPieces(pieces: LookPiece[]) {
 
   return shopThisLookPieceOrder
     .map((kind) => piecesByKind.get(kind))
-    .filter((piece): piece is LookPiece => Boolean(piece));
+    .filter((piece): piece is LookPiece => Boolean(piece))
+    .map((piece) => ({
+      ...piece,
+      image: shopThisLookImageByKind[piece.kind] ?? piece.image
+    }));
 }
 
 function getDefaultSelectedSize(piece: LookPiece) {
@@ -352,12 +375,35 @@ function getDefaultSelectedSize(piece: LookPiece) {
   return preferredSize ?? "One";
 }
 
-function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
-  const shopPieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+function getDefaultCartSelection(pieces: LookPiece[]) {
+  return pieces.map((piece) => ({
+    piece,
+    size: getDefaultSelectedSize(piece)
+  }));
+}
+
+function ShopThisLookSection({
+  onCartSelectionChange,
+  onOpenPieceProduct,
+  pieces
+}: {
+  onCartSelectionChange?: (items: ShopThisLookCartItem[]) => void;
+  onOpenPieceProduct?: (piece: LookPiece) => void;
+  pieces: LookPiece[];
+}) {
+  const shopPieces = pieces;
+  const { width: screenWidth } = useWindowDimensions();
+  const sizePickerRefs = useRef<Record<string, View | null>>({});
   const [removedPieceIds, setRemovedPieceIds] = useState<Set<string>>(
     () => new Set()
   );
   const [openSizePieceId, setOpenSizePieceId] = useState<string | null>(null);
+  const [sizeMenuAnchor, setSizeMenuAnchor] = useState<{
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const [selectedPieceSizes, setSelectedPieceSizes] = useState<
     Record<string, string>
   >({});
@@ -378,6 +424,7 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
   useEffect(() => {
     setRemovedPieceIds(new Set());
     setOpenSizePieceId(null);
+    setSizeMenuAnchor(null);
     setSelectedPieceSizes(
       Object.fromEntries(
         shopPieces.map((piece) => [piece.id, getDefaultSelectedSize(piece)])
@@ -385,8 +432,46 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
     );
   }, [pieceIdsKey]);
 
-  const togglePiece = (pieceId: string) => {
+  const cartSelection = useMemo(
+    () =>
+      shopPieces
+        .filter((piece) => !removedPieceIds.has(piece.id))
+        .map((piece) => ({
+          piece,
+          size: selectedPieceSizes[piece.id] ?? getDefaultSelectedSize(piece)
+        })),
+    [removedPieceIds, selectedPieceSizes, shopPieces]
+  );
+
+  useEffect(() => {
+    onCartSelectionChange?.(cartSelection);
+  }, [cartSelection, onCartSelectionChange]);
+
+  const closeSizeMenu = () => {
     setOpenSizePieceId(null);
+    setSizeMenuAnchor(null);
+  };
+
+  const toggleSizeMenu = (pieceId: string) => {
+    if (openSizePieceId === pieceId) {
+      closeSizeMenu();
+      return;
+    }
+
+    const pickerRef = sizePickerRefs.current[pieceId];
+
+    if (!pickerRef) {
+      return;
+    }
+
+    pickerRef.measureInWindow((x, y, width, height) => {
+      setOpenSizePieceId(pieceId);
+      setSizeMenuAnchor({ height, width, x, y });
+    });
+  };
+
+  const togglePiece = (pieceId: string) => {
+    closeSizeMenu();
     setRemovedPieceIds((current) => {
       const next = new Set(current);
 
@@ -399,6 +484,18 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
       return next;
     });
   };
+  const openSizePiece =
+    shopPieces.find((piece) => piece.id === openSizePieceId) ?? null;
+  const openSizePieceSelectedSize = openSizePiece
+    ? selectedPieceSizes[openSizePiece.id] ?? getDefaultSelectedSize(openSizePiece)
+    : "";
+  const sizeMenuWidth = Math.max(sizeMenuAnchor?.width ?? 0, 88);
+  const sizeMenuLeft = sizeMenuAnchor
+    ? Math.min(sizeMenuAnchor.x, screenWidth - sizeMenuWidth - spacing.screen)
+    : 0;
+  const sizeMenuTop = sizeMenuAnchor
+    ? sizeMenuAnchor.y + sizeMenuAnchor.height + 6
+    : 0;
 
   return (
     <View style={styles.shopThisLookSection}>
@@ -417,8 +514,18 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
           const isSizeMenuOpen = openSizePieceId === piece.id;
 
           return (
-            <View key={piece.id} style={styles.shopThisLookRow}>
-              <View
+            <View
+              key={piece.id}
+              style={[
+                styles.shopThisLookRow,
+                isSizeMenuOpen ? styles.shopThisLookRowActive : null
+              ]}
+            >
+              <Pressable
+                accessibilityLabel={`Open ${piece.name} details`}
+                accessibilityRole="button"
+                disabled={!isAdded || !onOpenPieceProduct}
+                onPress={() => onOpenPieceProduct?.(piece)}
                 style={[
                   styles.shopThisLookThumb,
                   isAdded ? null : styles.shopThisLookPieceInactive
@@ -429,7 +536,7 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
                   source={{ uri: piece.image }}
                   style={styles.shopThisLookImage}
                 />
-              </View>
+              </Pressable>
               <View
                 style={[
                   styles.shopThisLookCopy,
@@ -442,77 +549,39 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
                 <Text numberOfLines={1} style={styles.shopThisLookProductName}>
                   {piece.name}
                 </Text>
-                <View style={styles.shopThisLookBrandPriceRow}>
-                  <Text numberOfLines={1} style={styles.shopThisLookBrand}>
-                    {piece.brand}
-                  </Text>
-                  <Text style={styles.shopThisLookPrice}>{piece.price}</Text>
-                </View>
                 <View style={styles.shopThisLookSizeWrap}>
-                  <Pressable
-                    accessibilityLabel={`Select size for ${pieceLabel}`}
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      disabled: !isAdded,
-                      expanded: isSizeMenuOpen
+                  <View
+                    collapsable={false}
+                    ref={(node) => {
+                      sizePickerRefs.current[piece.id] = node;
                     }}
-                    disabled={!isAdded}
-                    onPress={() =>
-                      setOpenSizePieceId((current) =>
-                        current === piece.id ? null : piece.id
-                      )
-                    }
-                    style={({ pressed }) => [
-                      styles.shopThisLookSizePicker,
-                      pressed ? styles.pressed : null
-                    ]}
                   >
-                    <Text style={styles.shopThisLookSizeValue}>
-                      {selectedSize}
-                    </Text>
-                    <Feather color={colors.muted} name="check" size={13} />
-                    <Feather color={colors.muted} name="chevron-down" size={14} />
-                  </Pressable>
-                  {isSizeMenuOpen ? (
-                    <View style={styles.shopThisLookSizeMenu}>
-                      {piece.sizes.map((size) => {
-                        const isSelected = selectedSize === size;
-
-                        return (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: isSelected }}
-                            key={`${piece.id}-${size}`}
-                            onPress={() => {
-                              setSelectedPieceSizes((current) => ({
-                                ...current,
-                                [piece.id]: size
-                              }));
-                              setOpenSizePieceId(null);
-                            }}
-                            style={[
-                              styles.shopThisLookSizeOption,
-                              isSelected
-                                ? styles.shopThisLookSizeOptionSelected
-                                : null
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.shopThisLookSizeOptionText,
-                                isSelected
-                                  ? styles.shopThisLookSizeOptionTextSelected
-                                  : null
-                              ]}
-                            >
-                              {size}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  ) : null}
+                    <Pressable
+                      accessibilityLabel={`Select size for ${pieceLabel}`}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        disabled: !isAdded,
+                        expanded: isSizeMenuOpen
+                      }}
+                      disabled={!isAdded}
+                      onPress={() => toggleSizeMenu(piece.id)}
+                      style={({ pressed }) => [
+                        styles.shopThisLookSizePicker,
+                        pressed ? styles.pressed : null
+                      ]}
+                    >
+                      <Text style={styles.shopThisLookSizeValue}>
+                        {selectedSize}
+                      </Text>
+                      <Feather
+                        color={colors.muted}
+                        name="chevron-down"
+                        size={14}
+                      />
+                    </Pressable>
+                  </View>
                 </View>
+                <Text style={styles.shopThisLookPrice}>{piece.price}</Text>
               </View>
               <Pressable
                 accessibilityLabel={`${isAdded ? "Remove" : "Add"} ${pieceLabel}`}
@@ -535,6 +604,58 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
           );
         })}
       </View>
+      <Modal
+        animationType="none"
+        onRequestClose={closeSizeMenu}
+        transparent
+        visible={Boolean(openSizePiece)}
+      >
+        <View style={styles.shopThisLookSizeModal}>
+          <Pressable
+            accessibilityLabel="Close size options"
+            accessibilityRole="button"
+            onPress={closeSizeMenu}
+            style={StyleSheet.absoluteFill}
+          />
+          {openSizePiece && sizeMenuAnchor ? (
+            <View
+              style={[
+                styles.shopThisLookSizeMenu,
+                {
+                  left: sizeMenuLeft,
+                  minWidth: sizeMenuWidth,
+                  top: sizeMenuTop
+                }
+              ]}
+            >
+              {openSizePiece.sizes.map((size) => {
+                const isSelected = openSizePieceSelectedSize === size;
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    key={`${openSizePiece.id}-${size}`}
+                    onPress={() => {
+                      setSelectedPieceSizes((current) => ({
+                        ...current,
+                        [openSizePiece.id]: size
+                      }));
+                      closeSizeMenu();
+                    }}
+                    style={[
+                      styles.shopThisLookSizeOption,
+                      isSelected ? styles.shopThisLookSizeOptionSelected : null
+                    ]}
+                  >
+                    <Text style={styles.shopThisLookSizeOptionText}>{size}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -578,11 +699,19 @@ function MiraNote({ onAskMira }: { onAskMira?: () => void }) {
   );
 }
 
+function getVariationDisplayLabel(changed: string) {
+  return changed
+    .replace(/^Different\s+/i, "Swap ")
+    .replace(/^Add a\s+/i, "");
+}
+
 function VariationCard({
+  hasStyleProfile,
   image,
   style,
   variation
 }: {
+  hasStyleProfile: boolean;
   image: string;
   style?: StyleProp<ViewStyle>;
   variation: Variation;
@@ -627,14 +756,22 @@ function VariationCard({
             </View>
           ))}
         </View>
-        <MatchRibbonTag
-          height={24}
-          label={variation.match}
-          mirrored
-          style={styles.variationMatchTag}
-          textStyle={styles.variationMatchTagText}
-          width={82}
-        />
+        {hasStyleProfile ? (
+          <MatchRibbonTag
+            height={24}
+            label={variation.match}
+            mirrored
+            style={styles.variationMatchTag}
+            textStyle={styles.variationMatchTagText}
+            width={82}
+          />
+        ) : (
+          <View style={styles.variationContextPill}>
+            <Text numberOfLines={1} style={styles.variationContextText}>
+              {getVariationDisplayLabel(variation.changed)}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -679,64 +816,94 @@ function SimilarItemCard({
 }
 
 function LookCtaButtons({
+  hasAddedToCart,
   onAddToCart,
+  onOpenCart,
   onTryOn
 }: {
+  hasAddedToCart?: boolean;
   onAddToCart?: () => void;
+  onOpenCart?: () => void;
   onTryOn?: (context?: string) => void;
 }) {
+  const cartCtaLabel = hasAddedToCart ? "View cart" : "Add to cart";
+
   return (
     <View style={styles.ctaButtonRow}>
       <Pressable
+        accessibilityLabel="Try on complete look"
         accessibilityRole="button"
-        onPress={onAddToCart}
+        onPress={() => onTryOn?.("Complete look")}
         style={({ pressed }) => [
           styles.secondaryCta,
           pressed ? styles.pressed : null
         ]}
       >
-        <Text style={styles.secondaryCtaText}>Buy</Text>
+        <Text style={styles.secondaryCtaText}>Try on</Text>
       </Pressable>
       <Pressable
+        accessibilityLabel={
+          hasAddedToCart
+            ? "View cart"
+            : "Add selected look pieces to cart"
+        }
         accessibilityRole="button"
-        onPress={() => onTryOn?.("Complete look")}
+        onPress={hasAddedToCart ? onOpenCart : onAddToCart}
         style={({ pressed }) => [
           styles.primaryCta,
           pressed ? styles.pressed : null
         ]}
       >
-        <Text style={styles.primaryCtaText}>Try on</Text>
+        <Text style={styles.primaryCtaText}>{cartCtaLabel}</Text>
       </Pressable>
     </View>
   );
 }
 
 function StickyCtaBar({
+  hasAddedToCart,
   onAddToCart,
+  onOpenCart,
   onTryOn
 }: {
+  hasAddedToCart?: boolean;
   onAddToCart?: () => void;
+  onOpenCart?: () => void;
   onTryOn?: (context?: string) => void;
 }) {
   return (
     <View style={styles.ctaDock}>
-      <LookCtaButtons onAddToCart={onAddToCart} onTryOn={onTryOn} />
+      <LookCtaButtons
+        hasAddedToCart={hasAddedToCart}
+        onAddToCart={onAddToCart}
+        onOpenCart={onOpenCart}
+        onTryOn={onTryOn}
+      />
     </View>
   );
 }
 
 function InlineCtaSection({
+  hasAddedToCart,
   onAddToCart,
   onLayout,
+  onOpenCart,
   onTryOn
 }: {
+  hasAddedToCart?: boolean;
   onAddToCart?: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
+  onOpenCart?: () => void;
   onTryOn?: (context?: string) => void;
 }) {
   return (
     <View onLayout={onLayout} style={styles.inlineCtaSection}>
-      <LookCtaButtons onAddToCart={onAddToCart} onTryOn={onTryOn} />
+      <LookCtaButtons
+        hasAddedToCart={hasAddedToCart}
+        onAddToCart={onAddToCart}
+        onOpenCart={onOpenCart}
+        onTryOn={onTryOn}
+      />
     </View>
   );
 }
@@ -864,6 +1031,7 @@ const similarShopItems: SimilarShopItem[] = [
 
 export function ModelLookPdpScreen({
   cartCount = 0,
+  hasStyleProfile = false,
   initialIsSaved,
   look,
   onAddToCart,
@@ -871,6 +1039,7 @@ export function ModelLookPdpScreen({
   onBack,
   onLookSavedChange,
   onOpenCart,
+  onOpenPieceProduct,
   onOpenWishlist,
   onShareLook,
   onStartTryOn,
@@ -883,6 +1052,7 @@ export function ModelLookPdpScreen({
   const inlineCtaY = useRef<number | null>(null);
   const similarSectionY = useRef(0);
   const [localIsSaved, setLocalIsSaved] = useState(false);
+  const [hasAddedToCart, setHasAddedToCart] = useState(false);
   const [selectedSimilarCategory, setSelectedSimilarCategory] =
     useState<SimilarItemCategory>("top");
   const [showStickyCta, setShowStickyCta] = useState(true);
@@ -892,12 +1062,34 @@ export function ModelLookPdpScreen({
     pieceOverrides && pieceOverrides.length > 0
       ? pieceOverrides
       : defaultPieces;
+  const shopPieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+  const shopPieceIdsKey = useMemo(
+    () => shopPieces.map((piece) => piece.id).join("|"),
+    [shopPieces]
+  );
+  const [shopCartSelection, setShopCartSelection] = useState<
+    ShopThisLookCartItem[]
+  >(() => getDefaultCartSelection(shopPieces));
   const isSaved = initialIsSaved ?? localIsSaved;
   const filteredSimilarItems = useMemo(
     () =>
       similarShopItems.filter((item) => item.category === selectedSimilarCategory),
     [selectedSimilarCategory]
   );
+
+  useEffect(() => {
+    setShopCartSelection(getDefaultCartSelection(shopPieces));
+  }, [shopPieceIdsKey, shopPieces]);
+
+  const handleAddToCart = useCallback(() => {
+    if (shopCartSelection.length === 0) {
+      return;
+    }
+
+    onAddToCart?.(shopCartSelection);
+    setHasAddedToCart(true);
+  }, [onAddToCart, shopCartSelection]);
+
   const handleToggleSave = () => {
     const nextSavedValue = !isSaved;
 
@@ -965,6 +1157,7 @@ export function ModelLookPdpScreen({
         showsVerticalScrollIndicator={false}
       >
         <HeroLookImage
+          hasStyleProfile={hasStyleProfile}
           heroHeight={heroHeight}
           isSaved={isSaved}
           look={look}
@@ -983,16 +1176,22 @@ export function ModelLookPdpScreen({
             onShareLook={onShareLook}
           />
 
-          <ShopThisLookSection pieces={pieces} />
+          <ShopThisLookSection
+            onCartSelectionChange={setShopCartSelection}
+            onOpenPieceProduct={onOpenPieceProduct}
+            pieces={shopPieces}
+          />
 
           <MiraNote onAskMira={onAskMira} />
 
           <InlineCtaSection
-            onAddToCart={onAddToCart}
+            hasAddedToCart={hasAddedToCart}
+            onAddToCart={handleAddToCart}
             onLayout={(event) => {
               inlineCtaY.current = event.nativeEvent.layout.y;
               inlineCtaHeight.current = event.nativeEvent.layout.height;
             }}
+            onOpenCart={onOpenCart}
             onTryOn={onStartTryOn}
           />
 
@@ -1006,6 +1205,7 @@ export function ModelLookPdpScreen({
             >
               {variations.map((variation, index) => (
                 <VariationCard
+                  hasStyleProfile={hasStyleProfile}
                   image={variation.image}
                   key={variation.id}
                   style={[
@@ -1079,7 +1279,9 @@ export function ModelLookPdpScreen({
 
       {showStickyCta ? (
         <StickyCtaBar
-          onAddToCart={onAddToCart}
+          hasAddedToCart={hasAddedToCart}
+          onAddToCart={handleAddToCart}
+          onOpenCart={onOpenCart}
           onTryOn={onStartTryOn}
         />
       ) : null}
@@ -1120,26 +1322,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 12
   },
-  cartBadge: {
-    alignItems: "center",
-    backgroundColor: colors.text,
-    borderColor: colors.background,
-    borderRadius: 9,
-    borderWidth: 1,
-    height: 18,
-    justifyContent: "center",
-    minWidth: 18,
-    paddingHorizontal: 4,
-    position: "absolute",
-    right: -2,
-    top: 4
-  },
-  cartBadgeText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 9,
-    lineHeight: 11
-  },
   firstLookCarouselCard: {
     marginLeft: spacing.screen
   },
@@ -1154,6 +1336,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 44,
     justifyContent: "center",
+    position: "relative",
     width: 36
   },
   headerSearchBar: {
@@ -1215,6 +1398,24 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     top: spacing.lg
+  },
+  heroContextTag: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    left: spacing.screen,
+    maxWidth: 140,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    position: "absolute",
+    top: spacing.lg
+  },
+  heroContextText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
   },
   infoStrip: {
     gap: 0
@@ -1449,20 +1650,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingVertical: 1
   },
-  shopThisLookBrand: {
-    color: colors.muted,
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 17,
-    minWidth: 0
-  },
-  shopThisLookBrandPriceRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: 1
-  },
   shopThisLookImage: {
     height: "100%",
     width: "100%"
@@ -1474,7 +1661,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   shopThisLookList: {
-    gap: spacing.md
+    gap: spacing.md,
+    overflow: "visible",
+    position: "relative"
   },
   shopThisLookName: {
     color: colors.text,
@@ -1489,49 +1678,64 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.heading,
     fontSize: 15,
-    lineHeight: 19
+    lineHeight: 19,
+    marginTop: 7
   },
   shopThisLookProductName: {
     color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 17,
-    marginTop: 1
+    marginTop: 1,
+    minWidth: 0
   },
   shopThisLookRow: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md
+    gap: spacing.md,
+    zIndex: 1
+  },
+  shopThisLookRowActive: {
+    elevation: 8,
+    zIndex: 10
   },
   shopThisLookSection: {
     gap: spacing.md
   },
   shopThisLookSizeMenu: {
-    alignItems: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-    marginTop: 6
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    elevation: 8,
+    left: 0,
+    minWidth: 88,
+    overflow: "hidden",
+    position: "absolute",
+    shadowColor: "#000000",
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    top: 36,
+    zIndex: 20
+  },
+  shopThisLookSizeModal: {
+    flex: 1
   },
   shopThisLookSizeOption: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    minWidth: 32,
-    paddingHorizontal: 8,
-    paddingVertical: 5
+    minHeight: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
   shopThisLookSizeOptionSelected: {
-    backgroundColor: colors.text
+    backgroundColor: colors.surface
   },
   shopThisLookSizeOptionText: {
     color: colors.text,
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     lineHeight: 14
-  },
-  shopThisLookSizeOptionTextSelected: {
-    color: colors.inverseText
   },
   shopThisLookSizePicker: {
     alignItems: "center",
@@ -1540,8 +1744,10 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
+    justifyContent: "space-between",
     minHeight: 32,
+    minWidth: 72,
     paddingHorizontal: 12
   },
   shopThisLookSizeValue: {
@@ -1552,7 +1758,10 @@ const styles = StyleSheet.create({
   },
   shopThisLookSizeWrap: {
     alignItems: "flex-start",
-    marginTop: 7
+    height: 32,
+    marginTop: 6,
+    position: "relative",
+    zIndex: 20
   },
   shopThisLookSwap: {
     alignItems: "center",
@@ -1570,9 +1779,9 @@ const styles = StyleSheet.create({
   shopThisLookThumb: {
     backgroundColor: colors.surface,
     borderRadius: 12,
-    height: 58,
+    height: 104,
     overflow: "hidden",
-    width: 58
+    width: 88
   },
   shopThisLookTitle: {
     color: colors.muted,
@@ -1584,8 +1793,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     flexShrink: 0,
     fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 21
+    fontSize: 18,
+    lineHeight: 23
   },
   similarItemCard: {
     backgroundColor: colors.background,
@@ -1663,6 +1872,21 @@ const styles = StyleSheet.create({
   variationImageStyle: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
+  },
+  variationContextPill: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    maxWidth: 90,
+    paddingHorizontal: 8,
+    paddingVertical: 3
+  },
+  variationContextText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13
   },
   variationMatchTag: {
     marginLeft: spacing.xs,
