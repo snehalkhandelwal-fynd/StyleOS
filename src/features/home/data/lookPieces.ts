@@ -14,12 +14,12 @@ export type LookPiece = {
 };
 
 const defaultPieceImages = {
-  bag: prototypeProductImages.maje.stripedScarfDenim,
-  bottom: prototypeProductImages.sandro.whitePinstripeSuit,
+  bag: prototypeProductImages.shopThisLook.brownBag,
+  bottom: prototypeProductImages.shopThisLook.yellowPants,
   dress: prototypeProductImages.maje.beigeCrochetDress,
   jacket: prototypeProductImages.sandro.brownJacket,
-  shoe: prototypeProductImages.sandro.brownJacket,
-  top: prototypeProductImages.sandro.whitePinstripeSuit
+  shoe: prototypeProductImages.shopThisLook.brownShoes,
+  top: prototypeProductImages.shopThisLook.yellowTop
 } satisfies Record<OutfitPieceKind, string>;
 
 const defaultPieceInfo: Record<

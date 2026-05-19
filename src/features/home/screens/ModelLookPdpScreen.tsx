@@ -1,10 +1,11 @@
 import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
   type LayoutChangeEvent,
+  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -30,15 +31,21 @@ import {
   type LookPiece
 } from "../data/lookPieces";
 
+export type ShopThisLookCartItem = {
+  piece: LookPiece;
+  size: string;
+};
+
 type ModelLookPdpScreenProps = {
   cartCount?: number;
   initialIsSaved?: boolean;
   look: ProductLook;
-  onAddToCart?: () => void;
+  onAddToCart?: (items: ShopThisLookCartItem[]) => void;
   onAskMira?: () => void;
   onBack: () => void;
   onLookSavedChange?: (isSaved: boolean) => void;
   onOpenCart?: () => void;
+  onOpenPieceProduct?: (piece: LookPiece) => void;
   onOpenWishlist?: () => void;
   onShareLook?: () => void;
   onStartTryOn?: (context?: string) => void;
@@ -352,12 +359,35 @@ function getDefaultSelectedSize(piece: LookPiece) {
   return preferredSize ?? "One";
 }
 
-function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
-  const shopPieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+function getDefaultCartSelection(pieces: LookPiece[]) {
+  return pieces.map((piece) => ({
+    piece,
+    size: getDefaultSelectedSize(piece)
+  }));
+}
+
+function ShopThisLookSection({
+  onCartSelectionChange,
+  onOpenPieceProduct,
+  pieces
+}: {
+  onCartSelectionChange?: (items: ShopThisLookCartItem[]) => void;
+  onOpenPieceProduct?: (piece: LookPiece) => void;
+  pieces: LookPiece[];
+}) {
+  const shopPieces = pieces;
+  const { width: screenWidth } = useWindowDimensions();
+  const sizePickerRefs = useRef<Record<string, View | null>>({});
   const [removedPieceIds, setRemovedPieceIds] = useState<Set<string>>(
     () => new Set()
   );
   const [openSizePieceId, setOpenSizePieceId] = useState<string | null>(null);
+  const [sizeMenuAnchor, setSizeMenuAnchor] = useState<{
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const [selectedPieceSizes, setSelectedPieceSizes] = useState<
     Record<string, string>
   >({});
@@ -378,6 +408,7 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
   useEffect(() => {
     setRemovedPieceIds(new Set());
     setOpenSizePieceId(null);
+    setSizeMenuAnchor(null);
     setSelectedPieceSizes(
       Object.fromEntries(
         shopPieces.map((piece) => [piece.id, getDefaultSelectedSize(piece)])
@@ -385,8 +416,46 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
     );
   }, [pieceIdsKey]);
 
-  const togglePiece = (pieceId: string) => {
+  const cartSelection = useMemo(
+    () =>
+      shopPieces
+        .filter((piece) => !removedPieceIds.has(piece.id))
+        .map((piece) => ({
+          piece,
+          size: selectedPieceSizes[piece.id] ?? getDefaultSelectedSize(piece)
+        })),
+    [removedPieceIds, selectedPieceSizes, shopPieces]
+  );
+
+  useEffect(() => {
+    onCartSelectionChange?.(cartSelection);
+  }, [cartSelection, onCartSelectionChange]);
+
+  const closeSizeMenu = () => {
     setOpenSizePieceId(null);
+    setSizeMenuAnchor(null);
+  };
+
+  const toggleSizeMenu = (pieceId: string) => {
+    if (openSizePieceId === pieceId) {
+      closeSizeMenu();
+      return;
+    }
+
+    const pickerRef = sizePickerRefs.current[pieceId];
+
+    if (!pickerRef) {
+      return;
+    }
+
+    pickerRef.measureInWindow((x, y, width, height) => {
+      setOpenSizePieceId(pieceId);
+      setSizeMenuAnchor({ height, width, x, y });
+    });
+  };
+
+  const togglePiece = (pieceId: string) => {
+    closeSizeMenu();
     setRemovedPieceIds((current) => {
       const next = new Set(current);
 
@@ -399,6 +468,18 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
       return next;
     });
   };
+  const openSizePiece =
+    shopPieces.find((piece) => piece.id === openSizePieceId) ?? null;
+  const openSizePieceSelectedSize = openSizePiece
+    ? selectedPieceSizes[openSizePiece.id] ?? getDefaultSelectedSize(openSizePiece)
+    : "";
+  const sizeMenuWidth = Math.max(sizeMenuAnchor?.width ?? 0, 88);
+  const sizeMenuLeft = sizeMenuAnchor
+    ? Math.min(sizeMenuAnchor.x, screenWidth - sizeMenuWidth - spacing.screen)
+    : 0;
+  const sizeMenuTop = sizeMenuAnchor
+    ? sizeMenuAnchor.y + sizeMenuAnchor.height + 6
+    : 0;
 
   return (
     <View style={styles.shopThisLookSection}>
@@ -417,8 +498,18 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
           const isSizeMenuOpen = openSizePieceId === piece.id;
 
           return (
-            <View key={piece.id} style={styles.shopThisLookRow}>
-              <View
+            <View
+              key={piece.id}
+              style={[
+                styles.shopThisLookRow,
+                isSizeMenuOpen ? styles.shopThisLookRowActive : null
+              ]}
+            >
+              <Pressable
+                accessibilityLabel={`Open ${piece.name} details`}
+                accessibilityRole="button"
+                disabled={!isAdded || !onOpenPieceProduct}
+                onPress={() => onOpenPieceProduct?.(piece)}
                 style={[
                   styles.shopThisLookThumb,
                   isAdded ? null : styles.shopThisLookPieceInactive
@@ -429,7 +520,7 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
                   source={{ uri: piece.image }}
                   style={styles.shopThisLookImage}
                 />
-              </View>
+              </Pressable>
               <View
                 style={[
                   styles.shopThisLookCopy,
@@ -442,77 +533,39 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
                 <Text numberOfLines={1} style={styles.shopThisLookProductName}>
                   {piece.name}
                 </Text>
-                <View style={styles.shopThisLookBrandPriceRow}>
-                  <Text numberOfLines={1} style={styles.shopThisLookBrand}>
-                    {piece.brand}
-                  </Text>
-                  <Text style={styles.shopThisLookPrice}>{piece.price}</Text>
-                </View>
                 <View style={styles.shopThisLookSizeWrap}>
-                  <Pressable
-                    accessibilityLabel={`Select size for ${pieceLabel}`}
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      disabled: !isAdded,
-                      expanded: isSizeMenuOpen
+                  <View
+                    collapsable={false}
+                    ref={(node) => {
+                      sizePickerRefs.current[piece.id] = node;
                     }}
-                    disabled={!isAdded}
-                    onPress={() =>
-                      setOpenSizePieceId((current) =>
-                        current === piece.id ? null : piece.id
-                      )
-                    }
-                    style={({ pressed }) => [
-                      styles.shopThisLookSizePicker,
-                      pressed ? styles.pressed : null
-                    ]}
                   >
-                    <Text style={styles.shopThisLookSizeValue}>
-                      {selectedSize}
-                    </Text>
-                    <Feather color={colors.muted} name="check" size={13} />
-                    <Feather color={colors.muted} name="chevron-down" size={14} />
-                  </Pressable>
-                  {isSizeMenuOpen ? (
-                    <View style={styles.shopThisLookSizeMenu}>
-                      {piece.sizes.map((size) => {
-                        const isSelected = selectedSize === size;
-
-                        return (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: isSelected }}
-                            key={`${piece.id}-${size}`}
-                            onPress={() => {
-                              setSelectedPieceSizes((current) => ({
-                                ...current,
-                                [piece.id]: size
-                              }));
-                              setOpenSizePieceId(null);
-                            }}
-                            style={[
-                              styles.shopThisLookSizeOption,
-                              isSelected
-                                ? styles.shopThisLookSizeOptionSelected
-                                : null
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.shopThisLookSizeOptionText,
-                                isSelected
-                                  ? styles.shopThisLookSizeOptionTextSelected
-                                  : null
-                              ]}
-                            >
-                              {size}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  ) : null}
+                    <Pressable
+                      accessibilityLabel={`Select size for ${pieceLabel}`}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        disabled: !isAdded,
+                        expanded: isSizeMenuOpen
+                      }}
+                      disabled={!isAdded}
+                      onPress={() => toggleSizeMenu(piece.id)}
+                      style={({ pressed }) => [
+                        styles.shopThisLookSizePicker,
+                        pressed ? styles.pressed : null
+                      ]}
+                    >
+                      <Text style={styles.shopThisLookSizeValue}>
+                        {selectedSize}
+                      </Text>
+                      <Feather
+                        color={colors.muted}
+                        name="chevron-down"
+                        size={14}
+                      />
+                    </Pressable>
+                  </View>
                 </View>
+                <Text style={styles.shopThisLookPrice}>{piece.price}</Text>
               </View>
               <Pressable
                 accessibilityLabel={`${isAdded ? "Remove" : "Add"} ${pieceLabel}`}
@@ -535,6 +588,58 @@ function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
           );
         })}
       </View>
+      <Modal
+        animationType="none"
+        onRequestClose={closeSizeMenu}
+        transparent
+        visible={Boolean(openSizePiece)}
+      >
+        <View style={styles.shopThisLookSizeModal}>
+          <Pressable
+            accessibilityLabel="Close size options"
+            accessibilityRole="button"
+            onPress={closeSizeMenu}
+            style={StyleSheet.absoluteFill}
+          />
+          {openSizePiece && sizeMenuAnchor ? (
+            <View
+              style={[
+                styles.shopThisLookSizeMenu,
+                {
+                  left: sizeMenuLeft,
+                  minWidth: sizeMenuWidth,
+                  top: sizeMenuTop
+                }
+              ]}
+            >
+              {openSizePiece.sizes.map((size) => {
+                const isSelected = openSizePieceSelectedSize === size;
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    key={`${openSizePiece.id}-${size}`}
+                    onPress={() => {
+                      setSelectedPieceSizes((current) => ({
+                        ...current,
+                        [openSizePiece.id]: size
+                      }));
+                      closeSizeMenu();
+                    }}
+                    style={[
+                      styles.shopThisLookSizeOption,
+                      isSelected ? styles.shopThisLookSizeOptionSelected : null
+                    ]}
+                  >
+                    <Text style={styles.shopThisLookSizeOptionText}>{size}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -688,6 +793,7 @@ function LookCtaButtons({
   return (
     <View style={styles.ctaButtonRow}>
       <Pressable
+        accessibilityLabel="Add selected look pieces to cart"
         accessibilityRole="button"
         onPress={onAddToCart}
         style={({ pressed }) => [
@@ -695,7 +801,7 @@ function LookCtaButtons({
           pressed ? styles.pressed : null
         ]}
       >
-        <Text style={styles.secondaryCtaText}>Buy</Text>
+        <Text style={styles.secondaryCtaText}>Add to cart</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -871,6 +977,7 @@ export function ModelLookPdpScreen({
   onBack,
   onLookSavedChange,
   onOpenCart,
+  onOpenPieceProduct,
   onOpenWishlist,
   onShareLook,
   onStartTryOn,
@@ -892,12 +999,29 @@ export function ModelLookPdpScreen({
     pieceOverrides && pieceOverrides.length > 0
       ? pieceOverrides
       : defaultPieces;
+  const shopPieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+  const shopPieceIdsKey = useMemo(
+    () => shopPieces.map((piece) => piece.id).join("|"),
+    [shopPieces]
+  );
+  const [shopCartSelection, setShopCartSelection] = useState<
+    ShopThisLookCartItem[]
+  >(() => getDefaultCartSelection(shopPieces));
   const isSaved = initialIsSaved ?? localIsSaved;
   const filteredSimilarItems = useMemo(
     () =>
       similarShopItems.filter((item) => item.category === selectedSimilarCategory),
     [selectedSimilarCategory]
   );
+
+  useEffect(() => {
+    setShopCartSelection(getDefaultCartSelection(shopPieces));
+  }, [shopPieceIdsKey, shopPieces]);
+
+  const handleAddToCart = useCallback(() => {
+    onAddToCart?.(shopCartSelection);
+  }, [onAddToCart, shopCartSelection]);
+
   const handleToggleSave = () => {
     const nextSavedValue = !isSaved;
 
@@ -983,12 +1107,16 @@ export function ModelLookPdpScreen({
             onShareLook={onShareLook}
           />
 
-          <ShopThisLookSection pieces={pieces} />
+          <ShopThisLookSection
+            onCartSelectionChange={setShopCartSelection}
+            onOpenPieceProduct={onOpenPieceProduct}
+            pieces={shopPieces}
+          />
 
           <MiraNote onAskMira={onAskMira} />
 
           <InlineCtaSection
-            onAddToCart={onAddToCart}
+            onAddToCart={handleAddToCart}
             onLayout={(event) => {
               inlineCtaY.current = event.nativeEvent.layout.y;
               inlineCtaHeight.current = event.nativeEvent.layout.height;
@@ -1079,7 +1207,7 @@ export function ModelLookPdpScreen({
 
       {showStickyCta ? (
         <StickyCtaBar
-          onAddToCart={onAddToCart}
+          onAddToCart={handleAddToCart}
           onTryOn={onStartTryOn}
         />
       ) : null}
@@ -1449,20 +1577,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingVertical: 1
   },
-  shopThisLookBrand: {
-    color: colors.muted,
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 17,
-    minWidth: 0
-  },
-  shopThisLookBrandPriceRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: 1
-  },
   shopThisLookImage: {
     height: "100%",
     width: "100%"
@@ -1474,7 +1588,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   shopThisLookList: {
-    gap: spacing.md
+    gap: spacing.md,
+    overflow: "visible",
+    position: "relative"
   },
   shopThisLookName: {
     color: colors.text,
@@ -1489,49 +1605,64 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.heading,
     fontSize: 15,
-    lineHeight: 19
+    lineHeight: 19,
+    marginTop: 7
   },
   shopThisLookProductName: {
     color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 17,
-    marginTop: 1
+    marginTop: 1,
+    minWidth: 0
   },
   shopThisLookRow: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md
+    gap: spacing.md,
+    zIndex: 1
+  },
+  shopThisLookRowActive: {
+    elevation: 8,
+    zIndex: 10
   },
   shopThisLookSection: {
     gap: spacing.md
   },
   shopThisLookSizeMenu: {
-    alignItems: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-    marginTop: 6
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    elevation: 8,
+    left: 0,
+    minWidth: 88,
+    overflow: "hidden",
+    position: "absolute",
+    shadowColor: "#000000",
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    top: 36,
+    zIndex: 20
+  },
+  shopThisLookSizeModal: {
+    flex: 1
   },
   shopThisLookSizeOption: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    minWidth: 32,
-    paddingHorizontal: 8,
-    paddingVertical: 5
+    minHeight: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
   shopThisLookSizeOptionSelected: {
-    backgroundColor: colors.text
+    backgroundColor: colors.surface
   },
   shopThisLookSizeOptionText: {
     color: colors.text,
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     lineHeight: 14
-  },
-  shopThisLookSizeOptionTextSelected: {
-    color: colors.inverseText
   },
   shopThisLookSizePicker: {
     alignItems: "center",
@@ -1540,8 +1671,10 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
+    justifyContent: "space-between",
     minHeight: 32,
+    minWidth: 72,
     paddingHorizontal: 12
   },
   shopThisLookSizeValue: {
@@ -1552,7 +1685,10 @@ const styles = StyleSheet.create({
   },
   shopThisLookSizeWrap: {
     alignItems: "flex-start",
-    marginTop: 7
+    height: 32,
+    marginTop: 6,
+    position: "relative",
+    zIndex: 20
   },
   shopThisLookSwap: {
     alignItems: "center",
@@ -1570,9 +1706,9 @@ const styles = StyleSheet.create({
   shopThisLookThumb: {
     backgroundColor: colors.surface,
     borderRadius: 12,
-    height: 58,
+    height: 104,
     overflow: "hidden",
-    width: 58
+    width: 88
   },
   shopThisLookTitle: {
     color: colors.muted,
@@ -1584,8 +1720,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     flexShrink: 0,
     fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 21
+    fontSize: 18,
+    lineHeight: 23
   },
   similarItemCard: {
     backgroundColor: colors.background,
