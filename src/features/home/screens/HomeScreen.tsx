@@ -24,6 +24,10 @@ import Svg, { Path } from "react-native-svg";
 
 import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingViewModel";
 import { BrandLogoMark } from "../components/BrandLogoMark";
+import {
+  isMatchLabel,
+  MatchRibbonTag
+} from "../components/MatchRibbonTag";
 import { allBrandsId, brandRows, type Brand } from "../data/brandCatalog";
 import {
   getMerchandisingLabel,
@@ -254,20 +258,17 @@ const looks: ProductLook[] = [
     brand: "Trends",
     id: "workday-neutral",
     image: prototypeProductImages.sandro.whitePinstripeSuit,
-    itemCount: "3 pieces",
+    itemCount: "4 pieces",
     match: "92% match",
     outfitItems: [
-      {
-        image: prototypeProductImages.sandro.navyTailoredSet,
-        kind: "jacket",
-        label: "Blazer"
-      },
       { image: prototypeProductImages.maje.ivoryMiniDress, kind: "top", label: "Top" },
       {
         image: prototypeProductImages.maje.blueScarfTrousers,
         kind: "bottom",
         label: "Trousers"
-      }
+      },
+      { image: bagProductImage, kind: "bag", label: "Bag" },
+      { image: shoeProductImage, kind: "shoe", label: "Footwear" }
     ],
     price: "From ₹7,899",
     title: "Workday neutral",
@@ -705,9 +706,20 @@ function OccasionLookCard({
       </ImageBackground>
       <View style={styles.occasionLookFooter}>
         <OutfitPieceChips pieces={product.outfitItems} />
-        <Text numberOfLines={1} style={styles.occasionMatchText}>
-          {displayLabel}
-        </Text>
+        {isMatchLabel(displayLabel) ? (
+          <MatchRibbonTag
+            height={24}
+            label={displayLabel}
+            mirrored
+            style={styles.occasionMatchRibbon}
+            textStyle={styles.smallMatchRibbonText}
+            width={82}
+          />
+        ) : (
+          <Text numberOfLines={1} style={styles.occasionMatchText}>
+            {displayLabel}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -890,6 +902,8 @@ function ProductCard({
   product: ProductLook;
   width: number;
 }) {
+  const hasMatchLabel = isMatchLabel(displayLabel);
+
   return (
     <View style={[styles.productCard, { width }]}>
       <ImageBackground
@@ -905,12 +919,28 @@ function ProductCard({
           <SaveButton onPress={onToggleWishlist} saved={isWishlisted} />
         </View>
         <View style={styles.productBottomRow}>
-          <View style={styles.darkMiniPill}>
-            <Text style={styles.darkMiniPillText}>{product.tries}</Text>
-          </View>
-          <View style={styles.matchPill}>
-            <Text style={styles.matchText}>{displayLabel}</Text>
-          </View>
+          {hasMatchLabel ? (
+            <MatchRibbonTag
+              height={26}
+              label={displayLabel}
+              style={styles.productMatchRibbon}
+              textStyle={styles.matchRibbonText}
+              width={90}
+            />
+          ) : (
+            <View style={styles.darkMiniPill}>
+              <Text style={styles.darkMiniPillText}>{product.tries}</Text>
+            </View>
+          )}
+          {hasMatchLabel ? (
+            <View style={styles.darkMiniPill}>
+              <Text style={styles.darkMiniPillText}>{product.tries}</Text>
+            </View>
+          ) : (
+            <View style={styles.matchPill}>
+              <Text style={styles.matchText}>{displayLabel}</Text>
+            </View>
+          )}
         </View>
       </ImageBackground>
       <View style={styles.productInfo}>
@@ -1424,9 +1454,14 @@ function PriceStyleLookCard({
       </ImageBackground>
       <View style={styles.priceLookFooter}>
         <OutfitPieceChips pieces={product.outfitItems.slice(0, 3)} />
-        <Text numberOfLines={1} style={styles.priceLookMatch}>
-          {product.match}
-        </Text>
+        <MatchRibbonTag
+          height={24}
+          label={product.match}
+          mirrored
+          style={styles.priceLookMatchRibbon}
+          textStyle={styles.smallMatchRibbonText}
+          width={84}
+        />
       </View>
     </View>
   );
@@ -2115,6 +2150,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 13
   },
+  matchRibbonText: {
+    fontSize: 11,
+    lineHeight: 14
+  },
   navRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -2169,6 +2208,10 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginLeft: spacing.xs,
     textAlign: "right"
+  },
+  occasionMatchRibbon: {
+    marginLeft: spacing.xs,
+    marginRight: -spacing.sm
   },
   occasionSaveWrap: {
     alignItems: "flex-end"
@@ -2260,6 +2303,9 @@ const styles = StyleSheet.create({
   productImageStyle: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
+  },
+  productMatchRibbon: {
+    marginLeft: -spacing.sm
   },
   productInfo: {
     backgroundColor: colors.background,
@@ -2364,13 +2410,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
   },
-  priceLookMatch: {
-    color: colors.text,
-    flexShrink: 1,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: "right"
+  priceLookMatchRibbon: {
+    marginLeft: spacing.xs,
+    marginRight: -8
+  },
+  smallMatchRibbonText: {
+    fontSize: 10,
+    lineHeight: 13
   },
   priceLookScroller: {
     marginHorizontal: -spacing.screen

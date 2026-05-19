@@ -16,6 +16,10 @@ import {
 } from "react-native";
 
 import { colors, fonts, spacing, typography } from "../../../theme";
+import {
+  isMatchLabel,
+  MatchRibbonTag
+} from "./MatchRibbonTag";
 
 export type ProductListingProduct = {
   brand?: string;
@@ -437,6 +441,8 @@ function ProductCard({
   product: ProductListingProduct;
   width: number;
 }) {
+  const matchLabel = product.match ?? "Try now";
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -458,9 +464,19 @@ function ProductCard({
             <Feather color={colors.text} name="heart" size={14} />
           </Pressable>
         </View>
-        <View style={styles.matchPill}>
-          <Text style={styles.matchText}>{product.match ?? "Try now"}</Text>
-        </View>
+        {isMatchLabel(matchLabel) ? (
+          <MatchRibbonTag
+            height={26}
+            label={matchLabel}
+            style={styles.matchRibbon}
+            textStyle={styles.matchRibbonText}
+            width={90}
+          />
+        ) : (
+          <View style={styles.matchPill}>
+            <Text style={styles.matchText}>{matchLabel}</Text>
+          </View>
+        )}
         {product.tries ? (
           <View style={styles.tryPill}>
             <Text style={styles.tryText}>{product.tries}</Text>
@@ -1052,6 +1068,17 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     position: "absolute",
     top: 10
+  },
+  matchRibbon: {
+    left: 0,
+    position: "absolute",
+    top: 10
+  },
+  matchRibbonText: {
+    fontSize: 10,
+    lineHeight: 13,
+    paddingLeft: 8,
+    paddingRight: 18
   },
   matchText: {
     color: colors.text,

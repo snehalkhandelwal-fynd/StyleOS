@@ -22,6 +22,7 @@ import {
 } from "react-native";
 
 import type { ProductListingProduct } from "../components/ProductListingScreen";
+import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
 import { colors, fonts, spacing } from "../../../theme";
 
@@ -443,11 +444,12 @@ function HeroGallery({
         </ScrollView>
 
         {hasStyleProfile ? (
-          <View style={styles.heroMatchPill}>
-            <Text style={styles.heroMatchText}>
-              {product.match ?? "91% match"}
-            </Text>
-          </View>
+          <MatchRibbonTag
+            height={30}
+            label={product.match ?? "91% match"}
+            style={styles.heroMatchTag}
+            width={98}
+          />
         ) : null}
 
         <View style={styles.heroTriesPill}>
@@ -1268,9 +1270,13 @@ function SimilarProductCard({
           source={{ uri: product.image }}
           style={styles.similarProductImage}
         />
-        <View style={styles.similarMatchPill}>
-          <Text style={styles.similarMatchText}>{product.match}</Text>
-        </View>
+        <MatchRibbonTag
+          height={22}
+          label={product.match}
+          style={styles.similarMatchTag}
+          textStyle={styles.similarMatchTagText}
+          width={78}
+        />
         <View style={styles.similarTryPill}>
           <Text style={styles.similarTryText}>{product.tries}</Text>
         </View>
@@ -2050,22 +2056,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: "hidden"
   },
-  heroMatchPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: 0.5,
-    left: spacing.screen,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+  heroMatchTag: {
+    left: 0,
     position: "absolute",
     top: spacing.lg
-  },
-  heroMatchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14
   },
   heroTriesPill: {
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -2487,22 +2481,16 @@ const styles = StyleSheet.create({
     height: 128,
     position: "relative"
   },
-  similarMatchPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 18,
-    borderWidth: 0.5,
-    left: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+  similarMatchTag: {
+    left: 0,
     position: "absolute",
     top: 8
   },
-  similarMatchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
+  similarMatchTagText: {
     fontSize: 9,
-    lineHeight: 12
+    lineHeight: 12,
+    paddingLeft: 7,
+    paddingRight: 16
   },
   similarPrice: {
     color: colors.text,

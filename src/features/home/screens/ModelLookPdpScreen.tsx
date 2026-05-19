@@ -1,6 +1,6 @@
 import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -21,8 +21,14 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import { colors, fonts, spacing } from "../../../theme";
+import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
-import { buildLookPieces, type LookPiece } from "../data/lookPieces";
+import {
+  buildLookPieces,
+  formatRupeeAmount,
+  getRupeeValue,
+  type LookPiece
+} from "../data/lookPieces";
 
 type ModelLookPdpScreenProps = {
   cartCount?: number;
@@ -253,19 +259,20 @@ function HeroLookImage({
         <WishlistHeartIcon saved={isSaved} size={23} />
       </Pressable>
 
-      <View style={styles.heroMatchChip}>
-        <Text style={styles.heroMatchText}>{look.match}</Text>
-      </View>
+      <MatchRibbonTag
+        height={30}
+        label={look.match}
+        style={styles.heroMatchTag}
+        width={98}
+      />
     </View>
   );
 }
 
 function LookInfoStrip({
-  hasWardrobeMatch,
   look,
   onShareLook
 }: {
-  hasWardrobeMatch: boolean;
   look: ProductLook;
   onShareLook?: () => void;
 }) {
@@ -287,19 +294,13 @@ function LookInfoStrip({
           <Feather color={colors.text} name="share-2" size={21} />
         </Pressable>
       </View>
-      {hasWardrobeMatch ? null : (
-        <>
-          <Text style={styles.totalPrice}>₹8,497 for the complete look</Text>
-          <Text style={styles.priceContext}>₹2,832 per piece avg.</Text>
-        </>
-      )}
     </View>
   );
 }
 
 function getShopLookPieceLabel(piece: LookPiece) {
   if (piece.kind === "top") {
-    return "Top wear";
+    return "Top";
   }
 
   if (piece.kind === "bottom") {
@@ -307,7 +308,7 @@ function getShopLookPieceLabel(piece: LookPiece) {
   }
 
   if (piece.kind === "shoe") {
-    return "Shoes";
+    return "Footwear";
   }
 
   if (piece.kind === "jacket") {
@@ -321,60 +322,218 @@ function getShopLookPieceLabel(piece: LookPiece) {
   return "Dress";
 }
 
-function getLookPiecesBrandCopy(pieces: LookPiece[]) {
-  const brandNames = Array.from(new Set(pieces.map((piece) => piece.brand)));
+const shopThisLookPieceOrder: Array<LookPiece["kind"]> = [
+  "top",
+  "bottom",
+  "bag",
+  "shoe"
+];
 
-  return brandNames.length === 1
-    ? `${pieces.length} pieces from ${brandNames[0]}`
-    : `${pieces.length} pieces from ${brandNames.slice(0, 2).join(", ")}`;
+function getShopThisLookPieces(pieces: LookPiece[]) {
+  const piecesByKind = new Map<LookPiece["kind"], LookPiece>();
+
+  pieces.forEach((piece) => {
+    if (
+      shopThisLookPieceOrder.includes(piece.kind) &&
+      !piecesByKind.has(piece.kind)
+    ) {
+      piecesByKind.set(piece.kind, piece);
+    }
+  });
+
+  return shopThisLookPieceOrder
+    .map((kind) => piecesByKind.get(kind))
+    .filter((piece): piece is LookPiece => Boolean(piece));
 }
 
-function getModelWearingSize(piece: LookPiece) {
+function getDefaultSelectedSize(piece: LookPiece) {
   const preferredSize = piece.sizes[Math.min(1, piece.sizes.length - 1)];
 
-  return preferredSize ? `Size ${preferredSize}` : "Size selected";
+  return preferredSize ?? "One";
 }
 
 function ShopThisLookSection({ pieces }: { pieces: LookPiece[] }) {
+  const shopPieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+  const [removedPieceIds, setRemovedPieceIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [openSizePieceId, setOpenSizePieceId] = useState<string | null>(null);
+  const [selectedPieceSizes, setSelectedPieceSizes] = useState<
+    Record<string, string>
+  >({});
+  const pieceIdsKey = useMemo(
+    () => shopPieces.map((piece) => piece.id).join("|"),
+    [shopPieces]
+  );
+  const activeTotal = useMemo(
+    () =>
+      shopPieces.reduce(
+        (sum, piece) =>
+          removedPieceIds.has(piece.id) ? sum : sum + getRupeeValue(piece.price),
+        0
+      ),
+    [shopPieces, removedPieceIds]
+  );
+
+  useEffect(() => {
+    setRemovedPieceIds(new Set());
+    setOpenSizePieceId(null);
+    setSelectedPieceSizes(
+      Object.fromEntries(
+        shopPieces.map((piece) => [piece.id, getDefaultSelectedSize(piece)])
+      )
+    );
+  }, [pieceIdsKey]);
+
+  const togglePiece = (pieceId: string) => {
+    setOpenSizePieceId(null);
+    setRemovedPieceIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(pieceId)) {
+        next.delete(pieceId);
+      } else {
+        next.add(pieceId);
+      }
+
+      return next;
+    });
+  };
+
   return (
     <View style={styles.shopThisLookSection}>
-      <View>
+      <View style={styles.shopThisLookHeader}>
         <Text style={styles.shopThisLookTitle}>Shop this look</Text>
-        <Text style={styles.shopThisLookMeta}>
-          {getLookPiecesBrandCopy(pieces)}
+        <Text style={styles.shopThisLookTotal}>
+          {formatRupeeAmount(activeTotal)}
         </Text>
       </View>
       <View style={styles.shopThisLookList}>
-        {pieces.map((piece) => (
-          <View key={piece.id} style={styles.shopThisLookRow}>
-            <View style={styles.shopThisLookThumb}>
-              <Image
-                resizeMode="cover"
-                source={{ uri: piece.image }}
-                style={styles.shopThisLookImage}
-              />
+        {shopPieces.map((piece) => {
+          const isAdded = !removedPieceIds.has(piece.id);
+          const pieceLabel = getShopLookPieceLabel(piece);
+          const selectedSize =
+            selectedPieceSizes[piece.id] ?? getDefaultSelectedSize(piece);
+          const isSizeMenuOpen = openSizePieceId === piece.id;
+
+          return (
+            <View key={piece.id} style={styles.shopThisLookRow}>
+              <View
+                style={[
+                  styles.shopThisLookThumb,
+                  isAdded ? null : styles.shopThisLookPieceInactive
+                ]}
+              >
+                <Image
+                  resizeMode="cover"
+                  source={{ uri: piece.image }}
+                  style={styles.shopThisLookImage}
+                />
+              </View>
+              <View
+                style={[
+                  styles.shopThisLookCopy,
+                  isAdded ? null : styles.shopThisLookPieceInactive
+                ]}
+              >
+                <Text numberOfLines={1} style={styles.shopThisLookName}>
+                  {pieceLabel}
+                </Text>
+                <Text numberOfLines={1} style={styles.shopThisLookProductName}>
+                  {piece.name}
+                </Text>
+                <View style={styles.shopThisLookBrandPriceRow}>
+                  <Text numberOfLines={1} style={styles.shopThisLookBrand}>
+                    {piece.brand}
+                  </Text>
+                  <Text style={styles.shopThisLookPrice}>{piece.price}</Text>
+                </View>
+                <View style={styles.shopThisLookSizeWrap}>
+                  <Pressable
+                    accessibilityLabel={`Select size for ${pieceLabel}`}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      disabled: !isAdded,
+                      expanded: isSizeMenuOpen
+                    }}
+                    disabled={!isAdded}
+                    onPress={() =>
+                      setOpenSizePieceId((current) =>
+                        current === piece.id ? null : piece.id
+                      )
+                    }
+                    style={({ pressed }) => [
+                      styles.shopThisLookSizePicker,
+                      pressed ? styles.pressed : null
+                    ]}
+                  >
+                    <Text style={styles.shopThisLookSizeValue}>
+                      {selectedSize}
+                    </Text>
+                    <Feather color={colors.muted} name="check" size={13} />
+                    <Feather color={colors.muted} name="chevron-down" size={14} />
+                  </Pressable>
+                  {isSizeMenuOpen ? (
+                    <View style={styles.shopThisLookSizeMenu}>
+                      {piece.sizes.map((size) => {
+                        const isSelected = selectedSize === size;
+
+                        return (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: isSelected }}
+                            key={`${piece.id}-${size}`}
+                            onPress={() => {
+                              setSelectedPieceSizes((current) => ({
+                                ...current,
+                                [piece.id]: size
+                              }));
+                              setOpenSizePieceId(null);
+                            }}
+                            style={[
+                              styles.shopThisLookSizeOption,
+                              isSelected
+                                ? styles.shopThisLookSizeOptionSelected
+                                : null
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.shopThisLookSizeOptionText,
+                                isSelected
+                                  ? styles.shopThisLookSizeOptionTextSelected
+                                  : null
+                              ]}
+                            >
+                              {size}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+              <Pressable
+                accessibilityLabel={`${isAdded ? "Remove" : "Add"} ${pieceLabel}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isAdded }}
+                onPress={() => togglePiece(piece.id)}
+                style={({ pressed }) => [
+                  styles.shopThisLookSwap,
+                  isAdded ? null : styles.shopThisLookSwapInactive,
+                  pressed ? styles.pressed : null
+                ]}
+              >
+                <Feather
+                  color={colors.text}
+                  name={isAdded ? "trash-2" : "plus"}
+                  size={18}
+                />
+              </Pressable>
             </View>
-            <View style={styles.shopThisLookCopy}>
-              <Text numberOfLines={1} style={styles.shopThisLookName}>
-                {getShopLookPieceLabel(piece)}
-              </Text>
-              <Text style={styles.shopThisLookSize}>
-                {getModelWearingSize(piece)}
-              </Text>
-              <Text style={styles.shopThisLookPrice}>{piece.price}</Text>
-            </View>
-            <Pressable
-              accessibilityLabel={`Remove ${getShopLookPieceLabel(piece)}`}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.shopThisLookSwap,
-                pressed ? styles.pressed : null
-              ]}
-            >
-              <Feather color={colors.text} name="trash-2" size={18} />
-            </Pressable>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
@@ -468,9 +627,14 @@ function VariationCard({
             </View>
           ))}
         </View>
-        <Text numberOfLines={1} style={styles.variationMatchText}>
-          {variation.match}
-        </Text>
+        <MatchRibbonTag
+          height={24}
+          label={variation.match}
+          mirrored
+          style={styles.variationMatchTag}
+          textStyle={styles.variationMatchTagText}
+          width={82}
+        />
       </View>
     </View>
   );
@@ -728,7 +892,6 @@ export function ModelLookPdpScreen({
     pieceOverrides && pieceOverrides.length > 0
       ? pieceOverrides
       : defaultPieces;
-  const hasWardrobeMatch = pieces.some((piece) => piece.isOwned);
   const isSaved = initialIsSaved ?? localIsSaved;
   const filteredSimilarItems = useMemo(
     () =>
@@ -816,7 +979,6 @@ export function ModelLookPdpScreen({
           style={styles.contentSheet}
         >
           <LookInfoStrip
-            hasWardrobeMatch={hasWardrobeMatch}
             look={look}
             onShareLook={onShareLook}
           />
@@ -1049,20 +1211,10 @@ const styles = StyleSheet.create({
     right: spacing.screen,
     width: 48
   },
-  heroMatchChip: {
-    backgroundColor: colors.background,
-    borderRadius: 20,
-    left: spacing.screen,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+  heroMatchTag: {
+    left: 0,
     position: "absolute",
     top: spacing.lg
-  },
-  heroMatchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14
   },
   infoStrip: {
     gap: 0
@@ -1198,13 +1350,6 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.72
   },
-  priceContext: {
-    color: colors.soft,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: spacing.xs
-  },
   primaryCta: {
     alignItems: "center",
     backgroundColor: colors.text,
@@ -1236,8 +1381,8 @@ const styles = StyleSheet.create({
   secondaryCtaText: {
     color: colors.text,
     fontFamily: fonts.cta,
-    fontSize: 13,
-    lineHeight: 17
+    fontSize: 14,
+    lineHeight: 18
   },
   section: {
     gap: spacing.md
@@ -1301,11 +1446,32 @@ const styles = StyleSheet.create({
   shopThisLookCopy: {
     flex: 1,
     justifyContent: "center",
+    minWidth: 0,
+    paddingVertical: 1
+  },
+  shopThisLookBrand: {
+    color: colors.muted,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 17,
     minWidth: 0
+  },
+  shopThisLookBrandPriceRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: 1
   },
   shopThisLookImage: {
     height: "100%",
     width: "100%"
+  },
+  shopThisLookHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+    justifyContent: "space-between"
   },
   shopThisLookList: {
     gap: spacing.md
@@ -1316,19 +1482,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20
   },
-  shopThisLookMeta: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 17,
-    marginTop: spacing.xs
+  shopThisLookPieceInactive: {
+    opacity: 0.42
   },
   shopThisLookPrice: {
     color: colors.text,
     fontFamily: fonts.heading,
+    fontSize: 15,
+    lineHeight: 19
+  },
+  shopThisLookProductName: {
+    color: colors.muted,
+    fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 17,
-    marginTop: 2
+    marginTop: 1
   },
   shopThisLookRow: {
     alignItems: "center",
@@ -1338,12 +1506,53 @@ const styles = StyleSheet.create({
   shopThisLookSection: {
     gap: spacing.md
   },
-  shopThisLookSize: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2
+  shopThisLookSizeMenu: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 6
+  },
+  shopThisLookSizeOption: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    minWidth: 32,
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  shopThisLookSizeOptionSelected: {
+    backgroundColor: colors.text
+  },
+  shopThisLookSizeOptionText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
+  },
+  shopThisLookSizeOptionTextSelected: {
+    color: colors.inverseText
+  },
+  shopThisLookSizePicker: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 9,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    minHeight: 32,
+    paddingHorizontal: 12
+  },
+  shopThisLookSizeValue: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 17
+  },
+  shopThisLookSizeWrap: {
+    alignItems: "flex-start",
+    marginTop: 7
   },
   shopThisLookSwap: {
     alignItems: "center",
@@ -1353,6 +1562,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 42
   },
+  shopThisLookSwapInactive: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderWidth: 1
+  },
   shopThisLookThumb: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -1361,8 +1575,15 @@ const styles = StyleSheet.create({
     width: 58
   },
   shopThisLookTitle: {
-    color: colors.text,
+    color: colors.muted,
     fontFamily: fonts.bodyMedium,
+    fontSize: 16,
+    lineHeight: 21
+  },
+  shopThisLookTotal: {
+    color: colors.text,
+    flexShrink: 0,
+    fontFamily: fonts.heading,
     fontSize: 16,
     lineHeight: 21
   },
@@ -1417,13 +1638,6 @@ const styles = StyleSheet.create({
   similarItemsTrack: {
     gap: spacing.sm
   },
-  totalPrice: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23,
-    marginTop: spacing.sm
-  },
   variationCard: {
     backgroundColor: colors.background,
     borderColor: colors.border,
@@ -1450,14 +1664,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
   },
-  variationMatchText: {
-    color: colors.text,
-    flexShrink: 1,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14,
+  variationMatchTag: {
     marginLeft: spacing.xs,
-    textAlign: "right"
+    marginRight: -spacing.sm
+  },
+  variationMatchTagText: {
+    fontSize: 10,
+    lineHeight: 13
   },
   variationSaveButton: {
     alignItems: "center",

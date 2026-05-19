@@ -97,7 +97,6 @@ export function AvatarReadyScreen({
               pressed ? styles.pressed : null
             ]}
           >
-            <Text style={styles.reuploadMuted}>Unhappy?</Text>
             <Text style={styles.reuploadLink}>Use another photo</Text>
           </Pressable>
         </AvatarImageFrame>
@@ -106,11 +105,11 @@ export function AvatarReadyScreen({
           <PrimaryButton
             label="Try your first look"
             onPress={onContinue}
-            variant="outline"
           />
           <PrimaryButton
             label="Change measurement"
             onPress={onChangeMeasurement}
+            variant="outline"
           />
         </View>
       </View>
@@ -128,11 +127,11 @@ const styles = StyleSheet.create({
   },
   measurementChip: {
     alignItems: "center",
-    backgroundColor: colors.surfaceTranslucent,
-    borderColor: "rgba(10, 10, 10, 0.1)",
+    backgroundColor: "rgba(239, 234, 224, 0.5)",
+    borderColor: "rgba(232, 228, 220, 0.42)",
     borderRadius: radii.pill,
     borderWidth: 1,
-    elevation: 3,
+    elevation: 1,
     justifyContent: "center",
     maxWidth: 168,
     minHeight: 34,
@@ -143,8 +142,8 @@ const styles = StyleSheet.create({
       height: 2,
       width: 0
     },
-    shadowOpacity: 0.14,
-    shadowRadius: 8
+    shadowOpacity: 0.06,
+    shadowRadius: 6
   },
   measurementChipLeftLower: {
     left: 10,
@@ -171,31 +170,36 @@ const styles = StyleSheet.create({
   },
   measurementChipTopRight: {
     right: 12,
-    top: 22
+    top: 58
   },
   pressed: {
     opacity: 0.72
   },
   reuploadAction: {
     alignItems: "center",
-    bottom: spacing.md,
+    backgroundColor: colors.surfaceTranslucent,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    elevation: 3,
     flexDirection: "row",
     gap: 4,
     justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     position: "absolute",
-    right: spacing.lg
+    right: spacing.md,
+    shadowColor: "#000000",
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    top: spacing.md
   },
   reuploadLink: {
     color: colors.text,
     fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 15,
     textDecorationLine: "underline"
   },
-  reuploadMuted: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 18
-  }
 });

@@ -942,18 +942,7 @@ export function ShopThisLookScreen({
           Shop this look
         </Text>
 
-        <Pressable
-          accessibilityLabel="View cart"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onViewCart}
-          style={({ pressed }) => [
-            styles.shopHeaderIconButton,
-            pressed ? styles.pressed : null
-          ]}
-        >
-          <Feather color={colors.text} name="shopping-cart" size={24} />
-        </Pressable>
+        <View style={styles.shopHeaderIconButton} />
       </View>
 
       <View style={styles.shopIntro}>
@@ -1040,13 +1029,24 @@ export function ShopThisLookScreen({
             disabled={!activePiece}
             onPress={() => activePiece && setSizePiece(activePiece)}
             style={({ pressed }) => [
-              styles.sessionActionButton,
-              styles.addCartButton,
+              styles.shopPrimaryAction,
               !activePiece ? styles.actionButtonDisabled : null,
               pressed ? styles.pressed : null
             ]}
           >
-            <Text style={styles.addCartText}>Add</Text>
+            <Text style={styles.addCartText}>Add to cart</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityLabel="View cart"
+            accessibilityRole="button"
+            onPress={onViewCart}
+            style={({ pressed }) => [
+              styles.shopSecondaryAction,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Text style={styles.shopSecondaryActionText}>View cart</Text>
           </Pressable>
         </View>
       </View>
@@ -2394,9 +2394,8 @@ const styles = StyleSheet.create({
     lineHeight: 23
   },
   shopActionBar: {
-    alignItems: "center",
+    alignItems: "stretch",
     backgroundColor: colors.background,
-    flexDirection: "row",
     gap: spacing.sm,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
@@ -2518,9 +2517,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 19
   },
+  shopPrimaryAction: {
+    alignItems: "center",
+    backgroundColor: colors.text,
+    borderRadius: 999,
+    height: 52,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md
+  },
   shopScreen: {
     backgroundColor: colors.background,
     flex: 1
+  },
+  shopSecondaryAction: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.borderStrong,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md
+  },
+  shopSecondaryActionText: {
+    color: colors.text,
+    fontFamily: fonts.cta,
+    fontSize: 14,
+    lineHeight: 18
   },
   shopToast: {
     alignItems: "center",
