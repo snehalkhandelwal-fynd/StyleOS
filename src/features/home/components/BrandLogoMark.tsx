@@ -1,5 +1,5 @@
 import { Image, StyleSheet, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Image as SvgImage, Path } from "react-native-svg";
 
 import type { BrandLogoVariant } from "../data/brandCatalog";
 
@@ -31,6 +31,28 @@ function ImageLogo({
   return (
     <View style={[styles.logoFrame, { height, width }]}>
       <Image resizeMode="contain" source={source} style={styles.logoImage} />
+    </View>
+  );
+}
+
+function VeroModaLogo({ height, width }: Omit<BrandLogoMarkProps, "variant">) {
+  return (
+    <View style={[styles.logoFrame, { height, width }]}>
+      <Svg
+        height={height}
+        preserveAspectRatio="none"
+        viewBox="0 0 4096 432"
+        width={width}
+      >
+        <SvgImage
+          height={2460}
+          href={require("../../../assets/brand-vero-moda.png")}
+          preserveAspectRatio="none"
+          width={4096}
+          x={0}
+          y={-1014}
+        />
+      </Svg>
     </View>
   );
 }
@@ -72,13 +94,7 @@ export function BrandLogoMark({
   }
 
   if (variant === "vero-moda") {
-    return (
-      <ImageLogo
-        height={height}
-        source={require("../../../assets/brand-vero-moda.png")}
-        width={width}
-      />
-    );
+    return <VeroModaLogo height={height} width={width} />;
   }
 
   if (variant === "trends") {

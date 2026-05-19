@@ -23,6 +23,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingViewModel";
+import { CartCountBadge } from "../components/CartCountBadge";
 import { BrandLogoMark } from "../components/BrandLogoMark";
 import {
   isMatchLabel,
@@ -40,6 +41,7 @@ const homeHeaderTopInset =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
 
 type HomeScreenProps = {
+  cartCount?: number;
   draft: OnboardingDraft;
   isGuest: boolean;
   onChangeAddress: () => void;
@@ -51,7 +53,14 @@ type HomeScreenProps = {
   onStartStyleQuiz: () => void;
 };
 
-type OutfitPieceKind = "bag" | "bottom" | "dress" | "jacket" | "shoe" | "top";
+type OutfitPieceKind =
+  | "accessory"
+  | "bag"
+  | "bottom"
+  | "dress"
+  | "jacket"
+  | "shoe"
+  | "top";
 
 type OutfitPiece = {
   image?: string;
@@ -94,6 +103,7 @@ const shoeProductImage = prototypeProductImages.sandro.brownJacket;
 const bagProductImage = prototypeProductImages.maje.stripedScarfDenim;
 
 const fallbackOutfitPieceImages: Record<OutfitPieceKind, string> = {
+  accessory: prototypeProductImages.maje.stripedScarfDenim,
   bag: bagProductImage,
   bottom: prototypeProductImages.maje.blueScarfTrousers,
   dress: prototypeProductImages.maje.beigeCrochetDress,
@@ -471,12 +481,14 @@ function getShortDeliveryAddress(address?: string) {
 
 function TopNavigation({
   address,
+  cartCount = 0,
   hasBorder,
   onChangeAddress,
   onOpenCart,
   onOpenSearch
 }: {
   address: string;
+  cartCount?: number;
   hasBorder: boolean;
   onChangeAddress: () => void;
   onOpenCart: () => void;
@@ -522,6 +534,7 @@ function TopNavigation({
               size={headerActionIconSize}
               strokeWidth={headerActionStrokeWidth}
             />
+            <CartCountBadge count={cartCount} />
           </Pressable>
         </View>
       </View>
@@ -1426,12 +1439,14 @@ function SavedLooksSection({
 }
 
 function PriceStyleLookCard({
+  displayLabel,
   isWishlisted,
   onToggleWishlist,
   product,
   style,
   width
 }: {
+  displayLabel: string;
   isWishlisted: boolean;
   onToggleWishlist: () => void;
   product: ProductLook;
@@ -1454,14 +1469,20 @@ function PriceStyleLookCard({
       </ImageBackground>
       <View style={styles.priceLookFooter}>
         <OutfitPieceChips pieces={product.outfitItems.slice(0, 3)} />
-        <MatchRibbonTag
-          height={24}
-          label={product.match}
-          mirrored
-          style={styles.priceLookMatchRibbon}
-          textStyle={styles.smallMatchRibbonText}
-          width={84}
-        />
+        {isMatchLabel(displayLabel) ? (
+          <MatchRibbonTag
+            height={24}
+            label={displayLabel}
+            mirrored
+            style={styles.priceLookMatchRibbon}
+            textStyle={styles.smallMatchRibbonText}
+            width={84}
+          />
+        ) : (
+          <Text numberOfLines={1} style={styles.priceLookLabel}>
+            {displayLabel}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -1469,12 +1490,14 @@ function PriceStyleLookCard({
 
 function PriceStyleSection({
   cardWidth,
+  hasStyleProfile,
   onToggleWishlist,
   selectedPrice,
   setSelectedPrice,
   wishlistProductIds
 }: {
   cardWidth: number;
+  hasStyleProfile: boolean;
   onToggleWishlist: (productId: string) => void;
   selectedPrice: string;
   setSelectedPrice: (filter: string) => void;
@@ -1523,6 +1546,11 @@ function PriceStyleSection({
       >
         {products.map((product, index) => (
           <PriceStyleLookCard
+            displayLabel={getMerchandisingLabel({
+              fallbackIndex: index,
+              hasStyleProfile,
+              personalizedLabel: product.match
+            })}
             isWishlisted={wishlistProductIds.has(product.id)}
             key={`price-${product.id}`}
             onToggleWishlist={() => onToggleWishlist(product.id)}
@@ -1589,6 +1617,7 @@ function NewArrivalsSection() {
 }
 
 export function HomeScreen({
+  cartCount = 0,
   draft,
   onChangeAddress,
   onOpenBrand,
@@ -1715,6 +1744,7 @@ export function HomeScreen({
       >
         <TopNavigation
           address={address}
+          cartCount={cartCount}
           hasBorder={false}
           onChangeAddress={onChangeAddress}
           onOpenCart={onOpenCart}
@@ -2169,6 +2199,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 32,
     justifyContent: "center",
+    position: "relative",
     width: 32
   },
   occasionGrid: {
@@ -2409,6 +2440,14 @@ const styles = StyleSheet.create({
   priceLookImageStyle: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
+  },
+  priceLookLabel: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13,
+    marginLeft: spacing.xs,
+    maxWidth: 76
   },
   priceLookMatchRibbon: {
     marginLeft: spacing.xs,

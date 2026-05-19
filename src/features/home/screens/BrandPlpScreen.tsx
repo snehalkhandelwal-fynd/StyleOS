@@ -4,9 +4,12 @@ import {
   ProductListingScreen,
   type ProductListingProduct
 } from "../components/ProductListingScreen";
+import { getMerchandisingLabel } from "../utils/stylePersonalization";
 
 type BrandPlpScreenProps = {
   brandId: string;
+  cartCount?: number;
+  hasStyleProfile?: boolean;
   onBack: () => void;
   onOpenCart?: () => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
@@ -60,7 +63,8 @@ function formatTryCount(count: number) {
 }
 
 function buildBrandListingProducts(
-  sourceProducts: BrandProduct[]
+  sourceProducts: BrandProduct[],
+  hasStyleProfile: boolean
 ): ProductListingProduct[] {
   if (sourceProducts.length === 0) {
     return [];
@@ -84,7 +88,11 @@ function buildBrandListingProducts(
       discountPercent: discountPercent || undefined,
       id: `${source.id}-${index}`,
       image: source.image,
-      match: source.match,
+      match: getMerchandisingLabel({
+        fallbackIndex: index,
+        hasStyleProfile,
+        personalizedLabel: source.match
+      }),
       occasion: occasions[index % occasions.length],
       originalPrice:
         discountPercent > 0
@@ -104,15 +112,21 @@ function buildBrandListingProducts(
 
 export function BrandPlpScreen({
   brandId,
+  cartCount = 0,
+  hasStyleProfile = false,
   onBack,
   onOpenCart,
   onOpenProduct
 }: BrandPlpScreenProps) {
   const title = getBrandName(brandId);
-  const products = buildBrandListingProducts(getBrandProducts(brandId));
+  const products = buildBrandListingProducts(
+    getBrandProducts(brandId),
+    hasStyleProfile
+  );
 
   return (
     <ProductListingScreen
+      cartCount={cartCount}
       onBack={onBack}
       onOpenCart={onOpenCart}
       onOpenProduct={onOpenProduct}

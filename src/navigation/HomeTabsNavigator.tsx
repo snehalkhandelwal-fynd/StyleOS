@@ -90,6 +90,7 @@ function toProductListingProductFromLookPiece(
 }
 
 const cartColorByPieceKind: Record<LookPiece["kind"], string> = {
+  accessory: "As shown",
   bag: "As shown",
   bottom: "Neutral",
   dress: "As shown",
@@ -550,6 +551,33 @@ export function HomeTabsNavigator({
     setCartCount((current) => current + getCartItemCount(items));
   }, []);
 
+  const handleClearCart = useCallback(() => {
+    setCartItems([]);
+    setCartCount(0);
+  }, []);
+
+  const handleUpdateCartItemQuantity = useCallback(
+    (itemId: string, nextQuantity: number) => {
+      setCartItems((currentItems) => {
+        const nextItems =
+          nextQuantity <= 0
+            ? currentItems.filter((item) => item.id !== itemId)
+            : currentItems.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      quantity: nextQuantity
+                    }
+                  : item
+              );
+
+        setCartCount(getCartItemCount(nextItems));
+        return nextItems;
+      });
+    },
+    []
+  );
+
   const handleAddSelectedLookToCart = useCallback(
     (items: ShopThisLookCartItem[]) => {
       const nextCartItems = items.map((item) =>
@@ -810,6 +838,7 @@ export function HomeTabsNavigator({
       <View style={styles.content}>
         {activeTab === "Home" && selectedProduct ? (
           <ProductPdpScreen
+            cartCount={cartCount}
             hasStyleProfile={hasStyleProfile}
             onAddToCart={() => handleAddProductToCart(selectedProduct)}
             onAskMira={() => handleChangeTab("AIStylist")}
@@ -824,6 +853,7 @@ export function HomeTabsNavigator({
         {activeTab === "Home" && selectedLook && !selectedProduct ? (
           <ModelLookPdpScreen
             cartCount={cartCount}
+            hasStyleProfile={hasStyleProfile}
             initialIsSaved={selectedLookSnapshot?.isSaved}
             look={selectedLook}
             onAddToCart={handleAddSelectedLookToCart}
@@ -850,6 +880,8 @@ export function HomeTabsNavigator({
         {activeTab === "Home" && selectedBrandId && !selectedLook && !selectedProduct ? (
           <BrandPlpScreen
             brandId={selectedBrandId}
+            cartCount={cartCount}
+            hasStyleProfile={hasStyleProfile}
             onBack={() => setSelectedBrandId(null)}
             onOpenCart={() => handleChangeTab("Cart")}
             onOpenProduct={handleOpenProductFromBrand}
@@ -857,6 +889,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "Home" && !selectedBrandId && !selectedLook && !selectedProduct ? (
           <HomeScreen
+            cartCount={cartCount}
             draft={draft}
             isGuest={isGuest}
             onChangeAddress={onChangeAddress}
@@ -870,6 +903,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "TryOn" && selectedProduct ? (
           <ProductPdpScreen
+            cartCount={cartCount}
             hasStyleProfile={hasStyleProfile}
             onAddToCart={() => handleAddProductToCart(selectedProduct)}
             onAskMira={() => handleChangeTab("AIStylist")}
@@ -883,6 +917,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "TryOn" && !selectedProduct && isTryOnShopLookOpen ? (
           <ShopThisLookScreen
+            cartCount={cartCount}
             look={tryOnEntry?.look}
             onAddPieceToCart={handleAddShopPieceToCart}
             onBack={handleBackFromShopLook}
@@ -893,6 +928,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "TryOn" && !selectedProduct && !isTryOnShopLookOpen ? (
           <TryOnScreen
+            cartCount={cartCount}
             draft={draft}
             initialIsSaved={tryOnLookSnapshot?.isSaved}
             initialPieces={tryOnLookSnapshot?.pieces}
@@ -917,6 +953,7 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "Feed" ? (
           <ExploreScreen
+            cartCount={cartCount}
             hasStyleProfile={hasStyleProfile}
             onInternalViewChange={handleExploreInternalViewChange}
             onAskMira={() => handleChangeTab("AIStylist")}
@@ -932,7 +969,12 @@ export function HomeTabsNavigator({
           />
         ) : null}
         {activeTab === "Cart" ? (
-          <CartScreen items={cartItems} onBack={() => handleChangeTab("Home")} />
+          <CartScreen
+            items={cartItems}
+            onBack={() => handleChangeTab("Home")}
+            onClearCart={handleClearCart}
+            onUpdateItemQuantity={handleUpdateCartItemQuantity}
+          />
         ) : null}
         {activeTab === "Profile" ? (
           <ExploreScreen

@@ -22,11 +22,13 @@ import {
 } from "react-native";
 
 import type { ProductListingProduct } from "../components/ProductListingScreen";
+import { CartCountBadge } from "../components/CartCountBadge";
 import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
 import { colors, fonts, spacing } from "../../../theme";
 
 type ProductPdpScreenProps = {
+  cartCount?: number;
   hasStyleProfile?: boolean;
   hasWardrobePairing?: boolean;
   onAddToCart?: () => void;
@@ -298,12 +300,14 @@ function toProductLook(product: ProductListingProduct, look: StyledLook): Produc
 }
 
 function ProductPdpHeader({
+  cartCount = 0,
   isSaved,
   onBack,
   onOpenCart,
   onOpenSearch,
   onSave
 }: {
+  cartCount?: number;
   isSaved: boolean;
   onBack: () => void;
   onOpenCart?: () => void;
@@ -371,6 +375,7 @@ function ProductPdpHeader({
           ]}
         >
           <Feather color={colors.text} name="shopping-bag" size={24} />
+          <CartCountBadge count={cartCount} />
         </Pressable>
       </View>
     </View>
@@ -443,10 +448,10 @@ function HeroGallery({
           ))}
         </ScrollView>
 
-        {hasStyleProfile ? (
+        {hasStyleProfile && product.match ? (
           <MatchRibbonTag
             height={30}
-            label={product.match ?? "91% match"}
+            label={product.match}
             style={styles.heroMatchTag}
             width={98}
           />
@@ -1258,8 +1263,10 @@ function ReviewsSection({ product }: { product: ProductListingProduct }) {
 }
 
 function SimilarProductCard({
+  hasStyleProfile,
   product
 }: {
+  hasStyleProfile: boolean;
   product: ReturnType<typeof getSimilarProducts>[number];
 }) {
   return (
@@ -1270,13 +1277,21 @@ function SimilarProductCard({
           source={{ uri: product.image }}
           style={styles.similarProductImage}
         />
-        <MatchRibbonTag
-          height={22}
-          label={product.match}
-          style={styles.similarMatchTag}
-          textStyle={styles.similarMatchTagText}
-          width={78}
-        />
+        {hasStyleProfile ? (
+          <MatchRibbonTag
+            height={22}
+            label={product.match}
+            style={styles.similarMatchTag}
+            textStyle={styles.similarMatchTagText}
+            width={78}
+          />
+        ) : (
+          <View style={styles.similarContextBadge}>
+            <Text numberOfLines={1} style={styles.similarContextBadgeText}>
+              {product.context}
+            </Text>
+          </View>
+        )}
         <View style={styles.similarTryPill}>
           <Text style={styles.similarTryText}>{product.tries}</Text>
         </View>
@@ -1301,8 +1316,10 @@ function SimilarProductCard({
 }
 
 function SimilarProductsSection({
+  hasStyleProfile,
   product
 }: {
+  hasStyleProfile: boolean;
   product: ProductListingProduct;
 }) {
   const products = useMemo(() => getSimilarProducts(product), [product]);
@@ -1316,7 +1333,11 @@ function SimilarProductsSection({
         showsHorizontalScrollIndicator={false}
       >
         {products.map((item) => (
-          <SimilarProductCard key={item.id} product={item} />
+          <SimilarProductCard
+            hasStyleProfile={hasStyleProfile}
+            key={item.id}
+            product={item}
+          />
         ))}
       </ScrollView>
     </View>
@@ -1342,7 +1363,7 @@ function ProductCtaButtons({
           pressed ? styles.pressed : null
         ]}
       >
-        <Text style={styles.tryOnButtonText}>Try this on me</Text>
+        <Text style={styles.tryOnButtonText}>Try on</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -1401,6 +1422,7 @@ function InlineCtaSection({
 }
 
 export function ProductPdpScreen({
+  cartCount = 0,
   hasStyleProfile = false,
   hasWardrobePairing = true,
   onAddToCart,
@@ -1492,6 +1514,7 @@ export function ProductPdpScreen({
   return (
     <View style={styles.screen}>
       <ProductPdpHeader
+        cartCount={cartCount}
         isSaved={isSaved}
         onBack={onBack}
         onOpenCart={onOpenCart ?? onAddToCart}
@@ -1587,7 +1610,10 @@ export function ProductPdpScreen({
           />
           <ProductDetailsSection />
           <ReviewsSection product={product} />
-          <SimilarProductsSection product={product} />
+          <SimilarProductsSection
+            hasStyleProfile={hasStyleProfile}
+            product={product}
+          />
           <View style={styles.bottomSpacer} />
         </View>
       </Animated.ScrollView>
@@ -2003,6 +2029,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 44,
     justifyContent: "center",
+    position: "relative",
     width: 36
   },
   headerSearchBar: {
@@ -2475,6 +2502,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 13,
     marginTop: 2
+  },
+  similarContextBadge: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    left: 8,
+    maxWidth: 94,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    position: "absolute",
+    top: 8
+  },
+  similarContextBadgeText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 9,
+    lineHeight: 12
   },
   similarImageWrap: {
     backgroundColor: colors.imageSurface,
