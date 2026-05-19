@@ -17,7 +17,7 @@ const tabs: Array<{
   { icon: "home", label: "Home", name: "Home" },
   { icon: "grid", label: "Explore", name: "Feed" },
   { icon: "camera", label: "Stylist", name: "TryOn" },
-  { icon: "user", label: "Profile", name: "Profile" }
+  { icon: "user", label: "Account", name: "Profile" }
 ];
 
 export function BottomTabBar({ activeTab, onChangeTab }: BottomTabBarProps) {

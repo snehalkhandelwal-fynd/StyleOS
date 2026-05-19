@@ -77,16 +77,14 @@ export function RootNavigator() {
   return (
     <View style={styles.screen}>
       {route === "Splash" ? (
-        <SplashScreen
-          onExplore={() => goHome("Feed")}
-          onGetStarted={() => setRoute("PhoneSignIn")}
-        />
+        <SplashScreen onGetStarted={() => setRoute("PhoneSignIn")} />
       ) : null}
 
       {route === "PhoneSignIn" ? (
         <PhoneSignInScreen
           onChangeCountry={setSelectedCountry}
           onChangePhone={setPhoneNumber}
+          onSkip={() => goHome("Home")}
           onSubmit={handleSubmitPhone}
           phoneNumber={phoneNumber}
           selectedCountry={selectedCountry}

@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 
 import { BottomTabBar } from "../features/home/components/BottomTabBar";
 import type { ProductListingProduct } from "../features/home/components/ProductListingScreen";
+import { AccountScreen } from "../features/home/screens/AccountScreen";
 import { BrandPlpScreen } from "../features/home/screens/BrandPlpScreen";
 import { CartScreen } from "../features/home/screens/CartScreen";
 import { ExploreScreen } from "../features/home/screens/ExploreScreen";
@@ -138,9 +139,15 @@ export function HomeTabsNavigator({
           <CartScreen onBack={() => handleChangeTab("Home")} />
         ) : null}
         {activeTab === "Profile" ? (
-          <ExploreScreen
-            copy="Manage your measurements, style profile, saved looks, and account details."
-            title="Profile"
+          <AccountScreen
+            appVersion="1.0.1"
+            user={{
+              avatarUri: draft.avatarUri,
+              name: draft.name?.trim() || "Guest",
+              phoneNumber: draft.phone
+                ? `${draft.phone.countryCode} ${draft.phone.phoneNumber}`
+                : undefined
+            }}
           />
         ) : null}
       </View>

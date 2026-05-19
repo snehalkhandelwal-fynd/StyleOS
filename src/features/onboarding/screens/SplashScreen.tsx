@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
+  Image,
   ImageBackground,
-  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -15,8 +15,9 @@ import { PrimaryButton } from "../../../components/PrimaryButton";
 import { splashBanners } from "../../../data/onboarding";
 import { colors, radii, spacing, typography } from "../../../theme";
 
+const fyndLogo = require("../../../assets/fynd-heart.png");
+
 type SplashScreenProps = {
-  onExplore: () => void;
   onGetStarted: () => void;
 };
 
@@ -36,7 +37,7 @@ function getRealIndex(index: number) {
   return ((index % slideCount) + slideCount) % slideCount;
 }
 
-export function SplashScreen({ onExplore, onGetStarted }: SplashScreenProps) {
+export function SplashScreen({ onGetStarted }: SplashScreenProps) {
   const listRef = useRef<FlatList<CarouselBanner>>(null);
   const physicalIndexRef = useRef(centeredStartIndex);
   const isDraggingRef = useRef(false);
@@ -137,7 +138,15 @@ export function SplashScreen({ onExplore, onGetStarted }: SplashScreenProps) {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <Text style={styles.brand}>Stylus</Text>
+      <View style={styles.brandRow}>
+        <Image
+          accessibilityLabel="Fynd"
+          resizeMode="contain"
+          source={fyndLogo}
+          style={styles.brandLogo}
+        />
+        <Text style={styles.brand}>Fynd Stylus</Text>
+      </View>
 
       <View style={styles.carouselWrap}>
         <FlatList
@@ -210,16 +219,6 @@ export function SplashScreen({ onExplore, onGetStarted }: SplashScreenProps) {
 
       <View style={styles.actions}>
         <PrimaryButton label="Get Started" onPress={onGetStarted} />
-        <Pressable
-          accessibilityRole="button"
-          onPress={onExplore}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            pressed ? styles.pressed : null
-          ]}
-        >
-          <Text style={styles.secondaryText}>Explore without signing in</Text>
-        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -237,10 +236,20 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: colors.text,
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.xl,
-    marginBottom: spacing.lg,
     ...typography.sectionHeading
+  },
+  brandLogo: {
+    height: 25,
+    width: 26
+  },
+  brandRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "center",
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xl
   },
   card: {
     backgroundColor: colors.imageSurface,
@@ -300,23 +309,8 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0
   },
-  pressed: {
-    opacity: 0.72
-  },
   screen: {
     backgroundColor: colors.background,
     flex: 1
-  },
-  secondaryButton: {
-    alignItems: "center",
-    borderColor: colors.secondaryBorder,
-    borderRadius: radii.button,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: "center"
-  },
-  secondaryText: {
-    color: colors.text,
-    ...typography.bodyLarge
   }
 });

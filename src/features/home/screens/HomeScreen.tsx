@@ -6,6 +6,7 @@ import {
   Easing,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -25,7 +26,7 @@ import {
   getMerchandisingLabel,
   hasCompletedStyleProfile
 } from "../utils/stylePersonalization";
-import { colors, fonts, spacing } from "../../../theme";
+import { colors, fonts, radii, spacing } from "../../../theme";
 
 const AnimatedHeaderView = Animated.createAnimatedComponent(View);
 const homeHeaderTopInset =
@@ -65,6 +66,8 @@ type ProductLook = {
 export type { OutfitPiece, OutfitPieceKind, ProductLook };
 
 const demoAvatar = require("../../../assets/bodyimage.png");
+const colourAnalysisImage = require("../../../assets/colour-analysis.png");
+const heroStyleQuizImage = require("../../../assets/hero-style-quiz.jpg");
 
 const looks: ProductLook[] = [
   {
@@ -252,6 +255,52 @@ const occasionFilters = [
 
 const priceFilters = ["Under ₹999", "Under ₹1999", "Under ₹2999", "Under ₹3999"];
 
+type HeroSpotlightAction = "styleQuiz" | "explore";
+
+type HeroSpotlight = {
+  action: HeroSpotlightAction;
+  body: string;
+  ctaLabel: string;
+  eyebrow: string;
+  id: string;
+  image: ImageSourcePropType;
+  title: string;
+};
+
+const heroSpotlights: HeroSpotlight[] = [
+  {
+    action: "styleQuiz",
+    body: "Swipe on looks you love so Mira learns your taste.",
+    ctaLabel: "Start swiping",
+    eyebrow: "Style match",
+    id: "hero-style-quiz",
+    image: heroStyleQuizImage,
+    title: "Find your style in 30 seconds"
+  },
+  {
+    action: "explore",
+    body: "Try any look on your avatar before you decide.",
+    ctaLabel: "Try a look",
+    eyebrow: "Virtual try-on",
+    id: "hero-try-on",
+    image: {
+      uri: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1200&q=80"
+    },
+    title: "See it on you, first"
+  },
+  {
+    action: "explore",
+    body: "New arrivals styled for the week ahead.",
+    ctaLabel: "Explore the edit",
+    eyebrow: "This week",
+    id: "hero-weekly-edit",
+    image: {
+      uri: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80"
+    },
+    title: "Fresh drops, picked for you"
+  }
+];
+
 const demoOutfits = [looks[0].image, looks[1].image, looks[3].image];
 const wishlistHeartColor = "#D92D20";
 const headerActionIconSize = 22;
@@ -415,40 +464,110 @@ function TopNavigation({
   );
 }
 
-function IntelligenceStrip({
-  onStartStyleQuiz
+function HeroSpotlightCarousel({
+  onExplore,
+  onStartStyleQuiz,
+  width
 }: {
-  hasStyleProfile: boolean;
+  onExplore: () => void;
   onStartStyleQuiz: () => void;
+  width: number;
 }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const peek = 30;
+  const cardGap = spacing.md;
+  const cardWidth = width - spacing.screen * 2 - peek;
+  const cardHeight = Math.round(cardWidth * 1.364);
+  const snapInterval = cardWidth + cardGap;
+  const lastIndex = heroSpotlights.length - 1;
+
+  const handleScrollEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>
+  ) => {
+    const index = Math.round(
+      event.nativeEvent.contentOffset.x / snapInterval
+    );
+    setActiveIndex(Math.min(lastIndex, Math.max(0, index)));
+  };
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onStartStyleQuiz}
-      style={({ pressed }) => [
-        styles.intelligenceStrip,
-        pressed ? styles.pressed : null
-      ]}
-    >
-      <LinearGradient
-        colors={[colors.surfaceTertiary, colors.surface, colors.cream]}
-        end={{ x: 1, y: 1 }}
-        start={{ x: 0, y: 0 }}
-        style={styles.intelligenceGradient}
+    <View style={styles.heroCarousel}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.heroTrack,
+          { paddingRight: spacing.screen + peek }
+        ]}
+        decelerationRate="fast"
+        horizontal
+        onMomentumScrollEnd={handleScrollEnd}
+        scrollEventThrottle={16}
+        showsHorizontalScrollIndicator={false}
+        snapToAlignment="start"
+        snapToInterval={snapInterval}
       >
-        <View style={styles.intelligenceCopy}>
-          <Text numberOfLines={1} style={styles.intelligenceTitle}>
-            Find your style faster
-          </Text>
-          <Text numberOfLines={1} style={styles.intelligenceSubtitle}>
-            Swipe 5 looks so we can improve your matches.
-          </Text>
-        </View>
-        <View style={styles.intelligenceArrow}>
-          <Feather color={colors.text} name="arrow-right" size={18} />
-        </View>
-      </LinearGradient>
-    </Pressable>
+        {heroSpotlights.map((item, index) => (
+          <Pressable
+            accessibilityRole="button"
+            key={item.id}
+            onPress={
+              item.action === "styleQuiz" ? onStartStyleQuiz : onExplore
+            }
+            style={({ pressed }) => [
+              styles.heroSlide,
+              {
+                height: cardHeight,
+                marginRight: index === lastIndex ? 0 : cardGap,
+                width: cardWidth
+              },
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <ImageBackground
+              imageStyle={styles.heroImageRadius}
+              resizeMode="cover"
+              source={item.image}
+              style={styles.heroImage}
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(10, 10, 10, 0)",
+                  "rgba(10, 10, 10, 0.18)",
+                  "rgba(10, 10, 10, 0.86)"
+                ]}
+                style={styles.heroScrim}
+              />
+              <View style={styles.heroEyebrowPill}>
+                <Text style={styles.heroEyebrowText}>{item.eyebrow}</Text>
+              </View>
+              <View style={styles.heroContent}>
+                <Text style={styles.heroTitle}>{item.title}</Text>
+                <Text style={styles.heroBody}>{item.body}</Text>
+                <View style={styles.heroCta}>
+                  <Text style={styles.heroCtaText}>{item.ctaLabel}</Text>
+                  <Feather
+                    color={colors.text}
+                    name="arrow-right"
+                    size={15}
+                  />
+                </View>
+              </View>
+            </ImageBackground>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      <View style={styles.heroDots}>
+        {heroSpotlights.map((item, index) => (
+          <View
+            key={`hero-dot-${item.id}`}
+            style={[
+              styles.heroDot,
+              index === activeIndex ? styles.heroDotActive : null
+            ]}
+          />
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -942,9 +1061,21 @@ function TrendingSection({
 
 function ColourAnalysisCard() {
   const swatches = ["#D7C0A5", "#856955", "#CBA46B", "#6A7B5B", "#362E2A"];
+  const { width } = useWindowDimensions();
+  const colourImageWidth = width - spacing.screen * 2;
+  const colourImageHeight = Math.round(colourImageWidth * (434 / 1006));
 
   return (
     <View style={styles.creamCard}>
+      <Image
+        accessibilityLabel="Skin tone analysis with recommended colour palette"
+        resizeMode="cover"
+        source={colourAnalysisImage}
+        style={[
+          styles.colourImage,
+          { height: colourImageHeight, width: colourImageWidth }
+        ]}
+      />
       <View style={styles.swatchRow}>
         {swatches.map((swatch) => (
           <View key={swatch} style={[styles.paletteSwatch, { backgroundColor: swatch }]} />
@@ -1638,9 +1769,10 @@ export function HomeScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topCluster}>
-          <IntelligenceStrip
-            hasStyleProfile={hasStyleProfile}
+          <HeroSpotlightCarousel
+            onExplore={onOpenSearch}
             onStartStyleQuiz={onStartStyleQuiz}
+            width={width}
           />
         </View>
         <OccasionSection
@@ -1783,6 +1915,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19.5,
     marginTop: 4
+  },
+  colourImage: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    marginBottom: spacing.md,
+    marginHorizontal: -spacing.md,
+    marginTop: -spacing.md
   },
   colourTitle: {
     color: colors.text,
@@ -1986,50 +2125,99 @@ const styles = StyleSheet.create({
   ghostWrap: {
     alignItems: "center"
   },
+  heroBody: {
+    color: colors.inverseText,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+    opacity: 0.9
+  },
+  heroCarousel: {
+    gap: spacing.md
+  },
+  heroContent: {
+    padding: spacing.lg
+  },
+  heroCta: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: colors.background,
+    borderRadius: radii.pill,
+    flexDirection: "row",
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9
+  },
+  heroCtaText: {
+    color: colors.text,
+    fontFamily: fonts.cta,
+    fontSize: 13,
+    lineHeight: 16
+  },
+  heroDot: {
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    height: 6,
+    width: 6
+  },
+  heroDotActive: {
+    backgroundColor: colors.text,
+    width: 18
+  },
+  heroDots: {
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center"
+  },
+  heroEyebrowPill: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.surfaceTranslucent,
+    borderRadius: radii.pill,
+    margin: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5
+  },
+  heroEyebrowText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 0.2,
+    lineHeight: 14
+  },
+  heroImage: {
+    flex: 1,
+    justifyContent: "space-between"
+  },
+  heroImageRadius: {
+    borderRadius: 20
+  },
+  heroScrim: {
+    borderRadius: 20,
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0
+  },
+  heroSlide: {
+    backgroundColor: colors.imageSurface,
+    borderRadius: 20,
+    overflow: "hidden"
+  },
+  heroTitle: {
+    color: colors.inverseText,
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    lineHeight: 27
+  },
+  heroTrack: {
+    paddingLeft: spacing.screen
+  },
   horizontalCards: {
     gap: spacing.sm,
     paddingHorizontal: spacing.screen
-  },
-  intelligenceStrip: {
-    borderRadius: 18,
-    marginHorizontal: spacing.screen,
-    overflow: "hidden"
-  },
-  intelligenceGradient: {
-    alignItems: "center",
-    borderColor: colors.border,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.md,
-    padding: spacing.lg
-  },
-  intelligenceCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  intelligenceArrow: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.secondaryBorder,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 34,
-    justifyContent: "center",
-    width: 34
-  },
-  intelligenceSubtitle: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4
-  },
-  intelligenceTitle: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23
   },
   locationButton: {
     alignItems: "center",
