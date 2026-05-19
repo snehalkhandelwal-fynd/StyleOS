@@ -26,8 +26,10 @@ import {
 import type { ProductLook } from "./HomeScreen";
 import { ModelLookPdpScreen } from "./ModelLookPdpScreen";
 import { ProductPdpScreen } from "./ProductPdpScreen";
+import { getMerchandisingLabel } from "../utils/stylePersonalization";
 
 type ExploreScreenProps = {
+  cartCount?: number;
   copy?: string;
   hasStyleProfile?: boolean;
   onInternalViewChange?: (isOpen: boolean) => void;
@@ -1442,7 +1444,10 @@ function MoreButton({
   );
 }
 
-function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
+function buildSummerListingProducts(
+  category: SummerCategory,
+  hasStyleProfile = false
+): SummerProduct[] {
   const fallbackImages = [
     ...collectionImages,
     shirtProductImage,
@@ -1525,7 +1530,11 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
         index < category.products.length
           ? source.image
           : fallbackImages[index % fallbackImages.length],
-      match: `${matchScore}% match`,
+      match: getMerchandisingLabel({
+        fallbackIndex: index,
+        hasStyleProfile,
+        personalizedLabel: `${matchScore}% match`
+      }),
       matchScore,
       occasion: occasions[index % occasions.length],
       deliveryText: deliveryWindows[index % deliveryWindows.length],
@@ -1569,6 +1578,7 @@ function formatTryCount(count: number) {
 }
 
 function CollectionGridView({
+  cartCount = 0,
   collection,
   hasStyleProfile,
   onAskMira,
@@ -1577,6 +1587,7 @@ function CollectionGridView({
   onStartTryOn,
   onBack
 }: {
+  cartCount?: number;
   collection: ActiveCollection;
   hasStyleProfile?: boolean;
   onAskMira?: () => void;
@@ -1593,15 +1604,18 @@ function CollectionGridView({
     [collection]
   );
   const products = useMemo(
-    () => buildSummerListingProducts(category),
-    [category]
+    () => buildSummerListingProducts(category, hasStyleProfile),
+    [category, hasStyleProfile]
   );
 
   if (selectedLook) {
     return (
       <ModelLookPdpScreen
+        cartCount={cartCount}
+        hasStyleProfile={hasStyleProfile}
         look={selectedLook}
         onBack={() => setSelectedLook(null)}
+        onOpenCart={onOpenCart}
       />
     );
   }
@@ -1609,6 +1623,7 @@ function CollectionGridView({
   if (selectedProduct) {
     return (
       <ProductPdpScreen
+        cartCount={cartCount}
         hasStyleProfile={hasStyleProfile}
         onAddToCart={onOpenCart}
         onAskMira={onAskMira}
@@ -1624,6 +1639,7 @@ function CollectionGridView({
 
   return (
     <ProductListingScreen
+      cartCount={cartCount}
       onBack={onBack}
       onOpenCart={onOpenCart}
       onOpenProduct={setSelectedProduct}
@@ -1635,6 +1651,7 @@ function CollectionGridView({
 }
 
 function SummerCategoryListingView({
+  cartCount = 0,
   category,
   hasStyleProfile,
   onAskMira,
@@ -1643,6 +1660,7 @@ function SummerCategoryListingView({
   onStartTryOn,
   onBack
 }: {
+  cartCount?: number;
   category: SummerCategory;
   hasStyleProfile?: boolean;
   onAskMira?: () => void;
@@ -1655,15 +1673,18 @@ function SummerCategoryListingView({
     useState<ProductListingProduct | null>(null);
   const [selectedLook, setSelectedLook] = useState<ProductLook | null>(null);
   const products = useMemo(
-    () => buildSummerListingProducts(category),
-    [category]
+    () => buildSummerListingProducts(category, hasStyleProfile),
+    [category, hasStyleProfile]
   );
 
   if (selectedLook) {
     return (
       <ModelLookPdpScreen
+        cartCount={cartCount}
+        hasStyleProfile={hasStyleProfile}
         look={selectedLook}
         onBack={() => setSelectedLook(null)}
+        onOpenCart={onOpenCart}
       />
     );
   }
@@ -1671,6 +1692,7 @@ function SummerCategoryListingView({
   if (selectedProduct) {
     return (
       <ProductPdpScreen
+        cartCount={cartCount}
         hasStyleProfile={hasStyleProfile}
         onAddToCart={onOpenCart}
         onAskMira={onAskMira}
@@ -1686,6 +1708,7 @@ function SummerCategoryListingView({
 
   return (
     <ProductListingScreen
+      cartCount={cartCount}
       onBack={onBack}
       onOpenCart={onOpenCart}
       onOpenProduct={setSelectedProduct}
@@ -1789,6 +1812,7 @@ function PlaceholderScreen({
 }
 
 export function ExploreScreen({
+  cartCount = 0,
   copy,
   hasStyleProfile,
   onInternalViewChange,
@@ -1915,6 +1939,7 @@ export function ExploreScreen({
   if (activeCollection) {
     return (
       <CollectionGridView
+        cartCount={cartCount}
         collection={activeCollection}
         hasStyleProfile={hasStyleProfile}
         onAskMira={onAskMira}
@@ -1929,6 +1954,7 @@ export function ExploreScreen({
   if (activeSummerCategory) {
     return (
       <SummerCategoryListingView
+        cartCount={cartCount}
         category={activeSummerCategory}
         hasStyleProfile={hasStyleProfile}
         onAskMira={onAskMira}

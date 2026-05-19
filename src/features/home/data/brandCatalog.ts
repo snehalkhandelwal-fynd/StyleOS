@@ -51,7 +51,7 @@ export const brands: Brand[] = [
   },
   {
     id: "vero-moda",
-    logoHeight: 18,
+    logoHeight: 20,
     logoVariant: "vero-moda",
     logoWidth: 86,
     name: "Vero Moda"

@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "../../../components/PrimaryButton";
@@ -40,22 +41,27 @@ function getMeasurementChips(height?: { feet: number; inches: number }) {
 
   return [
     {
+      key: "height",
       label: formatHeight(height),
       style: styles.measurementChipTopRight
     },
     {
+      key: "shoulder",
       label: `Shoulder ${Math.round(totalInches * 0.24)} in`,
       style: styles.measurementChipLeftUpper
     },
     {
+      key: "waist",
       label: `Waist ${Math.round(totalInches * 0.43)} in`,
       style: styles.measurementChipRightMiddle
     },
     {
+      key: "hip",
       label: `Hip ${Math.round(totalInches * 0.56)} in`,
       style: styles.measurementChipLeftLower
     },
     {
+      key: "inseam",
       label: `Inseam ${Math.round(totalInches * 0.46)} in`,
       style: styles.measurementChipRightLower
     }
@@ -80,7 +86,7 @@ export function AvatarReadyScreen({
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             {measurementChips.map((chip) => (
               <View
-                key={chip.label}
+                key={chip.key}
                 style={[styles.measurementChip, chip.style]}
               >
                 <Text style={styles.measurementChipText}>{chip.label}</Text>
@@ -97,6 +103,7 @@ export function AvatarReadyScreen({
               pressed ? styles.pressed : null
             ]}
           >
+            <Feather color={colors.text} name="camera" size={14} />
             <Text style={styles.reuploadLink}>Use another photo</Text>
           </Pressable>
         </AvatarImageFrame>
@@ -127,8 +134,8 @@ const styles = StyleSheet.create({
   },
   measurementChip: {
     alignItems: "center",
-    backgroundColor: "rgba(239, 234, 224, 0.5)",
-    borderColor: "rgba(232, 228, 220, 0.42)",
+    backgroundColor: "rgba(226, 221, 211, 0.68)",
+    borderColor: "rgba(214, 209, 199, 0.62)",
     borderRadius: radii.pill,
     borderWidth: 1,
     elevation: 1,
@@ -154,12 +161,12 @@ const styles = StyleSheet.create({
     top: "28%"
   },
   measurementChipRightLower: {
-    right: 10,
-    top: "72%"
+    right: 26,
+    top: "71%"
   },
   measurementChipRightMiddle: {
-    right: 10,
-    top: "45%"
+    right: 16,
+    top: "44%"
   },
   measurementChipText: {
     color: colors.text,
@@ -169,7 +176,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   measurementChipTopRight: {
-    right: 12,
+    right: 32,
     top: 58
   },
   pressed: {
@@ -199,7 +206,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    lineHeight: 15,
-    textDecorationLine: "underline"
+    lineHeight: 15
   },
 });

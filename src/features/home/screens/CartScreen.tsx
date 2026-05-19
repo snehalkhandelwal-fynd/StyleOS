@@ -2,8 +2,8 @@ import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import {
+  Alert,
   Image,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -69,6 +69,7 @@ const bestCoupon = {
   offer: defaultOffer,
   savings: "Save ₹299 on this purchase!"
 };
+const cartImageSize = 64;
 const offerChips = [
   "Flat 10% off | Code: STYLE10",
   "Flat ₹100 off | Code: MIRA100",
@@ -107,14 +108,42 @@ const coupons: Coupon[] = [
   }
 ];
 
-function QuantityStepper({ value }: { value: number }) {
+function QuantityStepper({
+  onDecrement,
+  onIncrement,
+  value
+}: {
+  onDecrement?: () => void;
+  onIncrement?: () => void;
+  value: number;
+}) {
   return (
     <View style={styles.stepper}>
-      <Pressable accessibilityRole="button" style={styles.stepperButton}>
+      <Pressable
+        accessibilityLabel={value > 1 ? "Decrease quantity" : "Remove item"}
+        accessibilityRole="button"
+        disabled={!onDecrement}
+        onPress={onDecrement}
+        style={({ pressed }) => [
+          styles.stepperButton,
+          !onDecrement ? styles.stepperButtonDisabled : null,
+          pressed ? styles.pressed : null
+        ]}
+      >
         <Feather color={colors.muted} name="minus" size={15} />
       </Pressable>
       <Text style={styles.stepperValue}>{value}</Text>
-      <Pressable accessibilityRole="button" style={styles.stepperButton}>
+      <Pressable
+        accessibilityLabel="Increase quantity"
+        accessibilityRole="button"
+        disabled={!onIncrement}
+        onPress={onIncrement}
+        style={({ pressed }) => [
+          styles.stepperButton,
+          !onIncrement ? styles.stepperButtonDisabled : null,
+          pressed ? styles.pressed : null
+        ]}
+      >
         <Feather color={colors.muted} name="plus" size={15} />
       </Pressable>
     </View>
@@ -171,7 +200,13 @@ function SectionHeader({
   );
 }
 
-function CartItemCard({ item }: { item: CartItem }) {
+function CartItemCard({
+  item,
+  onUpdateQuantity
+}: {
+  item: CartItem;
+  onUpdateQuantity?: (itemId: string, nextQuantity: number) => void;
+}) {
   return (
     <View style={styles.cartCard}>
       <View style={styles.cartItemTop}>
@@ -193,7 +228,19 @@ function CartItemCard({ item }: { item: CartItem }) {
             <Text style={styles.originalPrice}>({item.originalPrice})</Text>
           ) : null}
         </View>
-        <QuantityStepper value={item.quantity} />
+        <QuantityStepper
+          onDecrement={
+            onUpdateQuantity
+              ? () => onUpdateQuantity(item.id, item.quantity - 1)
+              : undefined
+          }
+          onIncrement={
+            onUpdateQuantity
+              ? () => onUpdateQuantity(item.id, item.quantity + 1)
+              : undefined
+          }
+          value={item.quantity}
+        />
       </View>
     </View>
   );
@@ -213,17 +260,31 @@ function EmptyCartState() {
   );
 }
 
-function CartItemsSection({ items }: { items: CartItem[] }) {
+function CartItemsSection({
+  items,
+  onClearCartPress,
+  onUpdateQuantity
+}: {
+  items: CartItem[];
+  onClearCartPress?: () => void;
+  onUpdateQuantity?: (itemId: string, nextQuantity: number) => void;
+}) {
   return (
     <View style={styles.section}>
       <SectionHeader
-        icon={items.length > 0 ? "trash-2" : undefined}
+        action="Remove all cart items"
+        icon={items.length > 0 && onClearCartPress ? "trash-2" : undefined}
+        onActionPress={onClearCartPress}
         title={`Cart items (${items.length})`}
       />
       {items.length > 0 ? (
         <View style={styles.cartList}>
           {items.map((item) => (
-            <CartItemCard item={item} key={item.id} />
+            <CartItemCard
+              item={item}
+              key={item.id}
+              onUpdateQuantity={onUpdateQuantity}
+            />
           ))}
         </View>
       ) : (
@@ -652,18 +713,9 @@ function PriceSummary({ items }: { items: CartItem[] }) {
 function CheckoutDock({ items }: { items: CartItem[] }) {
   const totals = getCartTotals(items);
   const hasItems = items.length > 0;
-  const savingsLabel =
-    !hasItems
-      ? "Add a look to see your checkout total"
-      : totals.discount > 0
-      ? `You saved ${formatRupeeAmount(totals.discount)} on this purchase`
-      : "Try-on ready pieces are waiting in your cart";
 
   return (
     <View pointerEvents="box-none" style={styles.checkoutDock}>
-      <View style={styles.savingsStrip}>
-        <Text style={styles.savingsText}>{savingsLabel}</Text>
-      </View>
       <View style={styles.checkoutSurface}>
         <Pressable
           accessibilityRole="button"
@@ -687,9 +739,16 @@ function CheckoutDock({ items }: { items: CartItem[] }) {
 type CartScreenProps = {
   items?: CartItem[];
   onBack?: () => void;
+  onClearCart?: () => void;
+  onUpdateItemQuantity?: (itemId: string, nextQuantity: number) => void;
 };
 
-export function CartScreen({ items = defaultCartItems, onBack }: CartScreenProps) {
+export function CartScreen({
+  items = defaultCartItems,
+  onBack,
+  onClearCart,
+  onUpdateItemQuantity
+}: CartScreenProps) {
   const cartItems = items;
   const [appliedOffer, setAppliedOffer] = useState<string | null>(defaultOffer);
   const [appliedGiftCard, setAppliedGiftCard] = useState<string | null>(null);
@@ -720,15 +779,43 @@ export function CartScreen({ items = defaultCartItems, onBack }: CartScreenProps
     );
   }
 
+  const handleClearCartPress = () => {
+    if (cartItems.length === 0 || !onClearCart) {
+      return;
+    }
+
+    Alert.alert(
+      "Remove all items?",
+      "Are you sure you want to remove all the items from the cart?",
+      [
+        {
+          style: "cancel",
+          text: "Cancel"
+        },
+        {
+          onPress: onClearCart,
+          style: "destructive",
+          text: "Yes"
+        }
+      ]
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.screen}>
+    <View style={styles.safeArea}>
+      <SafeAreaView style={styles.topSafeArea}>
         <Header onBack={onBack} />
+      </SafeAreaView>
+      <View style={styles.screen}>
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <CartItemsSection items={cartItems} />
+          <CartItemsSection
+            items={cartItems}
+            onClearCartPress={handleClearCartPress}
+            onUpdateQuantity={onUpdateItemQuantity}
+          />
           <OffersSection
             appliedOffer={appliedOffer}
             onApplyOffer={setAppliedOffer}
@@ -745,7 +832,7 @@ export function CartScreen({ items = defaultCartItems, onBack }: CartScreenProps
         </ScrollView>
         <CheckoutDock items={cartItems} />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -770,13 +857,14 @@ const styles = StyleSheet.create({
   cartImage: {
     backgroundColor: colors.imageSurface,
     borderRadius: 10,
-    height: 64,
-    width: 64
+    height: cartImageSize,
+    width: cartImageSize
   },
   cartItemBottom: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
+    paddingLeft: cartImageSize + spacing.md
   },
   cartItemTop: {
     alignItems: "center",
@@ -801,9 +889,8 @@ const styles = StyleSheet.create({
   },
   checkoutSurface: {
     backgroundColor: colors.background,
-    paddingBottom: Platform.OS === "ios" ? spacing.sm : spacing.md,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.md
+    paddingVertical: spacing.lg
   },
   coin: {
     alignItems: "center",
@@ -817,7 +904,7 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.xl,
-    paddingBottom: 148,
+    paddingBottom: 108,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.lg
   },
@@ -1198,14 +1285,14 @@ const styles = StyleSheet.create({
   itemMeta: {
     color: colors.muted,
     fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 17
+    fontSize: 14,
+    lineHeight: 19
   },
   itemPrice: {
     color: "#16A15C",
     fontFamily: fonts.heading,
-    fontSize: 17,
-    lineHeight: 22
+    fontSize: 16,
+    lineHeight: 21
   },
   itemTitle: {
     color: colors.text,
@@ -1325,20 +1412,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flex: 1
   },
-  savingsStrip: {
-    alignItems: "center",
-    backgroundColor: "#16A15C",
-    justifyContent: "center",
-    minHeight: 34,
-    paddingHorizontal: spacing.screen
-  },
-  savingsText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: "center"
-  },
   screen: {
     backgroundColor: colors.background,
     flex: 1
@@ -1385,6 +1458,9 @@ const styles = StyleSheet.create({
     height: 38,
     justifyContent: "center",
     width: 34
+  },
+  stepperButtonDisabled: {
+    opacity: 0.45
   },
   stepperValue: {
     color: colors.text,
@@ -1453,5 +1529,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 18,
     lineHeight: 24
+  },
+  topSafeArea: {
+    backgroundColor: colors.background
   }
 });

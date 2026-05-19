@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import { colors, fonts, spacing, typography } from "../../../theme";
+import { CartCountBadge } from "./CartCountBadge";
 import {
   isMatchLabel,
   MatchRibbonTag
@@ -68,14 +69,20 @@ type TrendingLook = {
 };
 
 type ProductListingScreenProps = {
+  cartCount?: number;
   emptyCopy?: string;
   emptyTitle?: string;
+  hideCardWishlist?: boolean;
+  hideHeaderActions?: boolean;
+  hideProductImageTags?: boolean;
+  keepProductsVisibleOnEmptyChip?: boolean;
   onBack: () => void;
   onOpenCart?: () => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
   onOpenWishlist?: () => void;
   products: ProductListingProduct[];
-  subtitle: string;
+  showDrawerHandle?: boolean;
+  subtitle?: string;
   title: string;
 };
 
@@ -433,10 +440,14 @@ function OptionsSheet({
 }
 
 function ProductCard({
+  hideImageTags,
+  hideWishlist,
   onOpen,
   product,
   width
 }: {
+  hideImageTags?: boolean;
+  hideWishlist?: boolean;
   onOpen?: (product: ProductListingProduct) => void;
   product: ProductListingProduct;
   width: number;
@@ -455,29 +466,33 @@ function ProductCard({
         source={{ uri: product.image }}
         style={styles.productImage}
       >
-        <View style={styles.saveWrap}>
-          <Pressable
-            accessibilityLabel={`Save ${product.title}`}
-            accessibilityRole="button"
-            style={styles.saveButton}
-          >
-            <Feather color={colors.text} name="heart" size={14} />
-          </Pressable>
-        </View>
-        {isMatchLabel(matchLabel) ? (
-          <MatchRibbonTag
-            height={26}
-            label={matchLabel}
-            style={styles.matchRibbon}
-            textStyle={styles.matchRibbonText}
-            width={90}
-          />
-        ) : (
-          <View style={styles.matchPill}>
-            <Text style={styles.matchText}>{matchLabel}</Text>
+        {!hideWishlist ? (
+          <View style={styles.saveWrap}>
+            <Pressable
+              accessibilityLabel={`Save ${product.title}`}
+              accessibilityRole="button"
+              style={styles.saveButton}
+            >
+              <Feather color={colors.text} name="heart" size={14} />
+            </Pressable>
           </View>
-        )}
-        {product.tries ? (
+        ) : null}
+        {!hideImageTags ? (
+          isMatchLabel(matchLabel) ? (
+            <MatchRibbonTag
+              height={26}
+              label={matchLabel}
+              style={styles.matchRibbon}
+              textStyle={styles.matchRibbonText}
+              width={90}
+            />
+          ) : (
+            <View style={styles.matchPill}>
+              <Text style={styles.matchText}>{matchLabel}</Text>
+            </View>
+          )
+        ) : null}
+        {!hideImageTags && product.tries ? (
           <View style={styles.tryPill}>
             <Text style={styles.tryText}>{product.tries}</Text>
           </View>
@@ -591,13 +606,19 @@ function ScrollProgressPill({
 }
 
 export function ProductListingScreen({
+  cartCount = 0,
   emptyCopy = "Try another size, color, or vibe to keep styling.",
   emptyTitle = "No pieces in this mix",
+  hideCardWishlist = false,
+  hideHeaderActions = false,
+  hideProductImageTags = false,
+  keepProductsVisibleOnEmptyChip = false,
   onBack,
   onOpenCart,
   onOpenProduct,
   onOpenWishlist,
   products,
+  showDrawerHandle = false,
   subtitle,
   title
 }: ProductListingScreenProps) {
@@ -615,9 +636,21 @@ export function ProductListingScreen({
       filteredProducts,
       activeChip
     );
+    const productsToSort =
+      activeChip &&
+      keepProductsVisibleOnEmptyChip &&
+      chipFilteredProducts.length === 0
+        ? filteredProducts
+        : chipFilteredProducts;
 
-    return getSortedProducts(chipFilteredProducts, selectedSort);
-  }, [activeChip, products, selectedFilters, selectedSort]);
+    return getSortedProducts(productsToSort, selectedSort);
+  }, [
+    activeChip,
+    keepProductsVisibleOnEmptyChip,
+    products,
+    selectedFilters,
+    selectedSort
+  ]);
   const productsBeforeLooksRail = displayedProducts.slice(
     0,
     PRODUCTS_BEFORE_LOOKS_RAIL
@@ -670,7 +703,13 @@ export function ProductListingScreen({
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      {showDrawerHandle ? <View style={styles.drawerHandle} /> : null}
+      <View
+        style={[
+          styles.header,
+          showDrawerHandle ? styles.drawerHeader : null
+        ]}
+      >
         <Pressable
           accessibilityLabel="Back"
           accessibilityRole="button"
@@ -684,36 +723,41 @@ export function ProductListingScreen({
           <Text numberOfLines={1} style={styles.title}>
             {title}
           </Text>
-          <Text numberOfLines={1} style={styles.subtitle}>
-            {subtitle}
-          </Text>
+          {subtitle ? (
+            <Text numberOfLines={1} style={styles.subtitle}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            accessibilityLabel="Open wishlist"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onOpenWishlist}
-            style={({ pressed }) => [
-              styles.headerIconButton,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Feather color={colors.text} name="heart" size={23} />
-          </Pressable>
-          <Pressable
-            accessibilityLabel="Open cart"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onOpenCart}
-            style={({ pressed }) => [
-              styles.headerIconButton,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Feather color={colors.text} name="shopping-bag" size={23} />
-          </Pressable>
-        </View>
+        {!hideHeaderActions ? (
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityLabel="Open wishlist"
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={onOpenWishlist}
+              style={({ pressed }) => [
+                styles.headerIconButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.text} name="heart" size={23} />
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Open cart"
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={onOpenCart}
+              style={({ pressed }) => [
+                styles.headerIconButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.text} name="shopping-bag" size={23} />
+              <CartCountBadge count={cartCount} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       <ScrollView
@@ -774,6 +818,8 @@ export function ProductListingScreen({
         <View style={styles.grid}>
           {productsBeforeLooksRail.map((product) => (
             <ProductCard
+              hideImageTags={hideProductImageTags}
+              hideWishlist={hideCardWishlist}
               key={product.id}
               onOpen={onOpenProduct}
               product={product}
@@ -788,6 +834,8 @@ export function ProductListingScreen({
           <View style={styles.grid}>
             {productsAfterLooksRail.map((product) => (
               <ProductCard
+                hideImageTags={hideProductImageTags}
+                hideWishlist={hideCardWishlist}
                 key={product.id}
                 onOpen={onOpenProduct}
                 product={product}
@@ -925,6 +973,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20
   },
+  drawerHandle: {
+    alignSelf: "center",
+    backgroundColor: colors.soft,
+    borderRadius: 999,
+    height: 5,
+    marginBottom: spacing.sm,
+    marginTop: spacing.md,
+    width: 48
+  },
+  drawerHeader: {
+    minHeight: 48,
+    paddingBottom: spacing.sm,
+    paddingTop: 0
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -954,6 +1016,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 42,
     justifyContent: "center",
+    position: "relative",
     width: 34
   },
   listingChip: {
