@@ -1,3 +1,4 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,14 +14,21 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  type StyleProp,
   StatusBar,
   Text,
   useWindowDimensions,
-  View
+  View,
+  type ViewStyle
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingViewModel";
+import { BrandLogoMark } from "../components/BrandLogoMark";
+import {
+  isMatchLabel,
+  MatchRibbonTag
+} from "../components/MatchRibbonTag";
 import { allBrandsId, brandRows, type Brand } from "../data/brandCatalog";
 import {
   getMerchandisingLabel,
@@ -46,6 +54,7 @@ type HomeScreenProps = {
 type OutfitPieceKind = "bag" | "bottom" | "dress" | "jacket" | "shoe" | "top";
 
 type OutfitPiece = {
+  image?: string;
   kind: OutfitPieceKind;
   label: string;
 };
@@ -68,19 +77,34 @@ export type { OutfitPiece, OutfitPieceKind, ProductLook };
 const demoAvatar = require("../../../assets/bodyimage.png");
 const colourAnalysisImage = require("../../../assets/colour-analysis.png");
 const heroStyleQuizImage = require("../../../assets/hero-style-quiz.jpg");
+const shoeProductImage = prototypeProductImages.sandro.brownJacket;
+const bagProductImage = prototypeProductImages.maje.stripedScarfDenim;
+
+const fallbackOutfitPieceImages: Record<OutfitPieceKind, string> = {
+  bag: bagProductImage,
+  bottom: prototypeProductImages.maje.blueScarfTrousers,
+  dress: prototypeProductImages.maje.beigeCrochetDress,
+  jacket: prototypeProductImages.sandro.beigeTrench,
+  shoe: shoeProductImage,
+  top: prototypeProductImages.maje.greenDenimTop
+};
 
 const looks: ProductLook[] = [
   {
     brand: "Trends",
     id: "linen-city",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     itemCount: "3 pieces",
-    match: "91% your style",
+    match: "91% match",
     outfitItems: [
-      { kind: "top", label: "Top" },
-      { kind: "bottom", label: "Trousers" },
-      { kind: "shoe", label: "Shoes" }
+      { image: prototypeProductImages.maje.ivoryMiniDress, kind: "top", label: "Top" },
+      {
+        image: prototypeProductImages.maje.blueScarfTrousers,
+        kind: "bottom",
+        label: "Trousers"
+      },
+      { image: shoeProductImage, kind: "shoe", label: "Shoes" }
     ],
     price: "From ₹8,499",
     title: "Linen city set",
@@ -91,12 +115,16 @@ const looks: ProductLook[] = [
     brand: "Trends",
     id: "soft-evening",
     image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     itemCount: "2 pieces",
-    match: "88% your style",
+    match: "88% match",
     outfitItems: [
-      { kind: "dress", label: "Dress" },
-      { kind: "shoe", label: "Heels" }
+      {
+        image: prototypeProductImages.maje.beigeCrochetDress,
+        kind: "dress",
+        label: "Dress"
+      },
+      { image: shoeProductImage, kind: "shoe", label: "Heels" }
     ],
     price: "From ₹5,299",
     title: "Soft evening",
@@ -106,15 +134,22 @@ const looks: ProductLook[] = [
   {
     brand: "Trends",
     id: "travel-denim",
-    image:
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.sandro.denimJacket,
     itemCount: "4 pieces",
-    match: "86% your style",
+    match: "86% match",
     outfitItems: [
-      { kind: "jacket", label: "Jacket" },
-      { kind: "top", label: "Top" },
-      { kind: "bottom", label: "Denim" },
-      { kind: "shoe", label: "Sneakers" }
+      {
+        image: prototypeProductImages.sandro.denimJacket,
+        kind: "jacket",
+        label: "Jacket"
+      },
+      { image: prototypeProductImages.maje.greenDenimTop, kind: "top", label: "Top" },
+      {
+        image: prototypeProductImages.maje.blueScarfTrousers,
+        kind: "bottom",
+        label: "Denim"
+      },
+      { image: shoeProductImage, kind: "shoe", label: "Sneakers" }
     ],
     price: "From ₹6,799",
     title: "Travel denim",
@@ -124,14 +159,21 @@ const looks: ProductLook[] = [
   {
     brand: "Trends",
     id: "quiet-tailoring",
-    image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.maje.tanHoodedJacket,
     itemCount: "3 pieces",
-    match: "93% your style",
+    match: "93% match",
     outfitItems: [
-      { kind: "jacket", label: "Blazer" },
-      { kind: "dress", label: "Dress" },
-      { kind: "shoe", label: "Heels" }
+      {
+        image: prototypeProductImages.sandro.whitePinstripeSuit,
+        kind: "jacket",
+        label: "Blazer"
+      },
+      {
+        image: prototypeProductImages.maje.beigeCrochetDress,
+        kind: "dress",
+        label: "Dress"
+      },
+      { image: shoeProductImage, kind: "shoe", label: "Heels" }
     ],
     price: "From ₹7,499",
     title: "Quiet tailoring",
@@ -141,14 +183,17 @@ const looks: ProductLook[] = [
   {
     brand: "Trends",
     id: "goa-weekend",
-    image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.maje.pinkRelaxedSet,
     itemCount: "3 pieces",
-    match: "84% your style",
+    match: "84% match",
     outfitItems: [
-      { kind: "top", label: "Top" },
-      { kind: "bottom", label: "Skirt" },
-      { kind: "bag", label: "Bag" }
+      { image: prototypeProductImages.maje.greenDenimTop, kind: "top", label: "Top" },
+      {
+        image: prototypeProductImages.maje.khakiTrenchSkirt,
+        kind: "bottom",
+        label: "Skirt"
+      },
+      { image: bagProductImage, kind: "bag", label: "Bag" }
     ],
     price: "From ₹4,899",
     title: "Goa weekend",
@@ -159,14 +204,18 @@ const looks: ProductLook[] = [
     brand: "Trends",
     id: "festive-ease",
     image:
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.sandro.beigeTrench,
     itemCount: "4 pieces",
-    match: "89% your style",
+    match: "89% match",
     outfitItems: [
-      { kind: "dress", label: "Set" },
-      { kind: "jacket", label: "Layer" },
-      { kind: "shoe", label: "Footwear" },
-      { kind: "bag", label: "Bag" }
+      { image: prototypeProductImages.maje.pinkRelaxedSet, kind: "dress", label: "Set" },
+      {
+        image: prototypeProductImages.sandro.beigeTrench,
+        kind: "jacket",
+        label: "Layer"
+      },
+      { image: shoeProductImage, kind: "shoe", label: "Footwear" },
+      { image: bagProductImage, kind: "bag", label: "Bag" }
     ],
     price: "From ₹9,299",
     title: "Festive ease",
@@ -176,13 +225,16 @@ const looks: ProductLook[] = [
   {
     brand: "Trends",
     id: "party-satin",
-    image:
-      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.maje.sheerPartyDress,
     itemCount: "2 pieces",
-    match: "87% your style",
+    match: "87% match",
     outfitItems: [
-      { kind: "dress", label: "Dress" },
-      { kind: "shoe", label: "Heels" }
+      {
+        image: prototypeProductImages.maje.sheerPartyDress,
+        kind: "dress",
+        label: "Dress"
+      },
+      { image: shoeProductImage, kind: "shoe", label: "Heels" }
     ],
     price: "From ₹6,199",
     title: "Party satin",
@@ -192,14 +244,18 @@ const looks: ProductLook[] = [
   {
     brand: "Trends",
     id: "workday-neutral",
-    image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=900&q=80",
-    itemCount: "3 pieces",
-    match: "92% your style",
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
+    itemCount: "4 pieces",
+    match: "92% match",
     outfitItems: [
-      { kind: "jacket", label: "Blazer" },
-      { kind: "top", label: "Top" },
-      { kind: "bottom", label: "Trousers" }
+      { image: prototypeProductImages.maje.ivoryMiniDress, kind: "top", label: "Top" },
+      {
+        image: prototypeProductImages.maje.blueScarfTrousers,
+        kind: "bottom",
+        label: "Trousers"
+      },
+      { image: bagProductImage, kind: "bag", label: "Bag" },
+      { image: shoeProductImage, kind: "shoe", label: "Footwear" }
     ],
     price: "From ₹7,899",
     title: "Workday neutral",
@@ -212,7 +268,7 @@ const arrivals = [
   {
     id: "arrival-1",
     image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     match: "90%",
     name: "Soft runner",
     price: "₹2,300"
@@ -220,15 +276,14 @@ const arrivals = [
   {
     id: "arrival-2",
     image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     match: "87%",
     name: "Slip dress",
     price: "₹1,999"
   },
   {
     id: "arrival-3",
-    image:
-      "https://images.unsplash.com/photo-1506629905607-d405d7d3b0d2?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.maje.greenDenimTop,
     match: "85%",
     name: "Relaxed shirt",
     price: "₹1,499"
@@ -236,7 +291,7 @@ const arrivals = [
   {
     id: "arrival-4",
     image:
-      "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.whitePinstripeSuit,
     match: "82%",
     name: "Wide trousers",
     price: "₹2,799"
@@ -254,6 +309,13 @@ const occasionFilters = [
 ];
 
 const priceFilters = ["Under ₹999", "Under ₹1999", "Under ₹2999", "Under ₹3999"];
+const savedLookDeliveryWindows = [
+  "Delivery in 2 days",
+  "Delivery in 4 days",
+  "Delivery in 3 days",
+  "Delivery in 5 days",
+  "Delivery in 6 days"
+];
 
 type HeroSpotlightAction = "styleQuiz" | "explore";
 
@@ -610,118 +672,8 @@ function OccasionFilters({
   );
 }
 
-function OutfitPieceIcon({ kind }: { kind: OutfitPieceKind }) {
-  if (kind === "bag") {
-    return (
-      <Svg height={13} viewBox="0 0 16 16" width={13}>
-        <Path
-          d="M5 6V5C5 3.9 5.9 3 7 3H9C10.1 3 11 3.9 11 5V6"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-        <Path
-          d="M4 6H12L12.7 13H3.3L4 6Z"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-      </Svg>
-    );
-  }
-
-  if (kind === "bottom") {
-    return (
-      <Svg height={13} viewBox="0 0 16 16" width={13}>
-        <Path
-          d="M5 3H11L10.2 13H8.6L8 7.5L7.4 13H5.8L5 3Z"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-      </Svg>
-    );
-  }
-
-  if (kind === "dress") {
-    return (
-      <Svg height={13} viewBox="0 0 16 16" width={13}>
-        <Path
-          d="M6.4 3H9.6L10.6 6L12 13H4L5.4 6L6.4 3Z"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-        <Path
-          d="M5.4 6H10.6"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-      </Svg>
-    );
-  }
-
-  if (kind === "jacket") {
-    return (
-      <Svg height={13} viewBox="0 0 16 16" width={13}>
-        <Path
-          d="M5 3L7 4.4L8 3.6L9 4.4L11 3L12 13H4L5 3Z"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-        <Path
-          d="M8 4V13"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-      </Svg>
-    );
-  }
-
-  if (kind === "shoe") {
-    return (
-      <Svg height={13} viewBox="0 0 16 16" width={13}>
-        <Path
-          d="M3 10.5L6.8 10L9 6.5L10.4 9.2L13 10.1C13.7 10.3 14 10.8 14 11.5V12H3V10.5Z"
-          fill="none"
-          stroke={colors.text}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.25}
-        />
-      </Svg>
-    );
-  }
-
-  return (
-    <Svg height={13} viewBox="0 0 16 16" width={13}>
-      <Path
-        d="M5 3L7 2H9L11 3L13 5L11.4 6.5L10.4 5.6V13H5.6V5.6L4.6 6.5L3 5L5 3Z"
-        fill="none"
-        stroke={colors.text}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.25}
-      />
-    </Svg>
-  );
+function getOutfitPieceImage(piece: OutfitPiece) {
+  return piece.image ?? fallbackOutfitPieceImages[piece.kind];
 }
 
 function OutfitPieceChips({ pieces }: { pieces: OutfitPiece[] }) {
@@ -734,12 +686,17 @@ function OutfitPieceChips({ pieces }: { pieces: OutfitPiece[] }) {
           style={[
             styles.outfitPieceChip,
             {
-              marginLeft: index === 0 ? 0 : -7,
+              marginLeft: index === 0 ? 0 : -8,
               zIndex: pieces.length - index
             }
           ]}
         >
-          <OutfitPieceIcon kind={piece.kind} />
+          <Image
+            accessibilityIgnoresInvertColors
+            resizeMode="cover"
+            source={{ uri: getOutfitPieceImage(piece) }}
+            style={styles.outfitPieceImage}
+          />
         </View>
       ))}
     </View>
@@ -784,9 +741,20 @@ function OccasionLookCard({
       </ImageBackground>
       <View style={styles.occasionLookFooter}>
         <OutfitPieceChips pieces={product.outfitItems} />
-        <Text numberOfLines={1} style={styles.occasionMatchText}>
-          {displayLabel}
-        </Text>
+        {isMatchLabel(displayLabel) ? (
+          <MatchRibbonTag
+            height={24}
+            label={displayLabel}
+            mirrored
+            style={styles.occasionMatchRibbon}
+            textStyle={styles.smallMatchRibbonText}
+            width={82}
+          />
+        ) : (
+          <Text numberOfLines={1} style={styles.occasionMatchText}>
+            {displayLabel}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -969,6 +937,8 @@ function ProductCard({
   product: ProductLook;
   width: number;
 }) {
+  const hasMatchLabel = isMatchLabel(displayLabel);
+
   return (
     <View style={[styles.productCard, { width }]}>
       <ImageBackground
@@ -984,12 +954,28 @@ function ProductCard({
           <SaveButton onPress={onToggleWishlist} saved={isWishlisted} />
         </View>
         <View style={styles.productBottomRow}>
-          <View style={styles.darkMiniPill}>
-            <Text style={styles.darkMiniPillText}>{product.tries}</Text>
-          </View>
-          <View style={styles.matchPill}>
-            <Text style={styles.matchText}>{displayLabel}</Text>
-          </View>
+          {hasMatchLabel ? (
+            <MatchRibbonTag
+              height={26}
+              label={displayLabel}
+              style={styles.productMatchRibbon}
+              textStyle={styles.matchRibbonText}
+              width={90}
+            />
+          ) : (
+            <View style={styles.darkMiniPill}>
+              <Text style={styles.darkMiniPillText}>{product.tries}</Text>
+            </View>
+          )}
+          {hasMatchLabel ? (
+            <View style={styles.darkMiniPill}>
+              <Text style={styles.darkMiniPillText}>{product.tries}</Text>
+            </View>
+          ) : (
+            <View style={styles.matchPill}>
+              <Text style={styles.matchText}>{displayLabel}</Text>
+            </View>
+          )}
         </View>
       </ImageBackground>
       <View style={styles.productInfo}>
@@ -1081,12 +1067,12 @@ function ColourAnalysisCard() {
           <View key={swatch} style={[styles.paletteSwatch, { backgroundColor: swatch }]} />
         ))}
       </View>
-      <Text style={styles.colourTitle}>Find your best colours</Text>
+      <Text style={styles.colourTitle}>Find colours that suit you</Text>
       <Text style={styles.colourCopy}>
-        Discover shades that suit you and use them to filter looks.
+        Discover shades that flatter you then see looks that match.
       </Text>
       <Pressable accessibilityRole="button" style={styles.unlockButton}>
-        <Text style={styles.unlockButtonText}>Start colour scan</Text>
+        <Text style={styles.unlockButtonText}>Find my colours</Text>
       </Pressable>
     </View>
   );
@@ -1115,13 +1101,10 @@ function BrandLogoPill({
         pressed ? styles.pressed : null
       ]}
     >
-      <Image
-        resizeMode="contain"
-        source={brand.logoImage}
-        style={{
-          height: brand.logoHeight,
-          width: brand.logoWidth
-        }}
+      <BrandLogoMark
+        height={brand.logoHeight}
+        variant={brand.logoVariant}
+        width={brand.logoWidth}
       />
     </Pressable>
   );
@@ -1225,6 +1208,7 @@ function ShopByBrandsSection({
 
 function SavedLookCard({
   cardHeight,
+  deliveryText,
   imageHeight,
   onOpenLook,
   onToggleWishlist,
@@ -1232,6 +1216,7 @@ function SavedLookCard({
   width
 }: {
   cardHeight: number;
+  deliveryText: string;
   imageHeight: number;
   onOpenLook: () => void;
   onToggleWishlist: () => void;
@@ -1251,7 +1236,7 @@ function SavedLookCard({
         </View>
         <View style={styles.deliveryBadge}>
           <Feather color="#16A15C" name="check-circle" size={14} />
-          <Text style={styles.deliveryBadgeText}>Delivered by Tomorrow</Text>
+          <Text style={styles.deliveryBadgeText}>{deliveryText}</Text>
         </View>
       </ImageBackground>
 
@@ -1405,7 +1390,7 @@ function SavedLooksSection({
 
   return (
     <View style={styles.savedLooksSection}>
-      <Text style={styles.savedLooksTitle}>Continue where you left off.</Text>
+      <Text style={styles.savedLooksTitle}>Continue where you left off</Text>
       <Animated.ScrollView
         contentContainerStyle={[
           styles.savedLooksTrack,
@@ -1458,6 +1443,9 @@ function SavedLooksSection({
             >
               <SavedLookCard
                 cardHeight={cardHeight}
+                deliveryText={
+                  savedLookDeliveryWindows[index % savedLookDeliveryWindows.length]
+                }
                 imageHeight={imageHeight}
                 onOpenLook={() => onOpenLook(product)}
                 onToggleWishlist={() => onToggleWishlist(product.id)}
@@ -1488,17 +1476,19 @@ function PriceStyleLookCard({
   isWishlisted,
   onToggleWishlist,
   product,
+  style,
   width
 }: {
   isWishlisted: boolean;
   onToggleWishlist: () => void;
   product: ProductLook;
+  style?: StyleProp<ViewStyle>;
   width: number;
 }) {
   const imageHeight = Math.round(width * 1.24);
 
   return (
-    <View style={[styles.priceLookCard, { width }]}>
+    <View style={[styles.priceLookCard, { width }, style]}>
       <ImageBackground
         imageStyle={styles.priceLookImageStyle}
         resizeMode="cover"
@@ -1511,9 +1501,14 @@ function PriceStyleLookCard({
       </ImageBackground>
       <View style={styles.priceLookFooter}>
         <OutfitPieceChips pieces={product.outfitItems.slice(0, 3)} />
-        <Text numberOfLines={1} style={styles.priceLookMatch}>
-          {product.match}
-        </Text>
+        <MatchRibbonTag
+          height={24}
+          label={product.match}
+          mirrored
+          style={styles.priceLookMatchRibbon}
+          textStyle={styles.smallMatchRibbonText}
+          width={84}
+        />
       </View>
     </View>
   );
@@ -1532,7 +1527,7 @@ function PriceStyleSection({
   setSelectedPrice: (filter: string) => void;
   wishlistProductIds: Set<string>;
 }) {
-  const products = looks.slice(0, 2);
+  const products = looks;
 
   return (
     <View style={styles.priceStyleSection}>
@@ -1567,17 +1562,26 @@ function PriceStyleSection({
           );
         })}
       </ScrollView>
-      <View style={styles.priceLookRow}>
-        {products.map((product) => (
+      <ScrollView
+        contentContainerStyle={styles.priceLookTrack}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.priceLookScroller}
+      >
+        {products.map((product, index) => (
           <PriceStyleLookCard
             isWishlisted={wishlistProductIds.has(product.id)}
             key={`price-${product.id}`}
             onToggleWishlist={() => onToggleWishlist(product.id)}
             product={product}
+            style={[
+              index === 0 ? styles.firstPriceLookCard : null,
+              index === products.length - 1 ? styles.lastPriceLookCard : null
+            ]}
             width={cardWidth}
           />
         ))}
-      </View>
+      </ScrollView>
       <Pressable accessibilityRole="button" style={styles.priceExploreButton}>
         <Text style={styles.priceExploreButtonText}>Explore products</Text>
       </Pressable>
@@ -1647,14 +1651,12 @@ export function HomeScreen({
   const [headerHeight, setHeaderHeight] = useState(0);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [selectedOccasion, setSelectedOccasion] = useState("Work");
-  const [selectedPrice, setSelectedPrice] = useState(priceFilters[0]);
   const [wishlistProductIds, setWishlistProductIds] = useState<Set<string>>(
     () => new Set()
   );
   const address = getShortDeliveryAddress(draft.address);
   const hasStyleProfile = hasCompletedStyleProfile(draft);
   const cardWidth = (width - spacing.screen * 2 - spacing.sm) / 2;
-  const priceCardWidth = (width - spacing.screen * 2 - spacing.md) / 2;
   const savedLookCardWidth = Math.min(width * 0.68, 268);
 
   const filteredLooks = useMemo(() => {
@@ -1787,13 +1789,6 @@ export function HomeScreen({
         />
         <WardrobeIntelligenceCard />
         <ShopByBrandsSection onBrandPress={onOpenBrand} />
-        <PriceStyleSection
-          cardWidth={priceCardWidth}
-          onToggleWishlist={handleToggleWishlist}
-          selectedPrice={selectedPrice}
-          setSelectedPrice={setSelectedPrice}
-          wishlistProductIds={wishlistProductIds}
-        />
         <SavedLooksSection
           cardWidth={savedLookCardWidth}
           onOpenLook={onOpenLook}
@@ -2248,6 +2243,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 13
   },
+  matchRibbonText: {
+    fontSize: 11,
+    lineHeight: 14
+  },
   navRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -2303,6 +2302,10 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xs,
     textAlign: "right"
   },
+  occasionMatchRibbon: {
+    marginLeft: spacing.xs,
+    marginRight: -spacing.sm
+  },
   occasionSaveWrap: {
     alignItems: "flex-end"
   },
@@ -2318,18 +2321,23 @@ const styles = StyleSheet.create({
   },
   outfitPieceChip: {
     alignItems: "center",
-    backgroundColor: colors.background,
+    backgroundColor: colors.imageSurface,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    height: 20,
+    height: 24,
     justifyContent: "center",
-    width: 20
+    overflow: "hidden",
+    width: 24
   },
   outfitPieceChips: {
     alignItems: "center",
     flexDirection: "row",
-    minWidth: 46
+    minWidth: 54
+  },
+  outfitPieceImage: {
+    height: "100%",
+    width: "100%"
   },
   newArrivalsHeader: {
     paddingHorizontal: spacing.screen
@@ -2388,6 +2396,9 @@ const styles = StyleSheet.create({
   productImageStyle: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
+  },
+  productMatchRibbon: {
+    marginLeft: -spacing.sm
   },
   productInfo: {
     backgroundColor: colors.background,
@@ -2462,6 +2473,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingRight: spacing.screen
   },
+  firstPriceLookCard: {
+    marginLeft: spacing.screen
+  },
+  lastPriceLookCard: {
+    marginRight: spacing.screen
+  },
   priceLookCard: {
     backgroundColor: colors.background,
     borderRadius: 12,
@@ -2486,16 +2503,18 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
   },
-  priceLookMatch: {
-    color: colors.text,
-    flexShrink: 1,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: "right"
+  priceLookMatchRibbon: {
+    marginLeft: spacing.xs,
+    marginRight: -8
   },
-  priceLookRow: {
-    flexDirection: "row",
+  smallMatchRibbonText: {
+    fontSize: 10,
+    lineHeight: 13
+  },
+  priceLookScroller: {
+    marginHorizontal: -spacing.screen
+  },
+  priceLookTrack: {
     gap: spacing.md
   },
   priceLookSaveWrap: {
@@ -2795,7 +2814,7 @@ const styles = StyleSheet.create({
   wardrobeButton: {
     alignItems: "center",
     borderColor: colors.secondaryBorder,
-    borderRadius: 12,
+    borderRadius: 999,
     borderWidth: 1,
     height: 44,
     justifyContent: "center",

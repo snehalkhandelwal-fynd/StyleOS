@@ -9,13 +9,13 @@ export type RootStackParamList = {
   UploadFullBodyPhoto: undefined;
   AvatarCreating: undefined;
   AvatarReady: undefined;
-  LocationAccess: undefined;
   HomeTabs: undefined;
 };
 
 export type HomeTabParamList = {
   Home: undefined;
   TryOn: undefined;
+  Closet: undefined;
   Feed: undefined;
   AIStylist: undefined;
   Cart: undefined;

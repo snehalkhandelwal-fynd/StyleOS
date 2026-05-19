@@ -1,3 +1,4 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -162,16 +163,15 @@ const priceFilters = [
   { label: "Under ₹3999", value: 3999 }
 ];
 
-const shirtProductImage =
-  "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80";
+const shirtProductImage = prototypeProductImages.maje.greenDenimTop;
 
 const collectionImages = [
-  "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
-  "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
-  "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
-  "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
-  "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
-  "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80"
+  prototypeProductImages.sandro.navyTailoredSet,
+  prototypeProductImages.maje.beigeCrochetDress,
+  prototypeProductImages.maje.greenDenimTop,
+  prototypeProductImages.sandro.navyTailoredSet,
+  prototypeProductImages.sandro.beigeTrench,
+  prototypeProductImages.maje.pinkRelaxedSet
 ];
 
 const trendStories: TrendStory[] = [
@@ -180,7 +180,7 @@ const trendStories: TrendStory[] = [
       "Effortless draping and breathable textures from desk to dinner",
     id: "quiet-linen",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     looks: 15,
     name: "Quiet linen",
     vibes: ["Minimalist", "Classic"]
@@ -189,7 +189,7 @@ const trendStories: TrendStory[] = [
     description: "Graphic patterns that make the outfit",
     id: "bold-prints",
     image:
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.sandro.beigeTrench,
     looks: 12,
     name: "Bold prints",
     vibes: ["Street", "Festive"]
@@ -198,7 +198,7 @@ const trendStories: TrendStory[] = [
     description: "Grounded palettes for considered dressing",
     id: "earthy-tones",
     image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     looks: 18,
     name: "Earthy tones",
     vibes: ["Boho", "Vintage", "Minimalist"]
@@ -206,8 +206,7 @@ const trendStories: TrendStory[] = [
   {
     description: "Subtle transparency in gossamer fabrics",
     id: "sheer-layers",
-    image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.maje.sheerPartyDress,
     looks: 10,
     name: "Sheer layers",
     vibes: ["Romantic", "Festive"]
@@ -215,8 +214,7 @@ const trendStories: TrendStory[] = [
   {
     description: "Sharp cuts and structured silhouettes",
     id: "power-tailoring",
-    image:
-      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
     looks: 14,
     name: "Power tailoring",
     vibes: ["Classic", "Street"]
@@ -225,7 +223,7 @@ const trendStories: TrendStory[] = [
     description: "Romantic textures, flowing cuts, and pastel warmth",
     id: "soft-femme",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     looks: 11,
     name: "Soft femme",
     vibes: ["Romantic", "Boho"]
@@ -236,16 +234,14 @@ const occasionEditorials: OccasionEditorial[] = [
   {
     count: 48,
     id: "wedding-guest",
-    image:
-      "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.maje.ivoryMiniDress,
     name: "Wedding guest"
   },
   {
     count: 36,
     fallbackColor: "#EFE3CC",
     id: "festive-diwali",
-    image:
-      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.maje.pinkRelaxedSet,
     name: "Festive / Diwali",
     pattern: "festive"
   },
@@ -253,28 +249,28 @@ const occasionEditorials: OccasionEditorial[] = [
     count: 28,
     id: "office-dinner",
     image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     name: "Office to dinner"
   },
   {
     count: 22,
     id: "beach-vacation",
     image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     name: "Beach vacation"
   },
   {
     count: 18,
     id: "first-date",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     name: "First date"
   },
   {
     count: 15,
     id: "brunch",
     image:
-      "https://images.unsplash.com/photo-1495385794356-15371f348c31?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     name: "Brunch"
   }
 ];
@@ -287,7 +283,7 @@ const communityLooks: CommunityLook[] = [
     height: 174,
     id: "community-1",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     pieces: ["Boxy shirt", "Linen trousers", "Leather flats"],
     tries: "3.4k tries",
     vibe: "Minimalist",
@@ -300,7 +296,7 @@ const communityLooks: CommunityLook[] = [
     height: 194,
     id: "community-2",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     pieces: ["Cropped jacket", "Cargo skirt", "Runner sneakers"],
     tries: "2.1k tries",
     vibe: "Street"
@@ -312,7 +308,7 @@ const communityLooks: CommunityLook[] = [
     height: 188,
     id: "community-3",
     image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: ["Printed vest", "Maxi skirt", "Stacked bangles"],
     tries: "1.8k tries",
     vibe: "Boho"
@@ -324,7 +320,7 @@ const communityLooks: CommunityLook[] = [
     height: 168,
     id: "community-4",
     image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     pieces: ["Button cardigan", "Pleated skirt", "Mary janes"],
     tries: "947 tries",
     vibe: "Classic",
@@ -337,7 +333,7 @@ const communityLooks: CommunityLook[] = [
     height: 190,
     id: "community-5",
     image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: ["Satin blouse", "Flowing midi", "Soft sling"],
     tries: "1.3k tries",
     vibe: "Romantic"
@@ -349,7 +345,7 @@ const communityLooks: CommunityLook[] = [
     height: 172,
     id: "community-6",
     image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     pieces: ["Track jacket", "Ribbed tank", "Wide joggers"],
     tries: "2.7k tries",
     vibe: "Athleisure"
@@ -361,7 +357,7 @@ const communityLooks: CommunityLook[] = [
     height: 184,
     id: "community-7",
     image:
-      "https://images.unsplash.com/photo-1603217040830-34473db521a9?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: ["Silk kurta", "Palazzo", "Gold mule"],
     tries: "3.1k tries",
     vibe: "Festive",
@@ -374,7 +370,7 @@ const communityLooks: CommunityLook[] = [
     height: 176,
     id: "community-8",
     image:
-      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     pieces: ["Waistcoat", "Straight denim", "Loafer"],
     tries: "1.6k tries",
     vibe: "Vintage"
@@ -385,7 +381,7 @@ const completeLooks: CompleteLook[] = [
   {
     id: "complete-work",
     image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     pieces: "Shirt + tailored trousers",
     price: "₹10.4k",
     tag: "Work",
@@ -395,7 +391,7 @@ const completeLooks: CompleteLook[] = [
   {
     id: "complete-date",
     image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: "Shirt + slip skirt",
     price: "₹8.1k",
     tag: "Date",
@@ -405,7 +401,7 @@ const completeLooks: CompleteLook[] = [
   {
     id: "complete-weekend",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     pieces: "Shirt + denim + sneakers",
     price: "₹9.8k",
     tag: "Weekend",
@@ -415,7 +411,7 @@ const completeLooks: CompleteLook[] = [
   {
     id: "complete-festive",
     image:
-      "https://images.unsplash.com/photo-1603217040830-34473db521a9?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: "Shirt + palazzo + heels",
     price: "₹11.3k",
     tag: "Festive",
@@ -429,7 +425,7 @@ const eyeingLooks: EyeingLook[] = [
     backgroundColor: "#F5E3B8",
     id: "eyeing-retro",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     label: "80's retro",
     note: "Vivid colour, polished minis, and oversized accessories."
   },
@@ -437,7 +433,7 @@ const eyeingLooks: EyeingLook[] = [
     backgroundColor: "#DCE8E6",
     id: "eyeing-sporty",
     image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     label: "Sporty femme",
     note: "Easy layers, soft tailoring, and sneaker-led looks."
   },
@@ -445,7 +441,7 @@ const eyeingLooks: EyeingLook[] = [
     backgroundColor: "#E6D9EC",
     id: "eyeing-maximalism",
     image:
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80",
+      prototypeProductImages.sandro.beigeTrench,
     label: "Maximalism overload",
     note: "Prints, shine, and more-is-more outfit energy."
   },
@@ -453,7 +449,7 @@ const eyeingLooks: EyeingLook[] = [
     backgroundColor: "#EAD9C4",
     id: "eyeing-minimal",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     label: "Quiet polish",
     note: "Clean neutrals, relaxed cuts, and day-to-night ease."
   }
@@ -462,15 +458,15 @@ const eyeingLooks: EyeingLook[] = [
 const summerCategories: SummerCategory[] = [
   {
     heroImage:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     id: "linen-shirts",
     image:
-      "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     products: [
       {
         id: "linen-shirt-1",
         image:
-          "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80",
+          prototypeProductImages.maje.greenDenimTop,
         price: "₹1,299",
         styleLabel: "Core piece",
         title: "White linen shirt"
@@ -478,7 +474,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-shirt-2",
         image:
-          "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.navyCoatDress,
         price: "₹1,799",
         styleLabel: "Work polish",
         title: "Relaxed collar shirt"
@@ -486,7 +482,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-shirt-3",
         image:
-          "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.tanHoodedJacket,
         price: "₹1,499",
         styleLabel: "Soft neutral",
         title: "Sand linen overshirt"
@@ -494,7 +490,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-shirt-4",
         image:
-          "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.stripedScarfDenim,
         price: "₹1,699",
         styleLabel: "Weekend layer",
         title: "Easy stripe shirt"
@@ -505,15 +501,15 @@ const summerCategories: SummerCategory[] = [
   },
   {
     heroImage:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=80",
+      prototypeProductImages.sandro.whitePinstripeSuit,
     id: "linen-pants",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     products: [
       {
         id: "linen-pants-1",
         image:
-          "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.sandro.navyTailoredSet,
         price: "₹1,899",
         styleLabel: "Wide-leg ease",
         title: "Ivory linen pants"
@@ -521,7 +517,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-pants-2",
         image:
-          "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.sandro.whitePinstripeSuit,
         price: "₹2,299",
         styleLabel: "Tailored summer",
         title: "Pleated linen trousers"
@@ -529,7 +525,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-pants-3",
         image:
-          "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.greenDenimTop,
         price: "₹1,599",
         styleLabel: "Travel ready",
         title: "Drawstring linen pants"
@@ -537,7 +533,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-pants-4",
         image:
-          "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.sandro.whitePinstripeSuit,
         price: "₹2,099",
         styleLabel: "Desk to dinner",
         title: "Straight linen pants"
@@ -548,15 +544,15 @@ const summerCategories: SummerCategory[] = [
   },
   {
     heroImage:
-      "https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=1000&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     id: "linen-shorts",
     image:
-      "https://images.unsplash.com/photo-1495385794356-15371f348c31?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     products: [
       {
         id: "linen-shorts-1",
         image:
-          "https://images.unsplash.com/photo-1495385794356-15371f348c31?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.khakiTrenchSkirt,
         price: "₹999",
         styleLabel: "Easy weekends",
         title: "Natural linen shorts"
@@ -564,7 +560,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-shorts-2",
         image:
-          "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.beigeCrochetDress,
         price: "₹1,199",
         styleLabel: "Clean casual",
         title: "Belted linen shorts"
@@ -572,7 +568,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-shorts-3",
         image:
-          "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.beigeCrochetDress,
         price: "₹1,299",
         styleLabel: "Beach to brunch",
         title: "High-rise linen shorts"
@@ -580,7 +576,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "linen-shorts-4",
         image:
-          "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.beigeCrochetDress,
         price: "₹1,099",
         styleLabel: "Soft utility",
         title: "Pocket linen shorts"
@@ -591,15 +587,15 @@ const summerCategories: SummerCategory[] = [
   },
   {
     heroImage:
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1000&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     id: "summer-crop-tops",
     image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     products: [
       {
         id: "crop-top-1",
         image:
-          "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.beigeCrochetDress,
         price: "₹899",
         styleLabel: "Soft statement",
         title: "Ruched crop top"
@@ -607,7 +603,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "crop-top-2",
         image:
-          "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.greenDenimTop,
         price: "₹799",
         styleLabel: "Retro bright",
         title: "Sleeveless crop top"
@@ -615,7 +611,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "crop-top-3",
         image:
-          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.greenDenimTop,
         price: "₹999",
         styleLabel: "Sporty layer",
         title: "Ribbed crop tee"
@@ -623,7 +619,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "crop-top-4",
         image:
-          "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.pinkRelaxedSet,
         price: "₹1,199",
         styleLabel: "Colour pop",
         title: "Tie-front crop top"
@@ -634,15 +630,15 @@ const summerCategories: SummerCategory[] = [
   },
   {
     heroImage:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1000&q=80",
+      prototypeProductImages.maje.stripedScarfDenim,
     id: "striped-shirts",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.stripedScarfDenim,
     products: [
       {
         id: "striped-shirt-1",
         image:
-          "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.stripedScarfDenim,
         price: "₹1,399",
         styleLabel: "Coastal classic",
         title: "Blue stripe shirt"
@@ -650,7 +646,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "striped-shirt-2",
         image:
-          "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.sandro.navyTailoredSet,
         price: "₹1,599",
         styleLabel: "Work relaxed",
         title: "Oversized stripe shirt"
@@ -658,7 +654,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "striped-shirt-3",
         image:
-          "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.maje.khakiTrenchSkirt,
         price: "₹1,199",
         styleLabel: "Clean layering",
         title: "Fine stripe shirt"
@@ -666,7 +662,7 @@ const summerCategories: SummerCategory[] = [
       {
         id: "striped-shirt-4",
         image:
-          "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+          prototypeProductImages.sandro.whitePinstripeSuit,
         price: "₹1,799",
         styleLabel: "Polished casual",
         title: "Tailored stripe shirt"
@@ -713,7 +709,7 @@ function createProductCategory({
   const images = [
     ...collectionImages,
     shirtProductImage,
-    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80"
+    prototypeProductImages.maje.greenDenimTop
   ];
   const productLabels = [
     "Core piece",
@@ -793,7 +789,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Trends",
     id: "budget-1",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     pieces: "3 pieces",
     price: "₹899",
     priceValue: 899,
@@ -804,7 +800,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Trends",
     id: "budget-2",
     image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     pieces: "2 pieces",
     price: "₹949",
     priceValue: 949,
@@ -815,7 +811,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "H&M",
     id: "budget-3",
     image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: "3 pieces",
     price: "₹799",
     priceValue: 799,
@@ -826,7 +822,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Zara",
     id: "budget-4",
     image:
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: "3 pieces",
     price: "₹999",
     priceValue: 999,
@@ -837,7 +833,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Trends",
     id: "budget-5",
     image:
-      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     pieces: "4 pieces",
     price: "₹1,799",
     priceValue: 1799,
@@ -848,7 +844,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Myntra",
     id: "budget-6",
     image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     pieces: "3 pieces",
     price: "₹1,499",
     priceValue: 1499,
@@ -859,7 +855,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Trends",
     id: "budget-7",
     image:
-      "https://images.unsplash.com/photo-1603217040830-34473db521a9?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: "3 pieces",
     price: "₹2,899",
     priceValue: 2899,
@@ -870,7 +866,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "H&M",
     id: "budget-8",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     pieces: "3 pieces",
     price: "₹2,699",
     priceValue: 2699,
@@ -880,8 +876,7 @@ const budgetLooks: BudgetLook[] = [
   {
     brand: "Trends",
     id: "budget-9",
-    image:
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.maje.tanHoodedJacket,
     pieces: "2 pieces",
     price: "₹2,299",
     priceValue: 2299,
@@ -892,7 +887,7 @@ const budgetLooks: BudgetLook[] = [
     brand: "Vero Moda",
     id: "budget-10",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     pieces: "3 pieces",
     price: "₹2,599",
     priceValue: 2599,
@@ -906,42 +901,41 @@ const occasionTiles: OccasionTile[] = [
     count: 86,
     id: "work",
     image:
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     name: "Work looks"
   },
   {
     count: 124,
     id: "casual",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     name: "Casual"
   },
   {
     count: 58,
     id: "date-night",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     name: "Date night"
   },
   {
     count: 72,
     id: "festive",
     image:
-      "https://images.unsplash.com/photo-1603217040830-34473db521a9?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     name: "Festive"
   },
   {
     count: 41,
     id: "travel",
     image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80",
+      prototypeProductImages.maje.khakiTrenchSkirt,
     name: "Travel"
   },
   {
     count: 34,
     id: "formal",
-    image:
-      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
     name: "Formal"
   }
 ];
@@ -1452,8 +1446,8 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
   const fallbackImages = [
     ...collectionImages,
     shirtProductImage,
-    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=80",
-    "https://images.unsplash.com/photo-1603217040830-34473db521a9?auto=format&fit=crop&w=700&q=80"
+    prototypeProductImages.maje.greenDenimTop,
+    prototypeProductImages.maje.beigeCrochetDress
   ];
   const styleFamilies = [
     "Relaxed",
@@ -1531,7 +1525,7 @@ function buildSummerListingProducts(category: SummerCategory): SummerProduct[] {
         index < category.products.length
           ? source.image
           : fallbackImages[index % fallbackImages.length],
-      match: `${matchScore}% your style`,
+      match: `${matchScore}% match`,
       matchScore,
       occasion: occasions[index % occasions.length],
       deliveryText: deliveryWindows[index % deliveryWindows.length],

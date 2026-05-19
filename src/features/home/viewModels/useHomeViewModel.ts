@@ -1,3 +1,4 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { useMemo, useState } from "react";
 
 import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingViewModel";
@@ -44,17 +45,17 @@ const figmaAssets = {
   brand4:
     "https://logo.clearbit.com/hm.com",
   finalBanner:
-    "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=1200&q=80",
+    prototypeProductImages.maje.khakiTrenchSkirt,
   hero:
-    "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
+    prototypeProductImages.maje.beigeCrochetDress,
   newArrival:
-    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80",
+    prototypeProductImages.maje.greenDenimTop,
   product:
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+    prototypeProductImages.maje.greenDenimTop,
   quizBanner:
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1200&q=80",
+    prototypeProductImages.sandro.navyTailoredSet,
   savedGarment:
-    "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80"
+    prototypeProductImages.maje.beigeCrochetDress
 };
 
 export const homeImages = figmaAssets;

@@ -7,7 +7,6 @@ import { HomeTabsNavigator } from "./HomeTabsNavigator";
 import type { HomeTabName, RootRouteName } from "./types";
 import { AvatarCreatingScreen } from "../features/onboarding/screens/AvatarCreatingScreen";
 import { AvatarReadyScreen } from "../features/onboarding/screens/AvatarReadyScreen";
-import { LocationAccessScreen } from "../features/onboarding/screens/LocationAccessScreen";
 import { OtpVerificationScreen } from "../features/onboarding/screens/OtpVerificationScreen";
 import { PhoneSignInScreen } from "../features/onboarding/screens/PhoneSignInScreen";
 import { SetupFashionInterestScreen } from "../features/onboarding/screens/SetupFashionInterestScreen";
@@ -16,7 +15,6 @@ import { SetupNameScreen } from "../features/onboarding/screens/SetupNameScreen"
 import { SetupStyleQuizScreen } from "../features/onboarding/screens/SetupStyleQuizScreen";
 import { SplashScreen } from "../features/onboarding/screens/SplashScreen";
 import { UploadFullBodyPhotoScreen } from "../features/onboarding/screens/UploadFullBodyPhotoScreen";
-import { openPhotoSourceDrawer } from "../features/onboarding/utils/photoPicker";
 import { useOnboardingViewModel } from "../features/onboarding/viewModels/useOnboardingViewModel";
 
 export function RootNavigator() {
@@ -26,6 +24,8 @@ export function RootNavigator() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedCountry, setSelectedCountry] =
     useState<CountryOption>(defaultCountry);
+  const [heightReturnsAvatarReady, setHeightReturnsAvatarReady] =
+    useState(false);
   const [styleQuizReturnsHome, setStyleQuizReturnsHome] = useState(false);
 
   const goHome = useCallback((tab: HomeTabName = "Home") => {
@@ -56,23 +56,31 @@ export function RootNavigator() {
     setRoute("UploadFullBodyPhoto");
   };
 
+  const handleContinueHeight = () => {
+    if (heightReturnsAvatarReady) {
+      setHeightReturnsAvatarReady(false);
+      setRoute("AvatarReady");
+      return;
+    }
+
+    setRoute("SetupFashionInterest");
+  };
+
+  const handleChangeMeasurementFromAvatar = useCallback(() => {
+    setHeightReturnsAvatarReady(true);
+    setRoute("SetupHeight");
+  }, []);
+
   const handleStartStyleQuizFromHome = () => {
     setStyleQuizReturnsHome(true);
     setRoute("SetupStyleQuiz");
   };
 
-  const handleChangeAddressFromHome = () => {
-    setRoute("LocationAccess");
-  };
+  const handleChangeAddressFromHome = useCallback(() => {}, []);
 
   const handleUseAnotherPhoto = useCallback(() => {
-    openPhotoSourceDrawer({
-      onPhotoSelected: (uri) => {
-        actions.setFullBodyPhotoUri(uri);
-        setRoute("UploadFullBodyPhoto");
-      }
-    });
-  }, [actions]);
+    setRoute("UploadFullBodyPhoto");
+  }, []);
 
   return (
     <View style={styles.screen}>
@@ -112,7 +120,7 @@ export function RootNavigator() {
         <SetupHeightScreen
           height={state.draft.height ?? { feet: 5, inches: 5 }}
           onChangeHeight={actions.setHeight}
-          onContinue={() => setRoute("SetupFashionInterest")}
+          onContinue={handleContinueHeight}
         />
       ) : null}
 
@@ -126,6 +134,7 @@ export function RootNavigator() {
 
       {route === "SetupStyleQuiz" ? (
         <SetupStyleQuizScreen
+          fashionInterest={state.draft.fashionInterest}
           onComplete={handleCompleteStyleQuiz}
           onPreference={actions.submitStylePreference}
           onSkip={actions.skipStyleQuiz}
@@ -136,7 +145,7 @@ export function RootNavigator() {
         <UploadFullBodyPhotoScreen
           onContinue={() => setRoute("AvatarCreating")}
           onSelectPhoto={actions.setFullBodyPhotoUri}
-          onSkip={() => setRoute("LocationAccess")}
+          onSkip={() => goHome("Home")}
           photoUri={state.draft.fullBodyPhotoUri}
         />
       ) : null}
@@ -154,16 +163,10 @@ export function RootNavigator() {
       {route === "AvatarReady" ? (
         <AvatarReadyScreen
           avatarUri={state.draft.avatarUri}
-          onContinue={() => setRoute("LocationAccess")}
-          onUseAnotherPhoto={handleUseAnotherPhoto}
-        />
-      ) : null}
-
-      {route === "LocationAccess" ? (
-        <LocationAccessScreen
-          address={state.draft.address ?? ""}
-          onChangeAddress={actions.setAddress}
+          height={state.draft.height}
+          onChangeMeasurement={handleChangeMeasurementFromAvatar}
           onContinue={() => goHome("Home")}
+          onUseAnotherPhoto={handleUseAnotherPhoto}
         />
       ) : null}
 
@@ -173,6 +176,7 @@ export function RootNavigator() {
           initialTab={homeInitialTab}
           isGuest={state.isGuest}
           onChangeAddress={handleChangeAddressFromHome}
+          onSelectPhoto={actions.setFullBodyPhotoUri}
           onStartStyleQuiz={handleStartStyleQuizFromHome}
         />
       ) : null}

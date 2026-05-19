@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import { NextCircleButton } from "../components/NextCircleButton";
+import { prototypeProductImages } from "../features/home/data/prototypeProductImages";
 import { colors, spacing, typography } from "../theme";
 
 export type FashionInterest = "women" | "men";
@@ -20,14 +21,12 @@ const options: Array<{
 }> = [
   {
     id: "women",
-    image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.maje.pinkRelaxedSet,
     label: "Women’s clothing"
   },
   {
     id: "men",
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80",
+    image: prototypeProductImages.men.tailoredLook,
     label: "Men’s clothing"
   }
 ];

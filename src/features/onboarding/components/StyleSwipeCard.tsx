@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   actions: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    justifyContent: "space-between",
     width: "100%"
   },
   actionCircle: {
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     justifyContent: "center",
-    minWidth: 120
+    width: 120
   },
   actionLabel: {
     color: colors.muted,
