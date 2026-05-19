@@ -92,6 +92,7 @@ export const spacing = {
 
 export const radii = {
   card: 12,
+  sheet: 24,
   pill: 999,
   button: 999
 };

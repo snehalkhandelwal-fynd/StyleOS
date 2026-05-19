@@ -15,7 +15,7 @@
 ## Non-Negotiables
 
 - Keep the experience mobile-first for iOS and Android.
-- Use design-system tokens from `@yourorg/ds` for every color, radius, spacing, and typography value.
+- Use design-system tokens from `@styleos/ds` for every color, radius, spacing, and typography value.
 - If a needed value is missing, add a token first. Do not hardcode visual values in screen code.
 - Use Noto Serif for editorial headings and Inter for functional text through typography tokens.
 - Do not combine `fontWeight` with a weighted `fontFamily` in React Native.

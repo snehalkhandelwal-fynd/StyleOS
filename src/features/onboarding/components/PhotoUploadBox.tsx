@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import {
   Image,
   Modal,
@@ -9,9 +9,9 @@ import {
   Text,
   View
 } from "react-native";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
 import { colors, fonts, radii, spacing } from "../../../theme";
-import { avatarImageFrameStyles } from "./AvatarImageFrame";
 import { samplePeoplePhotos, selectCameraPhoto } from "../utils/photoPicker";
 
 type PhotoUploadBoxProps = {
@@ -19,7 +19,15 @@ type PhotoUploadBoxProps = {
   uri?: string;
 };
 
-const bodyGuideImage = require("../../../assets/bodyimage.png");
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+const exampleModelImage = require("../../../assets/upload-example.png");
+
+const photoGuidelines: { icon: IoniconName; text: string }[] = [
+  { icon: "body-outline", text: "Full body, face & feet visible" },
+  { icon: "person-remove-outline", text: "Just you — no pets or friends" },
+  { icon: "sunny-outline", text: "Good lighting, not blurry" }
+];
 
 export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -45,13 +53,12 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
   return (
     <>
       <Pressable
-        accessibilityLabel="Add your photo"
+        accessibilityLabel="Upload your full-body photo"
         accessibilityRole="button"
         onPress={openPhotoDrawer}
         style={({ pressed }) => [
           styles.box,
-          !uri ? styles.emptyBox : null,
-          uri ? styles.boxWithPreview : null,
+          uri ? styles.boxWithPreview : styles.emptyBox,
           pressed ? styles.pressed : null
         ]}
       >
@@ -60,7 +67,7 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
             <Image
               resizeMode="cover"
               source={{ uri }}
-              style={avatarImageFrameStyles.image}
+              style={styles.previewImage}
             />
             <Pressable
               accessibilityLabel="Change photo"
@@ -80,26 +87,58 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
           </>
         ) : (
           <View style={styles.emptyState}>
-            <Image
-              resizeMode="contain"
-              source={bodyGuideImage}
-              style={styles.guideImage}
-            />
-            <Pressable
-              accessibilityLabel="Choose photo source"
-              accessibilityRole="button"
-              onPress={(event) => {
-                event.stopPropagation();
-                openPhotoDrawer();
-              }}
-              style={({ pressed }) => [
-                styles.addButton,
-                pressed ? styles.addButtonPressed : null
-              ]}
-            >
-              <Ionicons color={colors.text} name="add" size={34} />
-            </Pressable>
-            <Text style={styles.label}>Add your photo</Text>
+            <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
+              <Defs>
+                <Pattern
+                  height={18}
+                  id="uploadDots"
+                  patternUnits="userSpaceOnUse"
+                  width={18}
+                >
+                  <Circle cx={2} cy={2} fill={colors.border} r={1.2} />
+                </Pattern>
+              </Defs>
+              <Rect fill="url(#uploadDots)" height="100%" width="100%" />
+            </Svg>
+
+            <View style={styles.examplePill}>
+              <Text style={styles.examplePillText}>EXAMPLE</Text>
+            </View>
+
+            <View style={styles.exampleArea}>
+              <View style={styles.exampleFrame}>
+                <Image
+                  resizeMode="cover"
+                  source={exampleModelImage}
+                  style={styles.exampleImage}
+                />
+              </View>
+            </View>
+
+            <View style={styles.guidelineRow}>
+              {photoGuidelines.map((guideline) => (
+                <View key={guideline.text} style={styles.guidelineItem}>
+                  <View style={styles.guidelineIcon}>
+                    <Ionicons
+                      color={colors.text}
+                      name={guideline.icon}
+                      size={16}
+                    />
+                  </View>
+                  <Text style={styles.guidelineText}>{guideline.text}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.uploadCta}>
+              <Ionicons
+                color={colors.inverseText}
+                name="cloud-upload-outline"
+                size={18}
+              />
+              <Text style={styles.uploadCtaText}>Add your photo</Text>
+            </View>
+
             <Text style={styles.privacy}>
               Your photo is private and only used for try-on
             </Text>
@@ -188,30 +227,37 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
 }
 
 const styles = StyleSheet.create({
-  addButton: {
-    alignItems: "center",
-    borderColor: "#D8D4CA",
-    borderRadius: 22,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: "center",
-    width: 44
-  },
-  addButtonPressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.98 }]
-  },
   box: {
-    alignItems: "center",
-    ...avatarImageFrameStyles.frame,
-    justifyContent: "center",
+    borderRadius: 20,
+    flex: 1,
     marginTop: spacing.xl,
-    padding: spacing.xl,
-    position: "relative",
+    overflow: "hidden",
     width: "100%"
   },
   boxWithPreview: {
-    padding: 0
+    backgroundColor: colors.surface
+  },
+  cameraButton: {
+    alignItems: "center",
+    borderColor: colors.secondaryBorder,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    height: 48,
+    justifyContent: "center",
+    marginTop: spacing.md,
+    width: "100%"
+  },
+  cameraButtonPressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.99 }]
+  },
+  cameraButtonText: {
+    color: colors.text,
+    fontFamily: fonts.cta,
+    fontSize: 14,
+    lineHeight: 14
   },
   changePhotoButton: {
     alignItems: "center",
@@ -241,40 +287,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 15
   },
-  emptyState: {
-    alignItems: "center",
-    gap: spacing.sm,
-    height: "100%",
-    justifyContent: "center",
-    width: "100%"
-  },
-  emptyBox: {
-    borderColor: "#B9AFA2",
-    borderStyle: "dashed",
-    borderWidth: 2
-  },
-  cameraButton: {
-    alignItems: "center",
-    borderColor: colors.secondaryBorder,
-    borderRadius: radii.button,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: spacing.sm,
-    height: 48,
-    justifyContent: "center",
-    marginTop: spacing.md,
-    width: "100%"
-  },
-  cameraButtonPressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.99 }]
-  },
-  cameraButtonText: {
-    color: colors.text,
-    fontFamily: fonts.cta,
-    fontSize: 14,
-    lineHeight: 14
-  },
   closeButton: {
     alignItems: "center",
     borderColor: colors.border,
@@ -288,27 +300,74 @@ const styles = StyleSheet.create({
     opacity: 0.72,
     transform: [{ scale: 0.98 }]
   },
-  guideImage: {
-    height: "48%",
-    marginBottom: spacing.xs,
-    width: "62%"
+  emptyBox: {
+    backgroundColor: colors.surface,
+    borderColor: "#B9AFA2",
+    borderStyle: "dashed",
+    borderWidth: 2
   },
-  label: {
-    color: colors.text,
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    lineHeight: 20
+  emptyState: {
+    flex: 1,
+    padding: spacing.lg
   },
-  privacy: {
+  exampleArea: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center"
+  },
+  exampleFrame: {
+    aspectRatio: 3 / 4,
+    backgroundColor: colors.imageSurface,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    width: "60%"
+  },
+  exampleImage: {
+    height: "100%",
+    width: "100%"
+  },
+  examplePill: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.text,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  examplePillText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 12
+  },
+  guidelineIcon: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  guidelineItem: {
+    alignItems: "center",
+    flex: 1,
+    gap: 6
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md
+  },
+  guidelineText: {
     color: colors.muted,
     fontFamily: fonts.body,
-    fontSize: 12,
-    lineHeight: 16.8,
+    fontSize: 11,
+    lineHeight: 14,
     textAlign: "center"
-  },
-  pressed: {
-    backgroundColor: colors.imageSurface,
-    transform: [{ scale: 0.98 }]
   },
   modalBackdrop: {
     backgroundColor: colors.scrimMedium,
@@ -324,6 +383,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     zIndex: 1
+  },
+  pressed: {
+    opacity: 0.92
+  },
+  previewImage: {
+    height: "100%",
+    width: "100%"
+  },
+  privacy: {
+    color: colors.soft,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: spacing.sm,
+    textAlign: "center"
   },
   sampleGrid: {
     flexDirection: "row",
@@ -382,5 +456,22 @@ const styles = StyleSheet.create({
   sheetTitleGroup: {
     flex: 1,
     gap: spacing.xs
+  },
+  uploadCta: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    backgroundColor: colors.inverse,
+    borderRadius: radii.button,
+    flexDirection: "row",
+    gap: 8,
+    height: 48,
+    justifyContent: "center",
+    marginTop: spacing.md
+  },
+  uploadCtaText: {
+    color: colors.inverseText,
+    fontFamily: fonts.cta,
+    fontSize: 14,
+    lineHeight: 17
   }
 });
