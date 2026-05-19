@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { ResizeMode, Video } from "expo-av";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -21,12 +22,14 @@ import Svg, { Path } from "react-native-svg";
 import { PhotoUploadBox } from "../../onboarding/components/PhotoUploadBox";
 import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingViewModel";
 import { colors, fonts, spacing } from "../../../theme";
+import { CartCountBadge } from "../components/CartCountBadge";
 import {
   ProductListingScreen,
   type ProductListingProduct
 } from "../components/ProductListingScreen";
 import {
   buildLookPieces,
+  formatRupeeAmount,
   getPieceAlternatives,
   getRupeeValue,
   getTryOnPriceSummary,
@@ -58,6 +61,7 @@ export type TryOnExitState = {
 };
 
 type ShopThisLookScreenProps = {
+  cartCount?: number;
   look?: ProductLook;
   onAddPieceToCart: (piece: LookPiece, size: string) => void;
   onBack: () => void;
@@ -67,7 +71,7 @@ type ShopThisLookScreenProps = {
 };
 type BuildSlotKind = Extract<
   OutfitPieceKind,
-  "bag" | "bottom" | "jacket" | "shoe" | "top"
+  "accessory" | "bag" | "bottom" | "jacket" | "shoe" | "top"
 >;
 type BuildSlotConfig = {
   kind: BuildSlotKind;
@@ -78,14 +82,22 @@ type BuildListingOption = {
   piece: LookPiece;
   product: ProductListingProduct;
 };
+type ShopCartSheetSelection = {
+  piece: LookPiece;
+  size: string;
+};
 
 const topSafeInset =
   Platform.OS === "ios" ? 44 : NativeStatusBar.currentHeight ?? 0;
 const bottomSafeInset = Platform.OS === "ios" ? 22 : 0;
-export const TRY_ON_RENDER_DELAY_MS = 6500;
+export const TRY_ON_RENDER_DELAY_MS = 3000;
 const avatarCreationImage = require("../../../../Images/imagewithoutbg.png");
-const tryOnModelImage = require("../../../../Images/modelwithoutbg.png");
+const tryOnModelImage = require("../../../../Images/modelimage.png");
+const tryOnVideoAsset = require("../../../../Images/Woman_looks_left_right_herself_202605200140.mp4");
 const shopThisLookImages = {
+  brownBag: Image.resolveAssetSource(
+    require("../../../../Images/brownbag.jpg")
+  ).uri,
   brownShoes: Image.resolveAssetSource(
     require("../../../../Images/brownshoes.jpg")
   ).uri,
@@ -129,9 +141,14 @@ const fallbackLook: ProductLook = {
 const buildSlots: BuildSlotConfig[] = [
   { kind: "top", label: "Top", listingTitle: "Choose top" },
   { kind: "bottom", label: "Bottom", listingTitle: "Choose bottom" },
-  { kind: "shoe", label: "Footwear", listingTitle: "Choose footwear" },
+  { kind: "shoe", label: "Footwear", listingTitle: "Choose shoes" },
   { kind: "bag", label: "Bag", listingTitle: "Choose bag" },
-  { kind: "jacket", label: "Layer", listingTitle: "Choose layer" }
+  { kind: "jacket", label: "Layer", listingTitle: "Choose layer" },
+  {
+    kind: "accessory",
+    label: "Accessory",
+    listingTitle: "Choose accessory"
+  }
 ];
 
 function getBuildSlotLabel(kind: BuildSlotKind) {
@@ -140,6 +157,27 @@ function getBuildSlotLabel(kind: BuildSlotKind) {
 
 function getBuildSlotPiece(pieces: LookPiece[], kind: BuildSlotKind) {
   return pieces.find((piece) => piece.kind === kind);
+}
+
+const buildListingDiscounts = [40, 30, 45, 25, 35, 20];
+
+function getBuildListingMerchandising(piece: LookPiece, index: number) {
+  const priceValue = getRupeeValue(piece.price);
+  const discountPercent =
+    buildListingDiscounts[index % buildListingDiscounts.length];
+  const originalPrice =
+    discountPercent && priceValue > 0
+      ? formatRupeeAmount(
+          Math.ceil(priceValue / (1 - discountPercent / 100) / 100) * 100
+        )
+      : undefined;
+
+  return {
+    discountPercent,
+    originalPrice,
+    priceValue,
+    tryCount: Math.max(180, 960 - index * 86)
+  };
 }
 
 function getBuildListingOptions({
@@ -170,6 +208,7 @@ function getBuildListingOptions({
     piece,
     product: {
       ...getPieceProduct(piece),
+      ...getBuildListingMerchandising(piece, index),
       id: `build-${kind}-${piece.id}-${index}`,
       match: index === 0 && currentPiece ? "Current look" : "Try now",
       occasion: listingContext,
@@ -345,11 +384,7 @@ function AvatarCreationLoadingScreen({
         <View style={styles.creationCopyBlock}>
           <Text style={styles.creationTitle}>Creating your look</Text>
           <Text style={styles.creationCopy}>
-            We're rendering this outfit on your avatar. Usually takes under a
-            minute.
-          </Text>
-          <Text style={styles.creationBrowseCopy}>
-            You can keep browsing — we'll notify you when it's ready.
+            We're rendering this outfit on your avatar. Usually takes under a minute. You can keep browsing, we'll notify you when it's ready.
           </Text>
           <Pressable
             accessibilityLabel="Continue browsing while your look is created"
@@ -379,7 +414,7 @@ function PieceCard({
 }) {
   return (
     <Pressable
-      accessibilityLabel={`${piece.name}${piece.isOwned ? ", yours" : ""}`}
+      accessibilityLabel={piece.name}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
@@ -393,11 +428,6 @@ function PieceCard({
           source={{ uri: piece.image }}
           style={styles.pieceImage}
         />
-        {piece.isOwned ? (
-          <View style={styles.yoursTag}>
-            <Text style={styles.yoursTagText}>Yours</Text>
-          </View>
-        ) : null}
       </View>
     </Pressable>
   );
@@ -415,6 +445,38 @@ function getPieceProduct(piece: LookPiece): ProductListingProduct {
     title: piece.name,
     vibe: piece.category
   };
+}
+
+function getDefaultPieceSize(piece: LookPiece) {
+  return piece.sizes[0] ?? "One";
+}
+
+function getShopPieceCategoryLabel(piece: LookPiece) {
+  if (piece.kind === "bottom") {
+    return "Bottom";
+  }
+
+  if (piece.kind === "shoe") {
+    return "Footwear";
+  }
+
+  if (piece.kind === "jacket") {
+    return "Layer";
+  }
+
+  return piece.category;
+}
+
+function getSelectedPiecesTotalLabel(pieces: LookPiece[], selectedIds: Set<string>) {
+  const selectedTotal = pieces.reduce((total, piece) => {
+    if (!selectedIds.has(piece.id)) {
+      return total;
+    }
+
+    return total + getRupeeValue(piece.price);
+  }, 0);
+
+  return formatRupeeAmount(selectedTotal);
 }
 
 function getShopThisLookPieces(pieces: LookPiece[]): LookPiece[] {
@@ -450,6 +512,15 @@ function getShopThisLookPieces(pieces: LookPiece[]): LookPiece[] {
       name: "Brown city loafers",
       price: "₹2,299",
       sizes: ["37", "38", "39", "40"]
+    },
+    {
+      brand: "Sandro",
+      category: "Bag",
+      image: shopThisLookImages.brownBag,
+      kind: "bag",
+      name: "Brown fringe shoulder bag",
+      price: "₹2,299",
+      sizes: ["One"]
     }
   ];
 
@@ -547,69 +618,270 @@ function AlternativeSheet({
   );
 }
 
-function SizePickerSheet({
+function ShopCartSelectionSheet({
   onClose,
-  onSelectSize,
-  piece
+  onAddToCart,
+  pieces
 }: {
   onClose: () => void;
-  onSelectSize: (size: string) => void;
-  piece: LookPiece;
+  onAddToCart: (items: ShopCartSheetSelection[]) => void;
+  pieces: LookPiece[];
 }) {
-  const sizes = piece.sizes.length > 0 ? piece.sizes : ["XS", "S", "M", "L"];
-  const recommendedSize = sizes[0];
+  const [selectedIds, setSelectedIds] = useState(
+    () => new Set(pieces.map((piece) => piece.id))
+  );
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>(
+    () =>
+      pieces.reduce<Record<string, string>>((sizesByPiece, piece) => {
+        sizesByPiece[piece.id] = getDefaultPieceSize(piece);
+        return sizesByPiece;
+      }, {})
+  );
+  const [openSizePieceId, setOpenSizePieceId] = useState<string | null>(null);
+  const selectedCount = selectedIds.size;
+  const selectedTotalLabel = getSelectedPiecesTotalLabel(pieces, selectedIds);
+
+  useEffect(() => {
+    setSelectedIds(new Set(pieces.map((piece) => piece.id)));
+    setSelectedSizes(
+      pieces.reduce<Record<string, string>>((sizesByPiece, piece) => {
+        sizesByPiece[piece.id] = getDefaultPieceSize(piece);
+        return sizesByPiece;
+      }, {})
+    );
+    setOpenSizePieceId(null);
+  }, [pieces]);
+
+  const handleTogglePiece = (pieceId: string) => {
+    setSelectedIds((current) => {
+      const nextSelectedIds = new Set(current);
+
+      if (nextSelectedIds.has(pieceId)) {
+        nextSelectedIds.delete(pieceId);
+      } else {
+        nextSelectedIds.add(pieceId);
+      }
+
+      return nextSelectedIds;
+    });
+  };
+
+  const handleToggleAllPieces = () => {
+    setSelectedIds((current) =>
+      current.size === pieces.length
+        ? new Set()
+        : new Set(pieces.map((piece) => piece.id))
+    );
+  };
+
+  const handleToggleSizeMenu = (piece: LookPiece) => {
+    setOpenSizePieceId((current) =>
+      current === piece.id ? null : piece.id
+    );
+  };
+
+  const handleSelectSize = (piece: LookPiece, size: string) => {
+    setSelectedSizes((current) => {
+      return {
+        ...current,
+        [piece.id]: size
+      };
+    });
+    setOpenSizePieceId(null);
+  };
+
+  const handleAddSelected = () => {
+    const selectedItems = pieces
+      .filter((piece) => selectedIds.has(piece.id))
+      .map((piece) => ({
+        piece,
+        size: selectedSizes[piece.id] ?? getDefaultPieceSize(piece)
+      }));
+
+    if (selectedItems.length === 0) {
+      return;
+    }
+
+    onAddToCart(selectedItems);
+  };
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
       <View style={styles.modalRoot}>
         <Pressable
-          accessibilityLabel="Close size options"
+          accessibilityLabel="Close add to cart options"
           accessibilityRole="button"
           onPress={onClose}
           style={styles.modalScrim}
         />
-        <View style={styles.sizeSheet}>
+        <View style={styles.cartSelectionSheet}>
           <View style={styles.sheetHandle} />
-          <Text numberOfLines={1} style={styles.sizeProductName}>
-            {piece.name}
-          </Text>
-
-          <View style={styles.sizeMetaRow}>
-            <Text style={styles.sizeRecommendedLabel}>
-              Recommended size: {recommendedSize}
-            </Text>
+          <View style={styles.cartSelectionSummary}>
             <Pressable
-              accessibilityLabel="Open size guide"
-              accessibilityRole="button"
-              onPress={() => undefined}
+              accessibilityLabel={
+                selectedCount === pieces.length
+                  ? "Deselect all products"
+                  : "Select all products"
+              }
+              accessibilityRole="checkbox"
+              accessibilityState={{
+                checked: selectedCount === pieces.length && pieces.length > 0
+              }}
+              hitSlop={8}
+              onPress={handleToggleAllPieces}
               style={({ pressed }) => [
-                styles.sizeGuideButton,
+                styles.cartSelectionSummaryIcon,
+                selectedCount === 0 ? styles.cartSelectionSummaryIconEmpty : null,
                 pressed ? styles.pressed : null
               ]}
             >
-              <Text style={styles.sizeGuideText}>Size guide</Text>
+              <Feather
+                color={colors.inverseText}
+                name={selectedCount === 0 ? "minus" : "check"}
+                size={11}
+              />
             </Pressable>
+            <Text numberOfLines={1} style={styles.cartSelectionSummaryText}>
+              {selectedCount}/{pieces.length} Items Selected{" "}
+              <Text style={styles.cartSelectionSummaryPrice}>
+                ({selectedTotalLabel})
+              </Text>
+            </Text>
           </View>
+          <ScrollView
+            contentContainerStyle={styles.cartSelectionList}
+            showsVerticalScrollIndicator={false}
+          >
+            {pieces.map((piece) => {
+              const isSelected = selectedIds.has(piece.id);
+              const selectedSize =
+                selectedSizes[piece.id] ?? getDefaultPieceSize(piece);
+              const sizes = piece.sizes.length > 0 ? piece.sizes : ["One"];
+              const isSizeMenuOpen = openSizePieceId === piece.id;
 
-          <View style={styles.sizeInlineRow}>
-            {sizes.map((size) => (
-              <Pressable
-                accessibilityLabel={
-                  size === recommendedSize
-                    ? `${size}, recommended`
-                    : `Select size ${size}`
-                }
-                accessibilityRole="button"
-                key={size}
-                onPress={() => onSelectSize(size)}
-                style={({ pressed }) => [
-                  styles.sizeTapTarget,
-                  pressed ? styles.pressed : null
-                ]}
-              >
-                <Text style={styles.sizeOptionText}>{size}</Text>
-              </Pressable>
-            ))}
+              return (
+                <View
+                  key={piece.id}
+                  style={[
+                    styles.cartSelectionItem,
+                    isSizeMenuOpen ? styles.cartSelectionItemOpen : null
+                  ]}
+                >
+                  <Pressable
+                    accessibilityLabel={
+                      isSelected ? `Remove ${piece.name}` : `Select ${piece.name}`
+                    }
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isSelected }}
+                    onPress={() => handleTogglePiece(piece.id)}
+                    style={({ pressed }) => [
+                      styles.cartSelectionImageWrap,
+                      pressed ? styles.pressed : null
+                    ]}
+                  >
+                    <Image
+                      resizeMode="cover"
+                      source={{ uri: piece.image }}
+                      style={styles.cartSelectionImage}
+                    />
+                    <View
+                      style={[
+                        styles.cartSelectionThumbCheck,
+                        isSelected
+                          ? styles.cartSelectionThumbCheckSelected
+                          : styles.cartSelectionThumbCheckEmpty
+                      ]}
+                    >
+                      {isSelected ? (
+                        <Feather color={colors.inverseText} name="check" size={11} />
+                      ) : null}
+                    </View>
+                  </Pressable>
+                  <View style={styles.cartSelectionCopy}>
+                    <Text numberOfLines={1} style={styles.cartSelectionCategory}>
+                      {getShopPieceCategoryLabel(piece)}
+                    </Text>
+                    <Text numberOfLines={1} style={styles.cartSelectionName}>
+                      {piece.name}
+                    </Text>
+                    <View style={styles.cartSelectionSizeWrap}>
+                      <Pressable
+                        accessibilityLabel={`Change size for ${piece.name}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: isSizeMenuOpen }}
+                        onPress={() => handleToggleSizeMenu(piece)}
+                        style={({ pressed }) => [
+                          styles.cartSelectionSizeButton,
+                          isSizeMenuOpen
+                            ? styles.cartSelectionSizeButtonOpen
+                            : null,
+                          pressed ? styles.pressed : null
+                        ]}
+                      >
+                        <Text numberOfLines={1} style={styles.cartSelectionSizeText}>
+                          {selectedSize}
+                        </Text>
+                        <Feather color={colors.muted} name="chevron-down" size={18} />
+                      </Pressable>
+                      {isSizeMenuOpen ? (
+                        <View style={styles.cartSelectionSizeMenu}>
+                          {sizes.map((size) => {
+                            const isSizeSelected = size === selectedSize;
+
+                            return (
+                              <Pressable
+                                accessibilityLabel={`Select size ${size} for ${piece.name}`}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: isSizeSelected }}
+                                key={`${piece.id}-${size}`}
+                                onPress={() => handleSelectSize(piece, size)}
+                                style={({ pressed }) => [
+                                  styles.cartSelectionSizeOption,
+                                  isSizeSelected
+                                    ? styles.cartSelectionSizeOptionSelected
+                                    : null,
+                                  pressed ? styles.pressed : null
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.cartSelectionSizeOptionText,
+                                    isSizeSelected
+                                      ? styles.cartSelectionSizeOptionTextSelected
+                                      : null
+                                  ]}
+                                >
+                                  {size}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.cartSelectionPrice}>{piece.price}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <View style={styles.cartSelectionFooter}>
+            <Pressable
+              accessibilityLabel={`Add ${selectedCount} ${
+                selectedCount === 1 ? "piece" : "pieces"
+              } to cart`}
+              accessibilityRole="button"
+              disabled={selectedCount === 0}
+              onPress={handleAddSelected}
+              style={({ pressed }) => [
+                styles.cartSelectionCta,
+                selectedCount === 0 ? styles.actionButtonDisabled : null,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Text style={styles.addCartText}>Add to cart</Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -682,80 +954,82 @@ function BuildSlotCard({
   };
 
   return (
-    <Pressable
-      accessibilityLabel={piece ? `Change ${label}` : `Add ${label}`}
-      accessibilityRole="button"
-      onPress={() => onPress(kind)}
-      style={({ pressed }) => [
-        styles.buildSlot,
-        pressed ? styles.pressed : null
-      ]}
-    >
-      <View
-        onLayout={(event) => {
-          setFrameWidth(event.nativeEvent.layout.width);
-        }}
-        style={[
-          styles.buildSlotFrame,
-          !piece ? styles.buildSlotFrameEmpty : null
-        ]}
-      >
-        {piece ? (
-          <>
-            <ScrollView
-              bounces={false}
-              decelerationRate="fast"
-              horizontal
-              nestedScrollEnabled
-              onMomentumScrollEnd={handleCarouselScrollEnd}
-              pagingEnabled
-              ref={imageScrollRef}
-              scrollEventThrottle={16}
-              showsHorizontalScrollIndicator={false}
-              style={styles.buildSlotCarousel}
-            >
-              {carouselPieces.map((carouselPiece) => (
-                <Image
-                  key={`${kind}-${carouselPiece.id}-${carouselPiece.image}`}
-                  resizeMode="cover"
-                  source={{ uri: carouselPiece.image }}
-                  style={[
-                    styles.buildSlotImage,
-                    { width: Math.max(frameWidth, 1) }
-                  ]}
-                />
-              ))}
-            </ScrollView>
-            <Pressable
-              accessibilityLabel={`Remove ${label}`}
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={(event) => {
-                event.stopPropagation();
-                onClear(kind);
-              }}
-              style={({ pressed }) => [
-                styles.buildSlotRemove,
-                pressed ? styles.pressed : null
-              ]}
-            >
-              <Feather color={colors.soft} name="x" size={21} />
-            </Pressable>
-            <View style={styles.buildSlotDots}>
-              {carouselPieces.map((carouselPiece, index) => (
-                <View
-                  key={`${kind}-${carouselPiece.id}-dot`}
-                  style={[
-                    styles.buildSlotDot,
-                    index === activeImageIndex
-                      ? styles.buildSlotDotActive
-                      : null
-                  ]}
-                />
-              ))}
-            </View>
-          </>
-        ) : (
+    <View style={styles.buildSlot}>
+      {piece ? (
+        <View
+          onLayout={(event) => {
+            setFrameWidth(event.nativeEvent.layout.width);
+          }}
+          style={styles.buildSlotFrame}
+        >
+          <ScrollView
+            bounces={false}
+            decelerationRate="fast"
+            directionalLockEnabled
+            horizontal
+            nestedScrollEnabled
+            onMomentumScrollEnd={handleCarouselScrollEnd}
+            onScrollEndDrag={handleCarouselScrollEnd}
+            pagingEnabled
+            ref={imageScrollRef}
+            scrollEnabled={carouselPieces.length > 1}
+            scrollEventThrottle={16}
+            showsHorizontalScrollIndicator={false}
+            style={styles.buildSlotCarousel}
+          >
+            {carouselPieces.map((carouselPiece) => (
+              <Image
+                accessibilityLabel={`${label} option: ${carouselPiece.name}`}
+                key={`${kind}-${carouselPiece.id}-${carouselPiece.image}`}
+                resizeMode="cover"
+                source={{ uri: carouselPiece.image }}
+                style={[
+                  styles.buildSlotImage,
+                  { width: Math.max(frameWidth, 1) }
+                ]}
+              />
+            ))}
+          </ScrollView>
+          <Pressable
+            accessibilityLabel={`Remove ${label}`}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={(event) => {
+              event.stopPropagation();
+              onClear(kind);
+            }}
+            style={({ pressed }) => [
+              styles.buildSlotRemove,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.soft} name="x" size={21} />
+          </Pressable>
+          <View style={styles.buildSlotDots}>
+            {carouselPieces.map((carouselPiece, index) => (
+              <View
+                key={`${kind}-${carouselPiece.id}-${carouselPiece.image}-${index}-dot`}
+                style={[
+                  styles.buildSlotDot,
+                  index === activeImageIndex
+                    ? styles.buildSlotDotActive
+                    : null
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      ) : (
+        <Pressable
+          accessibilityLabel={`Browse ${label}`}
+          accessibilityRole="button"
+          onPress={() => onPress(kind)}
+          style={({ pressed }) => [
+            styles.buildSlotFrame,
+            styles.buildSlotFrameEmpty,
+            pressed ? styles.pressed : null
+          ]}
+        >
           <View style={styles.buildSlotEmptyContent}>
             <View style={styles.buildSlotPlus}>
               <Feather color={colors.soft} name="plus" size={24} />
@@ -764,20 +1038,19 @@ function BuildSlotCard({
               Add {label.toLowerCase()}
             </Text>
           </View>
-        )}
-      </View>
+        </Pressable>
+      )}
 
       <Text numberOfLines={1} style={styles.buildSlotLabel}>
         {label}
       </Text>
-    </Pressable>
+    </View>
   );
 }
 
 function BuildLookScreen({
   onClearSlot,
   onGenerate,
-  onGoBack,
   onOpenCategory,
   onSelectPiece,
   onShuffle,
@@ -787,7 +1060,6 @@ function BuildLookScreen({
 }: {
   onClearSlot: (kind: BuildSlotKind) => void;
   onGenerate: () => void;
-  onGoBack: () => void;
   onOpenCategory: (kind: BuildSlotKind) => void;
   onSelectPiece: (kind: BuildSlotKind, piece: LookPiece) => void;
   onShuffle: () => void;
@@ -798,18 +1070,9 @@ function BuildLookScreen({
   return (
     <View style={styles.buildScreen}>
       <ExpoStatusBar style="dark" />
+      <View style={styles.buildDrawerHandle} />
       <View style={styles.buildTopBar}>
-        <Pressable
-          accessibilityLabel="Back to try-on"
-          accessibilityRole="button"
-          onPress={onGoBack}
-          style={({ pressed }) => [
-            styles.buildTopIconButton,
-            pressed ? styles.pressed : null
-          ]}
-        >
-          <Feather color={colors.text} name="chevron-left" size={24} />
-        </Pressable>
+        <View style={styles.buildTopIconSpacer} />
 
         <Text numberOfLines={1} style={styles.buildTitle}>
           Build your look
@@ -881,6 +1144,7 @@ function BuildLookScreen({
 }
 
 export function ShopThisLookScreen({
+  cartCount = 0,
   look,
   onAddPieceToCart,
   onBack,
@@ -891,13 +1155,24 @@ export function ShopThisLookScreen({
   const { width } = useWindowDimensions();
   const activeLook = look ?? fallbackLook;
   const buyablePieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+  const buyablePieceIdsKey = useMemo(
+    () => buyablePieces.map((piece) => piece.id).join("|"),
+    [buyablePieces]
+  );
   const [activeIndex, setActiveIndex] = useState(0);
-  const [sizePiece, setSizePiece] = useState<LookPiece | null>(null);
-  const [addedMessage, setAddedMessage] = useState("");
+  const [isCartSelectionOpen, setIsCartSelectionOpen] = useState(false);
+  const [hasAddedToCart, setHasAddedToCart] = useState(false);
   const cardWidth = Math.min(width - spacing.screen * 4, 306);
   const cardGap = spacing.lg;
   const sideInset = Math.max(spacing.screen, (width - cardWidth) / 2);
-  const activePiece = buyablePieces[activeIndex] ?? buyablePieces[0];
+  const hasBuyablePieces = buyablePieces.length > 0;
+  const shopPrimaryCtaLabel = hasAddedToCart ? "View cart" : "Add to cart";
+  const isShopPrimaryDisabled = hasAddedToCart ? !onViewCart : !hasBuyablePieces;
+
+  useEffect(() => {
+    setHasAddedToCart(false);
+    setIsCartSelectionOpen(false);
+  }, [buyablePieceIdsKey]);
 
   const handleScrollEnd = (event: {
     nativeEvent: { contentOffset: { x: number } };
@@ -911,14 +1186,16 @@ export function ShopThisLookScreen({
     );
   };
 
-  const handleSelectSize = (size: string) => {
-    if (!sizePiece) {
+  const handleAddCartSelections = (items: ShopCartSheetSelection[]) => {
+    if (items.length === 0) {
       return;
     }
 
-    onAddPieceToCart(sizePiece, size);
-    setAddedMessage(`${sizePiece.name} · ${size} added to cart`);
-    setSizePiece(null);
+    items.forEach((item) => {
+      onAddPieceToCart(item.piece, item.size);
+    });
+    setHasAddedToCart(true);
+    setIsCartSelectionOpen(false);
   };
 
   return (
@@ -942,7 +1219,24 @@ export function ShopThisLookScreen({
           Shop this look
         </Text>
 
-        <View style={styles.shopHeaderIconButton} />
+        <Pressable
+          accessibilityLabel="Open cart"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onViewCart}
+          style={({ pressed }) => [
+            styles.shopHeaderCartButton,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <Feather
+            color={colors.text}
+            name="shopping-cart"
+            size={22}
+            strokeWidth={1.8}
+          />
+          <CartCountBadge count={cartCount} />
+        </Pressable>
       </View>
 
       <View style={styles.shopIntro}>
@@ -1023,69 +1317,28 @@ export function ShopThisLookScreen({
         <View style={styles.shopActionBar}>
           <Pressable
             accessibilityLabel={
-              activePiece ? `Add ${activePiece.name}` : "Add product"
+              hasAddedToCart ? "View cart" : "Choose pieces to add to cart"
             }
             accessibilityRole="button"
-            disabled={!activePiece}
-            onPress={() => activePiece && setSizePiece(activePiece)}
+            disabled={isShopPrimaryDisabled}
+            onPress={hasAddedToCart ? onViewCart : () => setIsCartSelectionOpen(true)}
             style={({ pressed }) => [
               styles.shopPrimaryAction,
-              !activePiece ? styles.actionButtonDisabled : null,
+              isShopPrimaryDisabled ? styles.actionButtonDisabled : null,
               pressed ? styles.pressed : null
             ]}
           >
-            <Text style={styles.addCartText}>Add to cart</Text>
+            <Text style={styles.addCartText}>{shopPrimaryCtaLabel}</Text>
           </Pressable>
 
-          <Pressable
-            accessibilityLabel="View cart"
-            accessibilityRole="button"
-            onPress={onViewCart}
-            style={({ pressed }) => [
-              styles.shopSecondaryAction,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Text style={styles.shopSecondaryActionText}>View cart</Text>
-          </Pressable>
         </View>
       </View>
 
-      {addedMessage ? (
-        <View style={styles.shopToast}>
-          <Text numberOfLines={2} style={styles.shopToastText}>
-            {addedMessage}
-          </Text>
-          <Pressable
-            accessibilityLabel="View cart"
-            accessibilityRole="button"
-            onPress={onViewCart}
-            style={({ pressed }) => [
-              styles.shopToastAction,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Text style={styles.shopToastActionText}>View</Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel="Dismiss cart confirmation"
-            accessibilityRole="button"
-            onPress={() => setAddedMessage("")}
-            style={({ pressed }) => [
-              styles.shopToastClose,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Feather color={colors.text} name="x" size={18} />
-          </Pressable>
-        </View>
-      ) : null}
-
-      {sizePiece ? (
-        <SizePickerSheet
-          onClose={() => setSizePiece(null)}
-          onSelectSize={handleSelectSize}
-          piece={sizePiece}
+      {isCartSelectionOpen ? (
+        <ShopCartSelectionSheet
+          onAddToCart={handleAddCartSelections}
+          onClose={() => setIsCartSelectionOpen(false)}
+          pieces={buyablePieces}
         />
       ) : null}
     </View>
@@ -1126,18 +1379,25 @@ export function TryOnScreen({
   const [isCartToastVisible, setIsCartToastVisible] = useState(false);
   const [addedPieceCount, setAddedPieceCount] = useState(0);
   const [isBuildLookOpen, setIsBuildLookOpen] = useState(false);
+  const [isBuildLookDrawerVisible, setIsBuildLookDrawerVisible] =
+    useState(false);
   const [activeBuildCategory, setActiveBuildCategory] =
     useState<BuildSlotKind | null>(null);
   const [buildStylePrompt, setBuildStylePrompt] = useState("");
   const spinnerProgress = useRef(new Animated.Value(0)).current;
   const breatheProgress = useRef(new Animated.Value(0)).current;
   const piecePanelProgress = useRef(new Animated.Value(0)).current;
+  const buildDrawerProgress = useRef(new Animated.Value(0)).current;
   const { height } = useWindowDimensions();
   const creationImageHeight = Math.max(
     320,
     Math.min(Math.round(height * 0.54), 500)
   );
   const priceSummary = useMemo(() => getTryOnPriceSummary(pieces), [pieces]);
+  const fixedLookProductPieces = useMemo(
+    () => getShopThisLookPieces(pieces),
+    [pieces]
+  );
   const mediaSlides = useMemo(
     () => [
       {
@@ -1167,10 +1427,12 @@ export function TryOnScreen({
     setIsPiecePanelOpen(false);
     setIsPiecePanelVisible(false);
     setIsBuildLookOpen(false);
+    setIsBuildLookDrawerVisible(false);
     setActiveBuildCategory(null);
     setBuildStylePrompt("");
     piecePanelProgress.setValue(0);
-  }, [activeLook, initialPieces, piecePanelProgress]);
+    buildDrawerProgress.setValue(0);
+  }, [activeLook, buildDrawerProgress, initialPieces, piecePanelProgress]);
 
   useEffect(() => {
     if (isPiecePanelOpen) {
@@ -1194,6 +1456,32 @@ export function TryOnScreen({
       panelAnimation.stop();
     };
   }, [isPiecePanelOpen, piecePanelProgress]);
+
+  useEffect(() => {
+    if (isBuildLookOpen) {
+      setIsBuildLookDrawerVisible(true);
+    }
+
+    const drawerAnimation = Animated.timing(buildDrawerProgress, {
+      duration: isBuildLookOpen ? 280 : 220,
+      easing: isBuildLookOpen
+        ? Easing.out(Easing.cubic)
+        : Easing.in(Easing.cubic),
+      toValue: isBuildLookOpen ? 1 : 0,
+      useNativeDriver: true
+    });
+
+    drawerAnimation.start(({ finished }) => {
+      if (finished && !isBuildLookOpen) {
+        setIsBuildLookDrawerVisible(false);
+        setActiveBuildCategory(null);
+      }
+    });
+
+    return () => {
+      drawerAnimation.stop();
+    };
+  }, [buildDrawerProgress, isBuildLookOpen]);
 
   useEffect(() => {
     if (!isRendering) {
@@ -1313,6 +1601,7 @@ export function TryOnScreen({
     setIsCartToastVisible(false);
     setIsPiecePanelOpen(false);
     setIsPiecePanelVisible(false);
+    setActiveBuildCategory(null);
     setIsBuildLookOpen(true);
   };
 
@@ -1457,66 +1746,9 @@ export function TryOnScreen({
     );
   }
 
-  if (activeBuildCategory) {
-    const activeSlot =
-      buildSlots.find((slot) => slot.kind === activeBuildCategory) ??
-      buildSlots[0];
-    const listingOptions = getBuildListingOptions({
-      kind: activeBuildCategory,
-      pieces,
-      stylePrompt: buildStylePrompt
-    });
-    const listingSubtitle = buildStylePrompt.trim()
-      ? `${buildStylePrompt.trim()} · current piece first`
-      : "Current piece first";
-
-    return (
-      <ProductListingScreen
-        emptyCopy="Try another style direction or come back to this slot later."
-        emptyTitle={`No ${activeSlot.label.toLowerCase()} options yet`}
-        onBack={() => setActiveBuildCategory(null)}
-        onOpenCart={viewCart}
-        onOpenProduct={(product) => {
-          const selectedOption = listingOptions.find(
-            (option) => option.product.id === product.id
-          );
-
-          if (selectedOption) {
-            handleSelectBuildProduct(
-              activeBuildCategory,
-              selectedOption.piece
-            );
-          }
-        }}
-        products={listingOptions.map((option) => option.product)}
-        subtitle={listingSubtitle}
-        title={activeSlot.listingTitle}
-      />
-    );
-  }
-
-  if (isBuildLookOpen) {
-    return (
-      <BuildLookScreen
-        onClearSlot={handleClearBuildSlot}
-        onGenerate={handleGenerateBuildLook}
-        onGoBack={() => {
-          setActiveBuildCategory(null);
-          setIsBuildLookOpen(false);
-        }}
-        onOpenCategory={setActiveBuildCategory}
-        onSelectPiece={handleSelectBuildSlotPiece}
-        onShuffle={handleShuffleBuildLook}
-        onStylePromptChange={setBuildStylePrompt}
-        pieces={pieces}
-        stylePrompt={buildStylePrompt}
-      />
-    );
-  }
-
   const breatheScale = breatheProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.9, 0.912]
+    outputRange: [1, 1.012]
   });
   const piecePanelShrink = piecePanelProgress.interpolate({
     inputRange: [0, 1],
@@ -1535,6 +1767,68 @@ export function TryOnScreen({
     { translateY: avatarTranslateY },
     { scale: avatarScale }
   ];
+  const buildDrawerTranslateY = buildDrawerProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, 0]
+  });
+  const buildDrawerBackdropOpacity = buildDrawerProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.46]
+  });
+  let buildDrawerContent = null;
+
+  if (isBuildLookDrawerVisible) {
+    if (activeBuildCategory) {
+      const activeSlot =
+        buildSlots.find((slot) => slot.kind === activeBuildCategory) ??
+        buildSlots[0];
+      const listingOptions = getBuildListingOptions({
+        kind: activeBuildCategory,
+        pieces,
+        stylePrompt: buildStylePrompt
+      });
+
+      buildDrawerContent = (
+        <ProductListingScreen
+          emptyCopy="Try another style direction or come back to this slot later."
+          emptyTitle={`No ${activeSlot.label.toLowerCase()} options yet`}
+          hideCardWishlist
+          hideHeaderActions
+          hideProductImageTags
+          keepProductsVisibleOnEmptyChip
+          onBack={() => setActiveBuildCategory(null)}
+          onOpenProduct={(product) => {
+            const selectedOption = listingOptions.find(
+              (option) => option.product.id === product.id
+            );
+
+            if (selectedOption) {
+              handleSelectBuildProduct(
+                activeBuildCategory,
+                selectedOption.piece
+              );
+            }
+          }}
+          products={listingOptions.map((option) => option.product)}
+          showDrawerHandle
+          title={activeSlot.listingTitle}
+        />
+      );
+    } else {
+      buildDrawerContent = (
+        <BuildLookScreen
+          onClearSlot={handleClearBuildSlot}
+          onGenerate={handleGenerateBuildLook}
+          onOpenCategory={setActiveBuildCategory}
+          onSelectPiece={handleSelectBuildSlotPiece}
+          onShuffle={handleShuffleBuildLook}
+          onStylePromptChange={setBuildStylePrompt}
+          pieces={pieces}
+          stylePrompt={buildStylePrompt}
+        />
+      );
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -1568,27 +1862,26 @@ export function TryOnScreen({
                     { transform: avatarTransform }
                   ]}
                 >
-                  <Image
-                    resizeMode="contain"
-                    source={tryOnModelImage}
-                    style={styles.avatarImage}
-                  />
-                </Animated.View>
-
-                {activeMediaSlide.isVideo ? (
-                  <View
-                    pointerEvents="none"
-                    style={styles.videoPreviewOverlay}
-                  >
-                    <View style={styles.videoPlayButton}>
-                      <Feather
-                        color={colors.inverseText}
-                        name="play"
-                        size={22}
+                  {activeMediaSlide.isVideo ? (
+                    <View style={styles.avatarVideoClip}>
+                      <Video
+                        isLooping
+                        isMuted
+                        resizeMode={ResizeMode.COVER}
+                        shouldPlay={activeMediaSlide.isVideo}
+                        source={tryOnVideoAsset}
+                        style={styles.avatarVideo}
+                        useNativeControls={false}
                       />
                     </View>
-                  </View>
-                ) : null}
+                  ) : (
+                    <Image
+                      resizeMode="contain"
+                      source={tryOnModelImage}
+                      style={styles.avatarImage}
+                    />
+                  )}
+                </Animated.View>
               </View>
 
               {!isPiecePanelVisible ? (
@@ -1643,7 +1936,10 @@ export function TryOnScreen({
               <View>
                 <Text style={styles.outfitInfoTitle}>Pieces in this look</Text>
                 <Text style={styles.outfitInfoKicker}>
-                  {priceSummary.buyableCount} new pieces
+                  {fixedLookProductPieces.length}{" "}
+                  {fixedLookProductPieces.length === 1
+                    ? "product"
+                    : "products"}
                 </Text>
               </View>
               <Pressable
@@ -1665,7 +1961,7 @@ export function TryOnScreen({
               contentContainerStyle={styles.outfitPieceTrack}
               showsHorizontalScrollIndicator={false}
             >
-              {pieces.map((piece) => (
+              {fixedLookProductPieces.map((piece) => (
                 <PieceCard
                   key={piece.id}
                   onPress={() => handleOpenPieceProduct(piece)}
@@ -1760,6 +2056,34 @@ export function TryOnScreen({
           piece={swapPiece}
         />
       ) : null}
+
+      {buildDrawerContent ? (
+        <View pointerEvents="box-none" style={styles.buildDrawerLayer}>
+          <Pressable
+            accessibilityLabel="Close build your look drawer"
+            accessibilityRole="button"
+            onPress={() => setIsBuildLookOpen(false)}
+            style={styles.buildDrawerBackdrop}
+          >
+            <Animated.View
+              style={[
+                styles.buildDrawerScrim,
+                { opacity: buildDrawerBackdropOpacity }
+              ]}
+            />
+          </Pressable>
+
+          <Animated.View
+            pointerEvents="auto"
+            style={[
+              styles.buildDrawer,
+              { transform: [{ translateY: buildDrawerTranslateY }] }
+            ]}
+          >
+            {buildDrawerContent}
+          </Animated.View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1821,6 +2145,15 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%"
   },
+  avatarVideoClip: {
+    height: "100%",
+    overflow: "hidden",
+    width: "100%"
+  },
+  avatarVideo: {
+    height: "100%",
+    width: "100%"
+  },
   avatarRegion: {
     backgroundColor: colors.background,
     overflow: "hidden"
@@ -1829,9 +2162,47 @@ const styles = StyleSheet.create({
     flex: 1
   },
   buildContent: {
-    paddingBottom: bottomSafeInset + 104,
+    paddingBottom: 58 + spacing.md * 3,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.lg
+    paddingTop: spacing.md
+  },
+  buildDrawerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0
+  },
+  buildDrawer: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    bottom: 0,
+    elevation: 18,
+    height: "76%",
+    left: 0,
+    overflow: "hidden",
+    position: "absolute",
+    right: 0,
+    shadowColor: "#000000",
+    shadowOffset: { height: -8, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    zIndex: 1
+  },
+  buildDrawerHandle: {
+    alignSelf: "center",
+    backgroundColor: colors.soft,
+    borderRadius: 999,
+    height: 5,
+    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
+    width: 48
+  },
+  buildDrawerLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 18
+  },
+  buildDrawerScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000000"
   },
   buildGenerateButton: {
     alignItems: "center",
@@ -1842,11 +2213,9 @@ const styles = StyleSheet.create({
   },
   buildGenerateShell: {
     backgroundColor: colors.background,
-    borderTopColor: colors.border,
-    borderTopWidth: 0.5,
     bottom: 0,
     left: 0,
-    paddingBottom: bottomSafeInset + spacing.sm,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md,
     position: "absolute",
@@ -2001,7 +2370,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.screen,
-    paddingTop: topSafeInset + spacing.sm
+    paddingTop: 0
   },
   buildTopIconButton: {
     alignItems: "center",
@@ -2011,6 +2380,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     height: 40,
     justifyContent: "center",
+    width: 40
+  },
+  buildTopIconSpacer: {
+    height: 40,
     width: 40
   },
   cartToast: {
@@ -2026,6 +2399,186 @@ const styles = StyleSheet.create({
     shadowOffset: { height: 6, width: 0 },
     shadowOpacity: 0.16,
     shadowRadius: 18
+  },
+  cartSelectionCategory: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    lineHeight: 18
+  },
+  cartSelectionCopy: {
+    flex: 1,
+    gap: 5,
+    minWidth: 0,
+    paddingRight: spacing.sm
+  },
+  cartSelectionCta: {
+    alignItems: "center",
+    backgroundColor: colors.text,
+    borderRadius: 999,
+    height: 54,
+    justifyContent: "center"
+  },
+  cartSelectionFooter: {
+    backgroundColor: colors.background,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md
+  },
+  cartSelectionImage: {
+    height: "100%",
+    width: "100%"
+  },
+  cartSelectionImageWrap: {
+    backgroundColor: colors.imageSurface,
+    borderRadius: 12,
+    height: 104,
+    overflow: "hidden",
+    width: 88
+  },
+  cartSelectionItem: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.md,
+    zIndex: 1
+  },
+  cartSelectionItemOpen: {
+    zIndex: 20
+  },
+  cartSelectionList: {
+    gap: spacing.lg,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md
+  },
+  cartSelectionName: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 19
+  },
+  cartSelectionPrice: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    lineHeight: 18,
+    marginTop: 3
+  },
+  cartSelectionSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    maxHeight: "74%",
+    paddingBottom: 0,
+    paddingTop: spacing.md
+  },
+  cartSelectionSizeButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.lg,
+    height: 42,
+    justifyContent: "space-between",
+    minWidth: 104,
+    paddingHorizontal: spacing.md
+  },
+  cartSelectionSizeButtonOpen: {
+    borderColor: colors.text
+  },
+  cartSelectionSizeMenu: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    left: 0,
+    paddingVertical: spacing.xs,
+    position: "absolute",
+    top: 46,
+    width: 104,
+    zIndex: 12
+  },
+  cartSelectionSizeOption: {
+    alignItems: "center",
+    borderRadius: 8,
+    height: 34,
+    justifyContent: "center",
+    paddingHorizontal: spacing.sm
+  },
+  cartSelectionSizeOptionSelected: {
+    backgroundColor: colors.text
+  },
+  cartSelectionSizeOptionText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    lineHeight: 18
+  },
+  cartSelectionSizeOptionTextSelected: {
+    color: colors.inverseText
+  },
+  cartSelectionSizeText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 19
+  },
+  cartSelectionSizeWrap: {
+    alignSelf: "flex-start",
+    height: 42,
+    position: "relative",
+    width: 104,
+    zIndex: 10
+  },
+  cartSelectionSummary: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    paddingBottom: 0,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md
+  },
+  cartSelectionSummaryIcon: {
+    alignItems: "center",
+    backgroundColor: colors.text,
+    borderRadius: 6,
+    height: 24,
+    justifyContent: "center",
+    width: 24
+  },
+  cartSelectionSummaryIconEmpty: {
+    opacity: 0.72
+  },
+  cartSelectionSummaryPrice: {
+    color: colors.text,
+    fontFamily: fonts.heading
+  },
+  cartSelectionSummaryText: {
+    color: colors.muted,
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 16,
+    lineHeight: 20
+  },
+  cartSelectionThumbCheck: {
+    alignItems: "center",
+    borderRadius: 6,
+    height: 24,
+    justifyContent: "center",
+    left: spacing.sm,
+    position: "absolute",
+    top: spacing.sm,
+    width: 24
+  },
+  cartSelectionThumbCheckEmpty: {
+    backgroundColor: "rgba(255, 255, 255, 0.86)",
+    borderColor: colors.border,
+    borderWidth: 1
+  },
+  cartSelectionThumbCheckSelected: {
+    backgroundColor: colors.text
   },
   creationCloseButton: {
     alignItems: "center",
@@ -2061,16 +2614,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: "center"
   },
-  creationBrowseCopy: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: spacing.lg,
-    maxWidth: 280,
-    textAlign: "center"
-  },
   creationCopy: {
+    alignSelf: "stretch",
     color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 14,
@@ -2079,7 +2624,8 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   creationCopyBlock: {
-    alignItems: "center"
+    alignItems: "center",
+    width: "100%"
   },
   creationImage: {
     height: "100%",
@@ -2257,11 +2803,9 @@ const styles = StyleSheet.create({
   outfitInfoKicker: {
     color: colors.soft,
     fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 1.4,
-    lineHeight: 13,
-    marginTop: 3,
-    textTransform: "uppercase"
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: 3
   },
   outfitInfoTitle: {
     color: colors.text,
@@ -2464,11 +3008,12 @@ const styles = StyleSheet.create({
     marginLeft: -6,
     width: 38
   },
-  shopHeaderIconButton: {
+  shopHeaderCartButton: {
     alignItems: "center",
-    height: 44,
+    height: 32,
     justifyContent: "center",
-    width: 36
+    position: "relative",
+    width: 32
   },
   shopPagination: {
     alignItems: "center",
@@ -2529,68 +3074,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flex: 1
   },
-  shopSecondaryAction: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.borderStrong,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 48,
-    justifyContent: "center",
-    paddingHorizontal: spacing.md
-  },
-  shopSecondaryActionText: {
-    color: colors.text,
-    fontFamily: fonts.cta,
-    fontSize: 14,
-    lineHeight: 18
-  },
-  shopToast: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: 0.5,
-    bottom: bottomSafeInset + 86,
-    flexDirection: "row",
-    gap: spacing.sm,
-    left: spacing.screen,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    position: "absolute",
-    right: spacing.screen,
-    shadowColor: "#000000",
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18
-  },
-  shopToastAction: {
-    alignItems: "center",
-    height: 36,
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm
-  },
-  shopToastActionText: {
-    color: colors.text,
-    fontFamily: fonts.cta,
-    fontSize: 12,
-    letterSpacing: 1,
-    lineHeight: 15,
-    textTransform: "uppercase"
-  },
-  shopToastClose: {
-    alignItems: "center",
-    height: 36,
-    justifyContent: "center",
-    width: 28
-  },
-  shopToastText: {
-    color: colors.text,
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 17
-  },
   shopTitle: {
     color: colors.text,
     fontFamily: fonts.heading,
@@ -2609,69 +3092,10 @@ const styles = StyleSheet.create({
   shopTopTitle: {
     color: colors.text,
     flex: 1,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 18,
-    textAlign: "center"
-  },
-  sizeGuideButton: {
-    alignItems: "center",
-    height: 34,
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm
-  },
-  sizeGuideText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 17,
-    textDecorationLine: "underline"
-  },
-  sizeInlineRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.screen
-  },
-  sizeMetaRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.screen
-  },
-  sizeOptionText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 18,
-    lineHeight: 23
-  },
-  sizeProductName: {
-    color: colors.text,
     fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: 23,
-    paddingHorizontal: spacing.xl,
-    textAlign: "center"
-  },
-  sizeRecommendedLabel: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 17
-  },
-  sizeSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    gap: spacing.lg,
-    paddingBottom: bottomSafeInset + spacing.xl,
-    paddingTop: spacing.md
-  },
-  sizeTapTarget: {
-    alignItems: "center",
-    flex: 1,
-    height: 52,
-    justifyContent: "center"
+    fontSize: 20,
+    lineHeight: 25,
+    textAlign: "left"
   },
   swapSheet: {
     backgroundColor: colors.background,
@@ -2787,40 +3211,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 26,
     lineHeight: 31
-  },
-  videoPlayButton: {
-    alignItems: "center",
-    backgroundColor: colors.inverseTranslucent,
-    borderColor: "rgba(255, 255, 255, 0.32)",
-    borderRadius: 26,
-    borderWidth: 1,
-    height: 52,
-    justifyContent: "center",
-    width: 52
-  },
-  videoPreviewOverlay: {
-    alignItems: "center",
-    backgroundColor: "rgba(10, 10, 10, 0.08)",
-    bottom: 0,
-    justifyContent: "center",
-    left: 0,
-    position: "absolute",
-    right: 0,
-    top: 0
-  },
-  yoursTag: {
-    backgroundColor: colors.text,
-    borderRadius: 999,
-    bottom: 5,
-    left: 5,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    position: "absolute"
-  },
-  yoursTagText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 9,
-    lineHeight: 11
   },
 });

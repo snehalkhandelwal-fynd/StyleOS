@@ -22,6 +22,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 
 import { colors, fonts, spacing } from "../../../theme";
+import { CartCountBadge } from "../components/CartCountBadge";
 import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
 import {
@@ -38,6 +39,7 @@ export type ShopThisLookCartItem = {
 
 type ModelLookPdpScreenProps = {
   cartCount?: number;
+  hasStyleProfile?: boolean;
   initialIsSaved?: boolean;
   look: ProductLook;
   onAddToCart?: (items: ShopThisLookCartItem[]) => void;
@@ -205,13 +207,7 @@ function LookPdpHeader({
           ]}
         >
           <Feather color={colors.text} name="shopping-cart" size={24} />
-          {cartCount > 0 ? (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>
-                {cartCount > 9 ? "9+" : cartCount}
-              </Text>
-            </View>
-          ) : null}
+          <CartCountBadge count={cartCount} />
         </Pressable>
       </View>
     </View>
@@ -219,12 +215,14 @@ function LookPdpHeader({
 }
 
 function HeroLookImage({
+  hasStyleProfile,
   heroHeight,
   isSaved,
   look,
   onOpenSimilar,
   onSave
 }: {
+  hasStyleProfile: boolean;
   heroHeight: number;
   isSaved: boolean;
   look: ProductLook;
@@ -266,12 +264,20 @@ function HeroLookImage({
         <WishlistHeartIcon saved={isSaved} size={23} />
       </Pressable>
 
-      <MatchRibbonTag
-        height={30}
-        label={look.match}
-        style={styles.heroMatchTag}
-        width={98}
-      />
+      {hasStyleProfile ? (
+        <MatchRibbonTag
+          height={30}
+          label={look.match}
+          style={styles.heroMatchTag}
+          width={98}
+        />
+      ) : (
+        <View style={styles.heroContextTag}>
+          <Text numberOfLines={1} style={styles.heroContextText}>
+            {look.vibe}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -335,6 +341,12 @@ const shopThisLookPieceOrder: Array<LookPiece["kind"]> = [
   "bag",
   "shoe"
 ];
+const shopThisLookImageByKind: Partial<Record<LookPiece["kind"], string>> = {
+  bag: prototypeProductImages.shopThisLook.brownBag,
+  bottom: prototypeProductImages.shopThisLook.yellowPants,
+  shoe: prototypeProductImages.shopThisLook.brownShoes,
+  top: prototypeProductImages.shopThisLook.yellowTop
+};
 
 function getShopThisLookPieces(pieces: LookPiece[]) {
   const piecesByKind = new Map<LookPiece["kind"], LookPiece>();
@@ -350,7 +362,11 @@ function getShopThisLookPieces(pieces: LookPiece[]) {
 
   return shopThisLookPieceOrder
     .map((kind) => piecesByKind.get(kind))
-    .filter((piece): piece is LookPiece => Boolean(piece));
+    .filter((piece): piece is LookPiece => Boolean(piece))
+    .map((piece) => ({
+      ...piece,
+      image: shopThisLookImageByKind[piece.kind] ?? piece.image
+    }));
 }
 
 function getDefaultSelectedSize(piece: LookPiece) {
@@ -683,11 +699,19 @@ function MiraNote({ onAskMira }: { onAskMira?: () => void }) {
   );
 }
 
+function getVariationDisplayLabel(changed: string) {
+  return changed
+    .replace(/^Different\s+/i, "Swap ")
+    .replace(/^Add a\s+/i, "");
+}
+
 function VariationCard({
+  hasStyleProfile,
   image,
   style,
   variation
 }: {
+  hasStyleProfile: boolean;
   image: string;
   style?: StyleProp<ViewStyle>;
   variation: Variation;
@@ -732,14 +756,22 @@ function VariationCard({
             </View>
           ))}
         </View>
-        <MatchRibbonTag
-          height={24}
-          label={variation.match}
-          mirrored
-          style={styles.variationMatchTag}
-          textStyle={styles.variationMatchTagText}
-          width={82}
-        />
+        {hasStyleProfile ? (
+          <MatchRibbonTag
+            height={24}
+            label={variation.match}
+            mirrored
+            style={styles.variationMatchTag}
+            textStyle={styles.variationMatchTagText}
+            width={82}
+          />
+        ) : (
+          <View style={styles.variationContextPill}>
+            <Text numberOfLines={1} style={styles.variationContextText}>
+              {getVariationDisplayLabel(variation.changed)}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -784,65 +816,94 @@ function SimilarItemCard({
 }
 
 function LookCtaButtons({
+  hasAddedToCart,
   onAddToCart,
+  onOpenCart,
   onTryOn
 }: {
+  hasAddedToCart?: boolean;
   onAddToCart?: () => void;
+  onOpenCart?: () => void;
   onTryOn?: (context?: string) => void;
 }) {
+  const cartCtaLabel = hasAddedToCart ? "View cart" : "Add to cart";
+
   return (
     <View style={styles.ctaButtonRow}>
       <Pressable
-        accessibilityLabel="Add selected look pieces to cart"
+        accessibilityLabel="Try on complete look"
         accessibilityRole="button"
-        onPress={onAddToCart}
+        onPress={() => onTryOn?.("Complete look")}
         style={({ pressed }) => [
           styles.secondaryCta,
           pressed ? styles.pressed : null
         ]}
       >
-        <Text style={styles.secondaryCtaText}>Add to cart</Text>
+        <Text style={styles.secondaryCtaText}>Try on</Text>
       </Pressable>
       <Pressable
+        accessibilityLabel={
+          hasAddedToCart
+            ? "View cart"
+            : "Add selected look pieces to cart"
+        }
         accessibilityRole="button"
-        onPress={() => onTryOn?.("Complete look")}
+        onPress={hasAddedToCart ? onOpenCart : onAddToCart}
         style={({ pressed }) => [
           styles.primaryCta,
           pressed ? styles.pressed : null
         ]}
       >
-        <Text style={styles.primaryCtaText}>Try on</Text>
+        <Text style={styles.primaryCtaText}>{cartCtaLabel}</Text>
       </Pressable>
     </View>
   );
 }
 
 function StickyCtaBar({
+  hasAddedToCart,
   onAddToCart,
+  onOpenCart,
   onTryOn
 }: {
+  hasAddedToCart?: boolean;
   onAddToCart?: () => void;
+  onOpenCart?: () => void;
   onTryOn?: (context?: string) => void;
 }) {
   return (
     <View style={styles.ctaDock}>
-      <LookCtaButtons onAddToCart={onAddToCart} onTryOn={onTryOn} />
+      <LookCtaButtons
+        hasAddedToCart={hasAddedToCart}
+        onAddToCart={onAddToCart}
+        onOpenCart={onOpenCart}
+        onTryOn={onTryOn}
+      />
     </View>
   );
 }
 
 function InlineCtaSection({
+  hasAddedToCart,
   onAddToCart,
   onLayout,
+  onOpenCart,
   onTryOn
 }: {
+  hasAddedToCart?: boolean;
   onAddToCart?: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
+  onOpenCart?: () => void;
   onTryOn?: (context?: string) => void;
 }) {
   return (
     <View onLayout={onLayout} style={styles.inlineCtaSection}>
-      <LookCtaButtons onAddToCart={onAddToCart} onTryOn={onTryOn} />
+      <LookCtaButtons
+        hasAddedToCart={hasAddedToCart}
+        onAddToCart={onAddToCart}
+        onOpenCart={onOpenCart}
+        onTryOn={onTryOn}
+      />
     </View>
   );
 }
@@ -970,6 +1031,7 @@ const similarShopItems: SimilarShopItem[] = [
 
 export function ModelLookPdpScreen({
   cartCount = 0,
+  hasStyleProfile = false,
   initialIsSaved,
   look,
   onAddToCart,
@@ -990,6 +1052,7 @@ export function ModelLookPdpScreen({
   const inlineCtaY = useRef<number | null>(null);
   const similarSectionY = useRef(0);
   const [localIsSaved, setLocalIsSaved] = useState(false);
+  const [hasAddedToCart, setHasAddedToCart] = useState(false);
   const [selectedSimilarCategory, setSelectedSimilarCategory] =
     useState<SimilarItemCategory>("top");
   const [showStickyCta, setShowStickyCta] = useState(true);
@@ -1019,7 +1082,12 @@ export function ModelLookPdpScreen({
   }, [shopPieceIdsKey, shopPieces]);
 
   const handleAddToCart = useCallback(() => {
+    if (shopCartSelection.length === 0) {
+      return;
+    }
+
     onAddToCart?.(shopCartSelection);
+    setHasAddedToCart(true);
   }, [onAddToCart, shopCartSelection]);
 
   const handleToggleSave = () => {
@@ -1089,6 +1157,7 @@ export function ModelLookPdpScreen({
         showsVerticalScrollIndicator={false}
       >
         <HeroLookImage
+          hasStyleProfile={hasStyleProfile}
           heroHeight={heroHeight}
           isSaved={isSaved}
           look={look}
@@ -1116,11 +1185,13 @@ export function ModelLookPdpScreen({
           <MiraNote onAskMira={onAskMira} />
 
           <InlineCtaSection
+            hasAddedToCart={hasAddedToCart}
             onAddToCart={handleAddToCart}
             onLayout={(event) => {
               inlineCtaY.current = event.nativeEvent.layout.y;
               inlineCtaHeight.current = event.nativeEvent.layout.height;
             }}
+            onOpenCart={onOpenCart}
             onTryOn={onStartTryOn}
           />
 
@@ -1134,6 +1205,7 @@ export function ModelLookPdpScreen({
             >
               {variations.map((variation, index) => (
                 <VariationCard
+                  hasStyleProfile={hasStyleProfile}
                   image={variation.image}
                   key={variation.id}
                   style={[
@@ -1207,7 +1279,9 @@ export function ModelLookPdpScreen({
 
       {showStickyCta ? (
         <StickyCtaBar
+          hasAddedToCart={hasAddedToCart}
           onAddToCart={handleAddToCart}
+          onOpenCart={onOpenCart}
           onTryOn={onStartTryOn}
         />
       ) : null}
@@ -1248,26 +1322,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 12
   },
-  cartBadge: {
-    alignItems: "center",
-    backgroundColor: colors.text,
-    borderColor: colors.background,
-    borderRadius: 9,
-    borderWidth: 1,
-    height: 18,
-    justifyContent: "center",
-    minWidth: 18,
-    paddingHorizontal: 4,
-    position: "absolute",
-    right: -2,
-    top: 4
-  },
-  cartBadgeText: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 9,
-    lineHeight: 11
-  },
   firstLookCarouselCard: {
     marginLeft: spacing.screen
   },
@@ -1282,6 +1336,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 44,
     justifyContent: "center",
+    position: "relative",
     width: 36
   },
   headerSearchBar: {
@@ -1343,6 +1398,24 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     top: spacing.lg
+  },
+  heroContextTag: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    left: spacing.screen,
+    maxWidth: 140,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    position: "absolute",
+    top: spacing.lg
+  },
+  heroContextText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
   },
   infoStrip: {
     gap: 0
@@ -1799,6 +1872,21 @@ const styles = StyleSheet.create({
   variationImageStyle: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12
+  },
+  variationContextPill: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 0.5,
+    maxWidth: 90,
+    paddingHorizontal: 8,
+    paddingVertical: 3
+  },
+  variationContextText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13
   },
   variationMatchTag: {
     marginLeft: spacing.xs,
