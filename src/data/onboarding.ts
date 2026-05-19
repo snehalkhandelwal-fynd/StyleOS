@@ -1,8 +1,10 @@
+import { prototypeProductImages } from "../features/home/data/prototypeProductImages";
+
 export const splashBanners = [
   {
     id: "try-on",
     image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     kicker: "Try before you decide",
     title: "Your looks, on you.",
     subtitle:
@@ -11,7 +13,7 @@ export const splashBanners = [
   {
     id: "style-match",
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.sandro.navyTailoredSet,
     kicker: "Find what feels right",
     title: "Outfits that match you.",
     subtitle:
@@ -20,7 +22,7 @@ export const splashBanners = [
   {
     id: "wardrobe",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80",
+      prototypeProductImages.maje.oliveCapeMini,
     kicker: "Style what you own",
     title: "Make more of your wardrobe.",
     subtitle:

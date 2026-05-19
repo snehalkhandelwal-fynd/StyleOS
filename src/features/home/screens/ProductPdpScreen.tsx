@@ -1,10 +1,13 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useMemo, useRef, useState } from "react";
 import {
   Animated,
   Image,
+  KeyboardAvoidingView,
   LayoutChangeEvent,
   LayoutAnimation,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -62,33 +65,30 @@ const pdpHeaderHeight = topSafeInset + 64;
 const galleryDotsHeight = 30;
 const sizeOptionsFallback: SizeOption[] = ["XS", "S", "M", "L", "XL"];
 const detailImage =
-  "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.maje.greenDenimTop;
 const flatLayImage =
-  "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.maje.beigeCrochetDress;
 const modelImage =
-  "https://images.unsplash.com/photo-1776633734216-26b0dbcf61d1?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.sandro.navyTailoredSet;
 const trouserImage =
-  "https://images.unsplash.com/photo-1506629905607-d405d7d3b0d2?auto=format&fit=crop&w=800&q=80";
+  prototypeProductImages.sandro.whitePinstripeSuit;
 const muleImage =
-  "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80";
-const denimImage =
-  "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=800&q=80";
+  prototypeProductImages.sandro.brownJacket;
+const denimImage = prototypeProductImages.sandro.denimJacket;
 const shortImage =
-  "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=800&q=80";
-const bagImage =
-  "https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=800&q=80";
+  prototypeProductImages.maje.khakiTrenchSkirt;
+const bagImage = prototypeProductImages.maje.stripedScarfDenim;
 const skirtImage =
-  "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=800&q=80";
-const shoeImage =
-  "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80";
+  prototypeProductImages.maje.beigeCrochetDress;
+const shoeImage = prototypeProductImages.sandro.brownJacket;
 const backViewImage =
-  "https://images.unsplash.com/photo-1776633734832-ca4ad72e203a?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.sandro.beigeTrench;
 const whiteShirtDetailImage =
-  "https://images.unsplash.com/photo-1666358067414-c77508c771b2?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.sandro.whitePinstripeSuit;
 const whiteShirtOnModelImage =
-  "https://images.unsplash.com/photo-1776633734208-3cdf89a7fbf0?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.sandro.whitePinstripeSuit;
 const whiteShirtFlatLayImage =
-  "https://images.unsplash.com/photo-1772412926875-75097b7a0c08?auto=format&fit=crop&w=900&q=80";
+  prototypeProductImages.sandro.brownJacket;
 
 function parsePriceValue(price: string) {
   return Number(price.replace(/[^\d]/g, "")) || 0;
@@ -219,7 +219,7 @@ function getSimilarProducts(product: ProductListingProduct) {
       context: product.occasion ?? "Work-ready",
       id: "similar-soft-shirt",
       image: modelImage,
-      match: "89% your style",
+      match: "89% match",
       price: formatRupeePrice(basePrice + 300),
       title: "Relaxed collar shirt",
       tries: "840 tries"
@@ -229,7 +229,7 @@ function getSimilarProducts(product: ProductListingProduct) {
       context: "Easy layer",
       id: "similar-linen-layer",
       image: detailImage,
-      match: "87% your style",
+      match: "87% match",
       price: formatRupeePrice(basePrice + 150),
       title: "Textured linen shirt",
       tries: "430 tries"
@@ -239,7 +239,7 @@ function getSimilarProducts(product: ProductListingProduct) {
       context: "Smart casual",
       id: "similar-crisp-shirt",
       image: flatLayImage,
-      match: "92% your style",
+      match: "92% match",
       price: formatRupeePrice(basePrice + 600),
       title: "Crisp relaxed shirt",
       tries: "1.1k tries"
@@ -249,7 +249,7 @@ function getSimilarProducts(product: ProductListingProduct) {
       context: "Vacation",
       id: "similar-sheer-shirt",
       image: product.image,
-      match: "90% your style",
+      match: "90% match",
       price: formatRupeePrice(basePrice + 420),
       title: "Airy resort shirt",
       tries: "680 tries"
@@ -259,7 +259,7 @@ function getSimilarProducts(product: ProductListingProduct) {
       context: "Soft tailoring",
       id: "similar-soft-top",
       image: skirtImage,
-      match: "85% your style",
+      match: "85% match",
       price: formatRupeePrice(basePrice + 750),
       title: "Soft drape shirt",
       tries: "520 tries"
@@ -269,7 +269,7 @@ function getSimilarProducts(product: ProductListingProduct) {
       context: "New this week",
       id: "similar-weekend-shirt",
       image: denimImage,
-      match: "88% your style",
+      match: "88% match",
       price: formatRupeePrice(basePrice + 250),
       title: "Weekend cotton shirt",
       tries: "760 tries"
@@ -283,7 +283,7 @@ function toProductLook(product: ProductListingProduct, look: StyledLook): Produc
     id: look.id,
     image: look.images[0],
     itemCount: "3 pieces",
-    match: "91% your style",
+    match: "91% match",
     outfitItems: [
       { kind: "top", label: "Shirt" },
       { kind: "bottom", label: "Bottom" },
@@ -445,7 +445,7 @@ function HeroGallery({
         {hasStyleProfile ? (
           <View style={styles.heroMatchPill}>
             <Text style={styles.heroMatchText}>
-              {product.match ?? "91% your style"}
+              {product.match ?? "91% match"}
             </Text>
           </View>
         ) : null}
@@ -541,16 +541,37 @@ function SizeSelectorSection({
   selectedSize: string;
   sizes: string[];
 }) {
+  const suggestedSize = sizes.includes("M") ? "M" : sizes[0] ?? selectedSize;
+  const measurementBySize: Record<string, string> = {
+    XS: "Bust 34.0in",
+    S: "Bust 36.0in",
+    M: "Bust 38.0in",
+    L: "Bust 40.0in",
+    XL: "Bust 42.0in"
+  };
+  const selectedMeasurement =
+    measurementBySize[selectedSize] ?? "Bust 38.0in";
+
   return (
     <View style={styles.sizeSelectorSection}>
       <View style={styles.inlineSectionHeader}>
-        <Text style={styles.inlineSectionTitle}>Select size</Text>
+        <View style={styles.sizeHeaderCopy}>
+          <Text style={styles.inlineSectionTitle}>Size: {selectedSize}</Text>
+          <Text style={styles.sizeMeasurementText}>
+            Garment measurement: {selectedMeasurement}
+          </Text>
+        </View>
         <Pressable
           accessibilityRole="button"
           onPress={onOpenSizeChart}
           hitSlop={8}
+          style={({ pressed }) => [
+            styles.sizeChartButton,
+            pressed ? styles.pressed : null
+          ]}
         >
           <Text style={styles.sizeChartLink}>Size chart</Text>
+          <Feather color={colors.text} name="chevron-right" size={16} />
         </Pressable>
       </View>
       <View style={styles.sizeChoiceRow}>
@@ -577,53 +598,256 @@ function SizeSelectorSection({
               >
                 {size}
               </Text>
+              {isSelected ? (
+                <Text style={styles.sizeStockText}>4 left</Text>
+              ) : null}
             </Pressable>
           );
         })}
       </View>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: false }}
+        style={({ pressed }) => [
+          styles.brandSizingRow,
+          pressed ? styles.pressed : null
+        ]}
+      >
+        <View style={styles.brandSizingCheckbox} />
+        <Text style={styles.brandSizingText}>
+          Show sizing used by {sizes.length > 3 ? "Trends" : "this brand"}
+        </Text>
+      </Pressable>
+      <View style={styles.suggestedSizeCard}>
+        <Text style={styles.suggestedSizeText}>
+          We suggest size {suggestedSize}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.suggestedSizeInfoButton,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <Feather color={colors.text} name="star" size={14} />
+          <Text style={styles.suggestedSizeInfoText}>
+            Why {suggestedSize} for me?
+          </Text>
+        </Pressable>
+      </View>
+      <Text style={styles.sizeRecommendationHint}>
+        Tag past purchases to get better size recommendations.
+      </Text>
     </View>
   );
 }
 
 function DeliveryServicesSection({
   deliveryEstimate,
-  onChangePincode,
-  onCheckDelivery,
-  pincode
+  deliveryLocation,
+  onOpenDeliverySheet
 }: {
   deliveryEstimate: string;
-  onChangePincode: (value: string) => void;
-  onCheckDelivery: () => void;
-  pincode: string;
+  deliveryLocation: string;
+  onOpenDeliverySheet: () => void;
 }) {
+  const hasLocation = Boolean(deliveryLocation);
+
   return (
     <View style={styles.deliverySection}>
-      <Text style={styles.inlineSectionTitle}>Delivery and services</Text>
-      <View style={styles.pincodeRow}>
-        <TextInput
-          keyboardType="number-pad"
-          maxLength={6}
-          onChangeText={onChangePincode}
-          placeholder="Enter pincode"
-          placeholderTextColor={colors.soft}
-          style={styles.pincodeInput}
-          value={pincode}
-        />
-        <Pressable
-          accessibilityRole="button"
-          onPress={onCheckDelivery}
-          style={({ pressed }) => [
-            styles.checkDeliveryButton,
-            pressed ? styles.pressed : null
-          ]}
-        >
-          <Text style={styles.checkDeliveryText}>Check</Text>
-        </Pressable>
+      <View style={styles.deliveryHeaderRow}>
+        <Text style={styles.inlineSectionTitle}>Delivery and services</Text>
+        {hasLocation ? (
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onOpenDeliverySheet}
+          >
+            <Text style={styles.deliveryChangeText}>Change</Text>
+          </Pressable>
+        ) : null}
       </View>
-      <Text style={styles.deliveryEstimateText}>
-        {deliveryEstimate || "Check delivery time, COD, and return service."}
-      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onOpenDeliverySheet}
+        style={({ pressed }) => [
+          styles.deliveryCard,
+          pressed ? styles.pressed : null
+        ]}
+      >
+        <View style={styles.deliveryIconCircle}>
+          <Feather color={colors.text} name="map-pin" size={17} />
+        </View>
+        <View style={styles.deliveryCardCopy}>
+          <Text numberOfLines={1} style={styles.deliveryCardTitle}>
+            {hasLocation ? deliveryLocation : "Select delivery location"}
+          </Text>
+          <Text numberOfLines={2} style={styles.deliveryEstimateText}>
+            {deliveryEstimate || "Check delivery time, COD, and return service."}
+          </Text>
+        </View>
+        <Feather color={colors.muted} name="chevron-right" size={20} />
+      </Pressable>
     </View>
+  );
+}
+
+function DeliveryLocationSheet({
+  errorMessage,
+  onChangePincode,
+  onCheckDelivery,
+  onClose,
+  onGrantLocation,
+  onSelectSavedAddress,
+  pincode,
+  visible
+}: {
+  errorMessage: string;
+  onChangePincode: (value: string) => void;
+  onCheckDelivery: () => void;
+  onClose: () => void;
+  onGrantLocation: () => void;
+  onSelectSavedAddress: () => void;
+  pincode: string;
+  visible: boolean;
+}) {
+  const [isSavedAddressSelected, setIsSavedAddressSelected] = useState(true);
+
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.deliverySheetRoot}
+      >
+        <Pressable
+          accessibilityLabel="Close delivery location"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.deliverySheetScrim}
+        />
+        <View style={styles.deliverySheet}>
+          <View style={styles.deliveryPermissionBanner}>
+            <View style={styles.deliveryPermissionIcon}>
+              <Feather color="#F43F5E" name="map-pin" size={14} />
+            </View>
+            <View style={styles.deliveryPermissionCopy}>
+              <Text style={styles.deliveryPermissionTitle}>
+                Location permission is off
+              </Text>
+              <Text style={styles.deliveryPermissionText}>
+                Granting location permission will ensure accurate pincode and faster delivery
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onGrantLocation}
+              style={({ pressed }) => [
+                styles.deliveryGrantButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Text style={styles.deliveryGrantText}>Grant</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.deliverySheetTitle}>Select Delivery Location</Text>
+          <View style={styles.deliveryInputRow}>
+            <TextInput
+              autoFocus
+              keyboardType="number-pad"
+              maxLength={6}
+              onChangeText={onChangePincode}
+              placeholder="Enter pincode"
+              placeholderTextColor={colors.soft}
+              style={styles.deliverySheetInput}
+              value={pincode}
+            />
+            <Pressable
+              accessibilityRole="button"
+              onPress={onCheckDelivery}
+              style={({ pressed }) => [
+                styles.deliveryCheckLink,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Text style={styles.deliveryCheckLinkText}>Check</Text>
+            </Pressable>
+          </View>
+          {errorMessage ? (
+            <Text style={styles.deliveryErrorText}>{errorMessage}</Text>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onChangePincode("")}
+            style={({ pressed }) => [
+              styles.deliverySearchRow,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.text} name="crosshair" size={15} />
+            <Text style={styles.deliverySearchText}>Search location</Text>
+            <Feather color={colors.muted} name="chevron-right" size={16} />
+          </Pressable>
+
+          <View style={styles.deliveryOrRow}>
+            <View style={styles.deliveryOrLine} />
+            <Text style={styles.deliveryOrText}>Or</Text>
+            <View style={styles.deliveryOrLine} />
+          </View>
+
+          <Text style={styles.deliverySheetTitle}>Select Saved Address</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setIsSavedAddressSelected(true)}
+            style={({ pressed }) => [
+              styles.savedAddressCard,
+              isSavedAddressSelected ? styles.savedAddressCardSelected : null,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <View style={styles.savedAddressIcon}>
+              <Feather color={colors.text} name="home" size={14} />
+            </View>
+            <View style={styles.savedAddressCopy}>
+              <View style={styles.savedAddressTitleRow}>
+                <Text numberOfLines={1} style={styles.savedAddressTitle}>
+                  Snehalkhandelwal, 400096
+                </Text>
+                <Text style={styles.savedAddressTag}>HOME</Text>
+              </View>
+              <Text numberOfLines={2} style={styles.savedAddressText}>
+                C-501, Hillcrest, Suryanagar, opposite seepz gate no. 3.
+              </Text>
+            </View>
+            <Feather
+              color={isSavedAddressSelected ? colors.text : colors.soft}
+              name={isSavedAddressSelected ? "check-circle" : "circle"}
+              size={18}
+            />
+          </Pressable>
+
+          {isSavedAddressSelected ? (
+            <Pressable
+              accessibilityLabel="Confirm delivery address"
+              accessibilityRole="button"
+              onPress={onSelectSavedAddress}
+              style={({ pressed }) => [
+                styles.deliveryConfirmButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.inverseText} name="check" size={22} />
+            </Pressable>
+          ) : null}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -1185,10 +1409,15 @@ export function ProductPdpScreen({
   const { height, width } = useWindowDimensions();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [deliveryError, setDeliveryError] = useState("");
   const [deliveryEstimate, setDeliveryEstimate] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [isDeliverySheetOpen, setIsDeliverySheetOpen] = useState(false);
   const [isGallerySwiping, setIsGallerySwiping] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [contentSheetY, setContentSheetY] = useState<number | null>(null);
+  const [inlineCtaHeight, setInlineCtaHeight] = useState(0);
   const [inlineCtaY, setInlineCtaY] = useState<number | null>(null);
   const [pincode, setPincode] = useState("");
   const [selectedSize, setSelectedSize] = useState(
@@ -1199,18 +1428,46 @@ export function ProductPdpScreen({
   const heroImages = useMemo(() => getHeroImages(product), [product]);
   const availableSizes = product.sizeOptions ?? sizeOptionsFallback;
   const handleDeliveryCheck = () => {
-    const nextEstimate =
-      pincode.trim().length === 6
-        ? "Estimated delivery in 3-4 days. 15-day easy returns available."
-        : "Enter a 6-digit pincode to check delivery.";
+    const trimmedPincode = pincode.trim();
 
-    setDeliveryEstimate(nextEstimate);
+    if (trimmedPincode.length !== 6) {
+      setDeliveryError("Enter a 6-digit pincode to check delivery.");
+      return;
+    }
+
+    setDeliveryError("");
+    setDeliveryLocation(trimmedPincode);
+    setDeliveryEstimate("Estimated delivery in 3-4 days. COD and 15-day returns available.");
+    setIsDeliverySheetOpen(false);
+  };
+  const handleGrantLocation = () => {
+    setDeliveryError("");
+    setPincode("400096");
+  };
+  const handleSelectSavedAddress = () => {
+    setDeliveryError("");
+    setPincode("400096");
+    setDeliveryLocation("Home · Snehalkhandelwal, 400096");
+    setDeliveryEstimate("Estimated delivery in 2-3 days. COD and 15-day returns available.");
+    setIsDeliverySheetOpen(false);
   };
   const handlePdpScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
-    const scrollBottomBeforeDock = offsetY + height - ctaDockHeight;
-    const shouldShowStickyCta =
-      inlineCtaY === null || scrollBottomBeforeDock < inlineCtaY;
+    const viewportHeight = event.nativeEvent.layoutMeasurement.height || height;
+    const viewportTop = offsetY + pdpHeaderHeight;
+    const viewportBottom = offsetY + viewportHeight;
+    const inlineCtaTop =
+      contentSheetY !== null && inlineCtaY !== null
+        ? contentSheetY + inlineCtaY
+        : null;
+    const inlineCtaBottom =
+      inlineCtaTop !== null ? inlineCtaTop + inlineCtaHeight : null;
+    const isInlineCtaVisible =
+      inlineCtaTop !== null &&
+      inlineCtaBottom !== null &&
+      inlineCtaTop < viewportBottom &&
+      inlineCtaBottom > viewportTop;
+    const shouldShowStickyCta = !isInlineCtaVisible;
 
     setShowStickyCta((current) =>
       current === shouldShowStickyCta ? current : shouldShowStickyCta
@@ -1266,7 +1523,26 @@ export function ProductPdpScreen({
             width={width}
           />
         </View>
-        <View style={styles.contentSheet}>
+        <View
+          onLayout={(event) => {
+            const nextY = event.nativeEvent.layout.y;
+            setContentSheetY((current) =>
+              current === nextY ? current : nextY
+            );
+          }}
+          style={styles.contentSheet}
+        >
+          <View style={styles.heroDots}>
+            {heroImages.map((image, index) => (
+              <View
+                key={`${image}-sheet-dot-${index}`}
+                style={[
+                  styles.heroDot,
+                  index === currentImageIndex ? styles.heroDotActive : null
+                ]}
+              />
+            ))}
+          </View>
           <ProductInfoStrip product={product} />
           <SizeSelectorSection
             onOpenSizeChart={() => setIsSizeChartOpen(true)}
@@ -1277,7 +1553,11 @@ export function ProductPdpScreen({
           <InlineCtaSection
             onLayout={(event) => {
               const nextY = event.nativeEvent.layout.y;
+              const nextHeight = event.nativeEvent.layout.height;
               setInlineCtaY((current) => (current === nextY ? current : nextY));
+              setInlineCtaHeight((current) =>
+                current === nextHeight ? current : nextHeight
+              );
             }}
             onAddToCart={onAddToCart}
             onTryOn={onStartTryOn}
@@ -1285,9 +1565,8 @@ export function ProductPdpScreen({
           />
           <DeliveryServicesSection
             deliveryEstimate={deliveryEstimate}
-            onChangePincode={setPincode}
-            onCheckDelivery={handleDeliveryCheck}
-            pincode={pincode}
+            deliveryLocation={deliveryLocation}
+            onOpenDeliverySheet={() => setIsDeliverySheetOpen(true)}
           />
           <WardrobePairingSection
             onTryOn={onStartTryOn}
@@ -1314,6 +1593,19 @@ export function ProductPdpScreen({
           product={product}
         />
       ) : null}
+      <DeliveryLocationSheet
+        errorMessage={deliveryError}
+        onChangePincode={(value) => {
+          setDeliveryError("");
+          setPincode(value);
+        }}
+        onCheckDelivery={handleDeliveryCheck}
+        onClose={() => setIsDeliverySheetOpen(false)}
+        onGrantLocation={handleGrantLocation}
+        onSelectSavedAddress={handleSelectSavedAddress}
+        pincode={pincode}
+        visible={isDeliverySheetOpen}
+      />
     </View>
   );
 }
@@ -1408,8 +1700,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    marginTop: -spacing.xl,
-    overflow: "hidden"
+    elevation: 2,
+    marginTop: -(galleryDotsHeight + spacing.xl),
+    overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOffset: { height: -2, width: 0 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    zIndex: 2
   },
   ctaButtonRow: {
     flexDirection: "row",
@@ -1467,8 +1765,204 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 12,
+    lineHeight: 17
+  },
+  deliveryCard: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTertiary,
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    flexDirection: "row",
+    gap: spacing.md,
+    marginTop: spacing.md,
+    minHeight: 68,
+    padding: spacing.md
+  },
+  deliveryCardCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  deliveryCardTitle: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
     lineHeight: 17,
-    marginTop: spacing.sm
+    marginBottom: 3
+  },
+  deliveryChangeText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    textDecorationLine: "underline"
+  },
+  deliveryCheckLink: {
+    alignItems: "center",
+    height: 42,
+    justifyContent: "center",
+    paddingHorizontal: spacing.md
+  },
+  deliveryCheckLinkText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  deliveryConfirmButton: {
+    alignItems: "center",
+    alignSelf: "flex-end",
+    backgroundColor: colors.text,
+    borderRadius: 24,
+    elevation: 8,
+    height: 48,
+    justifyContent: "center",
+    marginTop: spacing.md,
+    shadowColor: "#000000",
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    width: 48
+  },
+  deliveryErrorText: {
+    color: "#B91C1C",
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: spacing.xs
+  },
+  deliveryGrantButton: {
+    alignItems: "center",
+    backgroundColor: "#F43F5E",
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 30,
+    paddingHorizontal: spacing.md
+  },
+  deliveryGrantText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
+  },
+  deliveryHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  deliveryIconCircle: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  deliveryInputRow: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    marginTop: spacing.sm,
+    overflow: "hidden"
+  },
+  deliveryOrLine: {
+    backgroundColor: colors.border,
+    flex: 1,
+    height: StyleSheet.hairlineWidth
+  },
+  deliveryOrRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+    marginVertical: spacing.md
+  },
+  deliveryOrText: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  deliveryPermissionBanner: {
+    alignItems: "center",
+    backgroundColor: "#FFF1F2",
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginHorizontal: -spacing.screen,
+    marginTop: -spacing.lg,
+    paddingHorizontal: spacing.screen,
+    paddingVertical: spacing.sm
+  },
+  deliveryPermissionCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  deliveryPermissionIcon: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: "center",
+    width: 28
+  },
+  deliveryPermissionText: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    lineHeight: 12,
+    marginTop: 1
+  },
+  deliveryPermissionTitle: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
+  },
+  deliverySearchRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 42
+  },
+  deliverySearchText: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 16
+  },
+  deliverySheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.lg
+  },
+  deliverySheetInput: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    height: 42,
+    lineHeight: 17,
+    paddingHorizontal: spacing.md
+  },
+  deliverySheetRoot: {
+    flex: 1,
+    justifyContent: "flex-end"
+  },
+  deliverySheetScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 10, 10, 0.26)"
+  },
+  deliverySheetTitle: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 17,
+    marginTop: spacing.md
   },
   deliverySection: {
     borderTopColor: colors.border,
@@ -1576,7 +2070,7 @@ const styles = StyleSheet.create({
   heroTriesPill: {
     backgroundColor: "rgba(0, 0, 0, 0.4)",
     borderRadius: 20,
-    bottom: spacing.lg,
+    bottom: spacing.xxl + spacing.lg,
     left: spacing.screen,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1599,7 +2093,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 20,
     borderWidth: 0.5,
-    bottom: spacing.lg,
+    bottom: spacing.xxl + spacing.lg,
     flexDirection: "row",
     gap: 6,
     paddingHorizontal: 10,
@@ -1618,7 +2112,7 @@ const styles = StyleSheet.create({
     borderColor: colors.background,
     borderRadius: 35,
     borderWidth: 3,
-    bottom: 58,
+    bottom: 92,
     elevation: 6,
     height: 70,
     overflow: "hidden",
@@ -1878,6 +2372,62 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: spacing.screen
   },
+  savedAddressCard: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    padding: spacing.sm
+  },
+  savedAddressCardSelected: {
+    borderColor: colors.text
+  },
+  savedAddressCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  savedAddressIcon: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: "center",
+    width: 28
+  },
+  savedAddressTag: {
+    backgroundColor: colors.surface,
+    borderRadius: 7,
+    color: colors.muted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 8,
+    lineHeight: 10,
+    overflow: "hidden",
+    paddingHorizontal: 5,
+    paddingVertical: 2
+  },
+  savedAddressText: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 2
+  },
+  savedAddressTitle: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
+  },
+  savedAddressTitleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm
+  },
   screen: {
     backgroundColor: colors.background,
     flex: 1
@@ -2097,8 +2647,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.bodyMedium,
     fontSize: 12,
-    lineHeight: 16,
-    textDecorationLine: "underline"
+    lineHeight: 16
+  },
+  sizeChartButton: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 2,
+    paddingVertical: spacing.xs
   },
   sizeCell: {
     alignItems: "center",
@@ -2125,7 +2680,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     borderWidth: 1,
-    height: 44,
+    height: 58,
     justifyContent: "center",
     minWidth: 52,
     paddingHorizontal: 14
@@ -2140,6 +2695,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
     borderColor: colors.text
   },
+  sizeHeaderCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  sizeMeasurementText: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 3
+  },
+  sizeRecommendationHint: {
+    color: colors.soft,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: spacing.sm
+  },
   sizeChoiceText: {
     color: colors.text,
     fontFamily: fonts.bodyMedium,
@@ -2149,12 +2722,75 @@ const styles = StyleSheet.create({
   sizeChoiceTextSelected: {
     color: colors.inverseText
   },
+  sizeStockText: {
+    color: "#D97706",
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 3
+  },
   sizeSelectorSection: {
     borderTopColor: colors.border,
     borderTopWidth: 0.5,
     marginHorizontal: spacing.screen,
     paddingBottom: spacing.lg,
     paddingTop: spacing.lg
+  },
+  brandSizingCheckbox: {
+    borderColor: colors.muted,
+    borderRadius: 4,
+    borderWidth: 1.2,
+    height: 18,
+    width: 18
+  },
+  brandSizingRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    minHeight: 32
+  },
+  brandSizingText: {
+    color: colors.muted,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  suggestedSizeCard: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    justifyContent: "space-between",
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
+  },
+  suggestedSizeInfoButton: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    flexDirection: "row",
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7
+  },
+  suggestedSizeInfoText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
+  },
+  suggestedSizeText: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    lineHeight: 18
   },
   starRow: {
     flexDirection: "row",

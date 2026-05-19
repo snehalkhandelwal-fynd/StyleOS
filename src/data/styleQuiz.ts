@@ -1,3 +1,5 @@
+import { prototypeProductImages } from "../features/home/data/prototypeProductImages";
+
 export type StyleCard = {
   curationRule: string;
   id: string;
@@ -18,8 +20,7 @@ export const styleCards: StyleCard[] = [
   {
     curationRule: "Neutral palette, clean lines, simple cuts, no graphics, no busy pattern.",
     id: "minimalist",
-    image:
-      "https://unsplash.com/photos/kHMclLVlICc/download?force=true&w=900",
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
     label: "Minimalist",
     title: "Clean lines",
     visualCriteria: ["neutral colors", "clean silhouette", "simple styling"]
@@ -27,8 +28,7 @@ export const styleCards: StyleCard[] = [
   {
     curationRule: "Bold cuts, oversized fit, sneakers, and sportswear references.",
     id: "streetwear",
-    image:
-      "https://unsplash.com/photos/kzTeNG3Og6E/download?force=true&w=900",
+    image: prototypeProductImages.maje.tanHoodedJacket,
     label: "Streetwear",
     title: "Oversized edge",
     visualCriteria: ["oversized fit", "sneakers", "urban sportswear"]
@@ -36,8 +36,7 @@ export const styleCards: StyleCard[] = [
   {
     curationRule: "Flowing fabric, layered texture, jewelry, prints, or earth tones.",
     id: "bohemian",
-    image:
-      "https://unsplash.com/photos/InsmqbGE7Wo/download?force=true&w=900",
+    image: prototypeProductImages.maje.beigeCrochetDress,
     label: "Bohemian",
     title: "Flowing layers",
     visualCriteria: ["flowing fabric", "earth tones", "layered detail"]
@@ -45,8 +44,7 @@ export const styleCards: StyleCard[] = [
   {
     curationRule: "Tailored, structured, neutral palette, and timeless silhouettes.",
     id: "classic",
-    image:
-      "https://unsplash.com/photos/QA5Z9_oiR-M/download?force=true&w=900",
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
     label: "Classic",
     title: "Tailored polish",
     visualCriteria: ["tailoring", "structure", "neutral palette"]
@@ -54,8 +52,7 @@ export const styleCards: StyleCard[] = [
   {
     curationRule: "Activewear styled for everyday, sneakers, joggers, or performance layers.",
     id: "athleisure",
-    image:
-      "https://unsplash.com/photos/3yDxlFBlu4U/download?force=true&w=900",
+    image: prototypeProductImages.maje.tanHoodedJacket,
     label: "Athleisure",
     title: "Everyday active",
     visualCriteria: ["activewear", "sneakers", "everyday styling"]
@@ -63,10 +60,29 @@ export const styleCards: StyleCard[] = [
   {
     curationRule: "Soft fabric, florals, pastels, or feminine silhouettes.",
     id: "romantic",
-    image:
-      "https://unsplash.com/photos/I6MTS2DZOLY/download?force=true&w=900",
+    image: prototypeProductImages.maje.pinkRelaxedSet,
     label: "Romantic",
     title: "Soft detail",
     visualCriteria: ["soft fabric", "florals or pastels", "feminine silhouette"]
   }
 ];
+
+const womensStyleImages: Record<string, string> = {
+  athleisure: prototypeProductImages.maje.stripedScarfDenim,
+  bohemian: prototypeProductImages.maje.tanHoodedJacket,
+  classic: prototypeProductImages.sandro.beigeTrench,
+  minimalist: prototypeProductImages.sandro.whitePinstripeSuit,
+  romantic: prototypeProductImages.maje.greenDenimTop,
+  streetwear: prototypeProductImages.sandro.navyTailoredSet
+};
+
+export const womensStyleCards: StyleCard[] = styleCards.map((card) => ({
+  ...card,
+  image: womensStyleImages[card.id] ?? card.image
+}));
+
+export function getStyleCardsForFashionInterest(
+  fashionInterest?: "mens" | "womens"
+) {
+  return fashionInterest === "womens" ? womensStyleCards : styleCards;
+}

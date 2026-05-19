@@ -1,4 +1,5 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { HomeTabName } from "../../../navigation/types";
@@ -10,12 +11,21 @@ type BottomTabBarProps = {
 };
 
 const tabs: Array<{
-  icon: keyof typeof Feather.glyphMap;
+  icon:
+    | ComponentProps<typeof Feather>["name"]
+    | ComponentProps<typeof Ionicons>["name"];
+  iconFamily?: "feather" | "ionicons";
   label: string;
   name: HomeTabName;
 }> = [
   { icon: "home", label: "Home", name: "Home" },
   { icon: "grid", label: "Explore", name: "Feed" },
+  {
+    icon: "shirt-outline",
+    iconFamily: "ionicons",
+    label: "Closet",
+    name: "Closet"
+  },
   { icon: "camera", label: "Stylist", name: "TryOn" },
   { icon: "user", label: "Profile", name: "Profile" }
 ];
@@ -39,7 +49,19 @@ export function BottomTabBar({ activeTab, onChangeTab }: BottomTabBarProps) {
               pressed ? styles.pressed : null
             ]}
           >
-            <Feather color={color} name={tab.icon} size={19} />
+            {tab.iconFamily === "ionicons" ? (
+              <Ionicons
+                color={color}
+                name={tab.icon as ComponentProps<typeof Ionicons>["name"]}
+                size={21}
+              />
+            ) : (
+              <Feather
+                color={color}
+                name={tab.icon as ComponentProps<typeof Feather>["name"]}
+                size={19}
+              />
+            )}
             <Text style={[styles.label, { color }]}>{tab.label}</Text>
           </Pressable>
         );
@@ -58,7 +80,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     height: 68,
     marginHorizontal: spacing.screen,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     shadowColor: "#000000",
     shadowOffset: {
       height: 4,

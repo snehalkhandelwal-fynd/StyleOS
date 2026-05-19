@@ -459,7 +459,7 @@ function ProductCard({
           </Pressable>
         </View>
         <View style={styles.matchPill}>
-          <Text style={styles.matchText}>91% your style</Text>
+          <Text style={styles.matchText}>{product.match ?? "Try now"}</Text>
         </View>
         {product.tries ? (
           <View style={styles.tryPill}>

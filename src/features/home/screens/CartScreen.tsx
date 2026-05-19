@@ -1,3 +1,4 @@
+import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -41,7 +42,7 @@ const cartItems: CartItem[] = [
     color: "Ivory",
     id: "cart-blazer-dress",
     image:
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=600&q=80",
+      prototypeProductImages.maje.beigeCrochetDress,
     originalPrice: "₹4,599",
     price: "₹2,300",
     quantity: 1,
@@ -53,7 +54,7 @@ const cartItems: CartItem[] = [
     color: "Oxblood",
     id: "cart-cropped-jacket",
     image:
-      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80",
+      prototypeProductImages.maje.greenDenimTop,
     price: "₹2,300",
     quantity: 1,
     size: "S",
