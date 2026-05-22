@@ -90,13 +90,13 @@ const shoeProductImage = prototypeProductImages.sandro.brownJacket;
 const bagProductImage = prototypeProductImages.maje.stripedScarfDenim;
 
 const fallbackOutfitPieceImages: Record<OutfitPieceKind, string> = {
-  accessory: prototypeProductImages.maje.stripedScarfDenim,
-  bag: bagProductImage,
-  bottom: prototypeProductImages.maje.blueScarfTrousers,
-  dress: prototypeProductImages.maje.beigeCrochetDress,
-  jacket: prototypeProductImages.sandro.beigeTrench,
-  shoe: shoeProductImage,
-  top: prototypeProductImages.maje.greenDenimTop
+  accessory: prototypeProductImages.productOnly.accessory,
+  bag: prototypeProductImages.productOnly.accessory,
+  bottom: prototypeProductImages.productOnly.bottom,
+  dress: prototypeProductImages.productOnly.dress,
+  jacket: prototypeProductImages.productOnly.jacket,
+  shoe: prototypeProductImages.productOnly.shoe,
+  top: prototypeProductImages.productOnly.top
 };
 
 const looks: ProductLook[] = [
@@ -540,21 +540,34 @@ function TopNavigation({
 }
 
 function HeroSpotlightCarousel({
+  hasStyleProfile,
   onExplore,
   onStartStyleQuiz,
   width
 }: {
+  hasStyleProfile: boolean;
   onExplore: () => void;
   onStartStyleQuiz: () => void;
   width: number;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const visibleSpotlights = useMemo(
+    () =>
+      hasStyleProfile
+        ? heroSpotlights.filter((item) => item.action !== "styleQuiz")
+        : heroSpotlights,
+    [hasStyleProfile]
+  );
   const peek = 30;
   const cardGap = spacing.md;
   const cardWidth = width - spacing.screen * 2 - peek;
   const cardHeight = Math.round(cardWidth * 1.364);
   const snapInterval = cardWidth + cardGap;
-  const lastIndex = heroSpotlights.length - 1;
+  const lastIndex = visibleSpotlights.length - 1;
+
+  useEffect(() => {
+    setActiveIndex((current) => Math.min(current, lastIndex));
+  }, [lastIndex]);
 
   const handleScrollEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>
@@ -580,7 +593,7 @@ function HeroSpotlightCarousel({
         snapToAlignment="start"
         snapToInterval={snapInterval}
       >
-        {heroSpotlights.map((item, index) => (
+        {visibleSpotlights.map((item, index) => (
           <Pressable
             accessibilityRole="button"
             key={item.id}
@@ -632,7 +645,7 @@ function HeroSpotlightCarousel({
       </ScrollView>
 
       <View style={styles.heroDots}>
-        {heroSpotlights.map((item, index) => (
+        {visibleSpotlights.map((item, index) => (
           <View
             key={`hero-dot-${item.id}`}
             style={[
@@ -686,7 +699,7 @@ function OccasionFilters({
 }
 
 function getOutfitPieceImage(piece: OutfitPiece) {
-  return piece.image ?? fallbackOutfitPieceImages[piece.kind];
+  return fallbackOutfitPieceImages[piece.kind];
 }
 
 function OutfitPieceChips({ pieces }: { pieces: OutfitPiece[] }) {
@@ -1802,6 +1815,7 @@ export function HomeScreen({
       >
         <View style={styles.topCluster}>
           <HeroSpotlightCarousel
+            hasStyleProfile={hasStyleProfile}
             onExplore={onOpenSearch}
             onStartStyleQuiz={onStartStyleQuiz}
             width={width}
@@ -2353,9 +2367,9 @@ const styles = StyleSheet.create({
   outfitPieceChip: {
     alignItems: "center",
     backgroundColor: colors.imageSurface,
-    borderColor: colors.border,
+    borderColor: "#F1EEE7",
     borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0.25,
     height: 24,
     justifyContent: "center",
     overflow: "hidden",

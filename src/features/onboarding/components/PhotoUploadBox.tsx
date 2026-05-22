@@ -17,6 +17,7 @@ import { samplePeoplePhotos, selectCameraPhoto } from "../utils/photoPicker";
 type PhotoUploadBoxProps = {
   onSelectPhoto: (uri: string) => void;
   uri?: string;
+  variant?: "default" | "drawer";
 };
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
@@ -25,12 +26,17 @@ const exampleModelImage = require("../../../assets/upload-example.png");
 
 const photoGuidelines: { icon: IoniconName; text: string }[] = [
   { icon: "body-outline", text: "Full body, face & feet visible" },
-  { icon: "person-remove-outline", text: "Just you — no pets or friends" },
+  { icon: "person-remove-outline", text: "Just you no pets or friends" },
   { icon: "sunny-outline", text: "Good lighting, not blurry" }
 ];
 
-export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
+export function PhotoUploadBox({
+  onSelectPhoto,
+  uri,
+  variant = "default"
+}: PhotoUploadBoxProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const isDrawer = variant === "drawer";
 
   const openPhotoDrawer = () => {
     setIsPickerOpen(true);
@@ -58,6 +64,7 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
         onPress={openPhotoDrawer}
         style={({ pressed }) => [
           styles.box,
+          isDrawer ? styles.drawerBox : null,
           uri ? styles.boxWithPreview : styles.emptyBox,
           pressed ? styles.pressed : null
         ]}
@@ -86,7 +93,7 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
             </Pressable>
           </>
         ) : (
-          <View style={styles.emptyState}>
+          <View style={[styles.emptyState, isDrawer ? styles.drawerEmptyState : null]}>
             <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
               <Defs>
                 <Pattern
@@ -105,8 +112,18 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
               <Text style={styles.examplePillText}>EXAMPLE</Text>
             </View>
 
-            <View style={styles.exampleArea}>
-              <View style={styles.exampleFrame}>
+            <View
+              style={[
+                styles.exampleArea,
+                isDrawer ? styles.drawerExampleArea : null
+              ]}
+            >
+              <View
+                style={[
+                  styles.exampleFrame,
+                  isDrawer ? styles.drawerExampleFrame : null
+                ]}
+              >
                 <Image
                   resizeMode="cover"
                   source={exampleModelImage}
@@ -115,24 +132,41 @@ export function PhotoUploadBox({ onSelectPhoto, uri }: PhotoUploadBoxProps) {
               </View>
             </View>
 
-            <View style={styles.guidelineRow}>
+            <View
+              style={[
+                styles.guidelineRow,
+                isDrawer ? styles.drawerGuidelineRow : null
+              ]}
+            >
               {photoGuidelines.map((guideline) => (
                 <View key={guideline.text} style={styles.guidelineItem}>
-                  <View style={styles.guidelineIcon}>
+                  <View
+                    style={[
+                      styles.guidelineIcon,
+                      isDrawer ? styles.drawerGuidelineIcon : null
+                    ]}
+                  >
                     <Ionicons
                       color={colors.text}
                       name={guideline.icon}
                       size={16}
                     />
                   </View>
-                  <Text style={styles.guidelineText}>{guideline.text}</Text>
+                  <Text
+                    style={[
+                      styles.guidelineText,
+                      isDrawer ? styles.drawerGuidelineText : null
+                    ]}
+                  >
+                    {guideline.text}
+                  </Text>
                 </View>
               ))}
             </View>
 
             <View style={styles.uploadCta}>
               <Ionicons
-                color={colors.inverseText}
+                color={colors.text}
                 name="cloud-upload-outline"
                 size={18}
               />
@@ -234,6 +268,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: "100%"
   },
+  drawerBox: {
+    marginTop: spacing.lg
+  },
   boxWithPreview: {
     backgroundColor: colors.surface
   },
@@ -310,10 +347,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg
   },
+  drawerEmptyState: {
+    padding: spacing.md
+  },
   exampleArea: {
     alignItems: "center",
     flex: 1,
     justifyContent: "center"
+  },
+  drawerExampleArea: {
+    flex: 0,
+    height: 188,
+    justifyContent: "center",
+    marginTop: spacing.xs
   },
   exampleFrame: {
     aspectRatio: 3 / 4,
@@ -323,6 +369,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     width: "60%"
+  },
+  drawerExampleFrame: {
+    width: 138
   },
   exampleImage: {
     height: "100%",
@@ -352,6 +401,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 36
   },
+  drawerGuidelineIcon: {
+    height: 32,
+    width: 32
+  },
   guidelineItem: {
     alignItems: "center",
     flex: 1,
@@ -362,12 +415,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md
   },
+  drawerGuidelineRow: {
+    marginTop: spacing.sm
+  },
   guidelineText: {
     color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 11,
     lineHeight: 14,
     textAlign: "center"
+  },
+  drawerGuidelineText: {
+    fontSize: 10,
+    lineHeight: 13
   },
   modalBackdrop: {
     backgroundColor: colors.scrimMedium,
@@ -460,7 +520,9 @@ const styles = StyleSheet.create({
   uploadCta: {
     alignItems: "center",
     alignSelf: "stretch",
-    backgroundColor: colors.inverse,
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderWidth: 1,
     borderRadius: radii.button,
     flexDirection: "row",
     gap: 8,
@@ -469,7 +531,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md
   },
   uploadCtaText: {
-    color: colors.inverseText,
+    color: colors.text,
     fontFamily: fonts.cta,
     fontSize: 14,
     lineHeight: 17

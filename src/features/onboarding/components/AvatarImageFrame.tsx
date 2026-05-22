@@ -1,16 +1,27 @@
 import type { ReactNode } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle
+} from "react-native";
 
 import { colors } from "../../../theme";
 
 type AvatarImageFrameProps = {
   children?: ReactNode;
+  style?: StyleProp<ViewStyle>;
   uri?: string;
 };
 
-export function AvatarImageFrame({ children, uri }: AvatarImageFrameProps) {
+export function AvatarImageFrame({
+  children,
+  style,
+  uri
+}: AvatarImageFrameProps) {
   return (
-    <View style={styles.frame}>
+    <View style={[styles.frame, style]}>
       {uri ? (
         <Image resizeMode="cover" source={{ uri }} style={styles.image} />
       ) : null}

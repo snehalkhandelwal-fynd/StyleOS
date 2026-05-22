@@ -3,13 +3,17 @@ import { StyleSheet, View } from "react-native";
 import { prototypeProductImages } from "../../home/data/prototypeProductImages";
 import { spacing } from "../../../theme";
 import { FashionInterestCard } from "../components/FashionInterestCard";
-import { OnboardingStepShell } from "../components/OnboardingStepShell";
+import {
+  OnboardingStepShell,
+  type OnboardingStepPresentation
+} from "../components/OnboardingStepShell";
 import type { FashionInterest } from "../viewModels/useOnboardingViewModel";
 
 type SetupFashionInterestScreenProps = {
   interest?: FashionInterest;
   onChangeInterest: (interest: FashionInterest) => void;
   onContinue: () => void;
+  presentation?: OnboardingStepPresentation;
 };
 
 const interestOptions = [
@@ -28,18 +32,23 @@ const interestOptions = [
 export function SetupFashionInterestScreen({
   interest,
   onChangeInterest,
-  onContinue
+  onContinue,
+  presentation = "screen"
 }: SetupFashionInterestScreenProps) {
+  const totalSteps = presentation === "drawer" ? 5 : 4;
+
   return (
     <OnboardingStepShell
       currentStep={3}
+      presentation={presentation}
       nextButton={{
-        accessibilityLabel: "Continue to style quiz",
+        accessibilityLabel: "Continue to photo setup",
         disabled: !interest,
         onPress: onContinue
       }}
       subtitle="You can change this later"
       title="What do you want to explore?"
+      totalSteps={totalSteps}
     >
       <View style={styles.body}>
         <View style={styles.cards}>
@@ -60,7 +69,7 @@ export function SetupFashionInterestScreen({
 
 const styles = StyleSheet.create({
   body: {
-    paddingTop: spacing.sm
+    paddingTop: 0
   },
   cards: {
     flexDirection: "row",

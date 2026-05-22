@@ -128,12 +128,6 @@ function getHeroRating() {
   };
 }
 
-function getOccasionTags(product: ProductListingProduct) {
-  return Array.from(
-    new Set([product.occasion ?? "Work", "Casual", "Smart casual"])
-  ).slice(0, 3);
-}
-
 function getDescription(product: ProductListingProduct) {
   const title = product.title.toLowerCase();
 
@@ -501,8 +495,6 @@ function HeroGallery({
 }
 
 function ProductInfoStrip({ product }: { product: ProductListingProduct }) {
-  const tags = getOccasionTags(product);
-
   return (
     <View style={styles.productInfoStrip}>
       <Text style={styles.productBrand}>{product.brand ?? "Trends"}</Text>
@@ -525,13 +517,6 @@ function ProductInfoStrip({ product }: { product: ProductListingProduct }) {
         {product.discountPercent ? (
           <Text style={styles.discountText}>{product.discountPercent}% off</Text>
         ) : null}
-      </View>
-      <View style={styles.occasionRow}>
-        {tags.map((tag) => (
-          <View key={tag} style={styles.occasionPill}>
-            <Text style={styles.occasionPillText}>{tag}</Text>
-          </View>
-        ))}
       </View>
     </View>
   );
@@ -2249,24 +2234,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 14,
     lineHeight: 18
-  },
-  occasionPill: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4
-  },
-  occasionPillText: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 14
-  },
-  occasionRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 6
   },
   originalPrice: {
     color: colors.soft,

@@ -4,9 +4,14 @@ import { Alert, StyleSheet, View } from "react-native";
 import { requiredPhoneNumberDigits } from "../constants/auth";
 import { defaultCountry, type CountryOption } from "../data/countries";
 import { HomeTabsNavigator } from "./HomeTabsNavigator";
+import type { AccountPage } from "../features/home/screens/AccountScreen";
 import type { HomeTabName, RootRouteName } from "./types";
 import { AvatarCreatingScreen } from "../features/onboarding/screens/AvatarCreatingScreen";
 import { AvatarReadyScreen } from "../features/onboarding/screens/AvatarReadyScreen";
+import {
+  OnboardingSetupDrawer,
+  type OnboardingSetupDrawerStep
+} from "../features/onboarding/components/OnboardingSetupDrawer";
 import { OtpVerificationScreen } from "../features/onboarding/screens/OtpVerificationScreen";
 import { PhoneSignInScreen } from "../features/onboarding/screens/PhoneSignInScreen";
 import { SetupFashionInterestScreen } from "../features/onboarding/screens/SetupFashionInterestScreen";
@@ -21,15 +26,17 @@ export function RootNavigator() {
   const { actions, state } = useOnboardingViewModel();
   const [route, setRoute] = useState<RootRouteName>("Splash");
   const [homeInitialTab, setHomeInitialTab] = useState<HomeTabName>("Home");
+  const [homeInitialAccountPage, setHomeInitialAccountPage] =
+    useState<AccountPage | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedCountry, setSelectedCountry] =
     useState<CountryOption>(defaultCountry);
-  const [heightReturnsAvatarReady, setHeightReturnsAvatarReady] =
-    useState(false);
-  const [styleQuizReturnsHome, setStyleQuizReturnsHome] = useState(false);
+  const [setupDrawerStep, setSetupDrawerStep] =
+    useState<OnboardingSetupDrawerStep | null>(null);
 
-  const goHome = useCallback((tab: HomeTabName = "Home") => {
+  const goHome = useCallback((tab: HomeTabName = "Home", accountPage?: AccountPage) => {
     setHomeInitialTab(tab);
+    setHomeInitialAccountPage(accountPage ?? null);
     setRoute("HomeTabs");
   }, []);
 
@@ -46,33 +53,54 @@ export function RootNavigator() {
     setRoute("OtpVerification");
   };
 
-  const handleCompleteStyleQuiz = () => {
-    if (styleQuizReturnsHome) {
-      setStyleQuizReturnsHome(false);
-      goHome("Home");
-      return;
-    }
+  const handleOtpVerified = () => {
+    setSetupDrawerStep("name");
+    goHome("Home");
+  };
 
-    setRoute("UploadFullBodyPhoto");
+  const handleCompleteStyleQuiz = () => {
+    goHome("Feed");
   };
 
   const handleContinueHeight = () => {
-    if (heightReturnsAvatarReady) {
-      setHeightReturnsAvatarReady(false);
-      setRoute("AvatarReady");
-      return;
-    }
-
     setRoute("SetupFashionInterest");
   };
 
-  const handleChangeMeasurementFromAvatar = useCallback(() => {
-    setHeightReturnsAvatarReady(true);
-    setRoute("SetupHeight");
+  const handleContinueDrawerHeight = () => {
+    setSetupDrawerStep("fashionInterest");
+  };
+
+  const handleBackFromSetupDrawer = useCallback(() => {
+    setSetupDrawerStep((currentStep) => {
+      switch (currentStep) {
+        case "height":
+          return "name";
+        case "fashionInterest":
+          return "height";
+        case "uploadPhoto":
+          return "fashionInterest";
+        case "avatarReady":
+          return "uploadPhoto";
+        default:
+          return currentStep;
+      }
+    });
   }, []);
 
-  const handleStartStyleQuizFromHome = () => {
-    setStyleQuizReturnsHome(true);
+  const handleDrawerAvatarCreated = useCallback(
+    (avatarUri: string) => {
+      actions.setAvatarUri(avatarUri);
+      setSetupDrawerStep("avatarReady");
+    },
+    [actions]
+  );
+
+  const handleStartStyleQuizFromHome = (
+    returnTab: HomeTabName = "Home",
+    returnAccountPage?: AccountPage
+  ) => {
+    void returnTab;
+    void returnAccountPage;
     setRoute("SetupStyleQuiz");
   };
 
@@ -92,7 +120,6 @@ export function RootNavigator() {
         <PhoneSignInScreen
           onChangeCountry={setSelectedCountry}
           onChangePhone={setPhoneNumber}
-          onSkip={() => goHome("Home")}
           onSubmit={handleSubmitPhone}
           phoneNumber={phoneNumber}
           selectedCountry={selectedCountry}
@@ -103,7 +130,7 @@ export function RootNavigator() {
         <OtpVerificationScreen
           countryCode={selectedCountry.code}
           onEditPhone={() => setRoute("PhoneSignIn")}
-          onVerified={() => setRoute("SetupName")}
+          onVerified={handleOtpVerified}
           phoneNumber={phoneNumber}
         />
       ) : null}
@@ -120,7 +147,9 @@ export function RootNavigator() {
         <SetupHeightScreen
           height={state.draft.height ?? { feet: 5, inches: 5 }}
           onChangeHeight={actions.setHeight}
+          onChangeWeightKilograms={actions.setWeightKilograms}
           onContinue={handleContinueHeight}
+          weightKilograms={state.draft.weightKilograms}
         />
       ) : null}
 
@@ -128,7 +157,7 @@ export function RootNavigator() {
         <SetupFashionInterestScreen
           interest={state.draft.fashionInterest}
           onChangeInterest={actions.setFashionInterest}
-          onContinue={() => setRoute("SetupStyleQuiz")}
+          onContinue={() => setRoute("UploadFullBodyPhoto")}
         />
       ) : null}
 
@@ -137,6 +166,7 @@ export function RootNavigator() {
           fashionInterest={state.draft.fashionInterest}
           onComplete={handleCompleteStyleQuiz}
           onPreference={actions.submitStylePreference}
+          onRetake={actions.resetStyleQuiz}
           onSkip={actions.skipStyleQuiz}
         />
       ) : null}
@@ -164,7 +194,6 @@ export function RootNavigator() {
         <AvatarReadyScreen
           avatarUri={state.draft.avatarUri}
           height={state.draft.height}
-          onChangeMeasurement={handleChangeMeasurementFromAvatar}
           onContinue={() => goHome("Home")}
           onUseAnotherPhoto={handleUseAnotherPhoto}
         />
@@ -173,11 +202,36 @@ export function RootNavigator() {
       {route === "HomeTabs" ? (
         <HomeTabsNavigator
           draft={state.draft}
+          initialAccountPage={homeInitialAccountPage}
           initialTab={homeInitialTab}
           isGuest={state.isGuest}
           onChangeAddress={handleChangeAddressFromHome}
           onSelectPhoto={actions.setFullBodyPhotoUri}
           onStartStyleQuiz={handleStartStyleQuizFromHome}
+        />
+      ) : null}
+
+      {route === "HomeTabs" && setupDrawerStep ? (
+        <OnboardingSetupDrawer
+          draft={state.draft}
+          onAvatarCreated={handleDrawerAvatarCreated}
+          onBack={
+            setupDrawerStep && setupDrawerStep !== "name"
+              ? handleBackFromSetupDrawer
+              : undefined
+          }
+          onChangeFashionInterest={actions.setFashionInterest}
+          onChangeHeight={actions.setHeight}
+          onChangeName={actions.setName}
+          onChangeWeightKilograms={actions.setWeightKilograms}
+          onComplete={() => setSetupDrawerStep(null)}
+          onContinueFashionInterest={() => setSetupDrawerStep("uploadPhoto")}
+          onContinueHeight={handleContinueDrawerHeight}
+          onContinueName={() => setSetupDrawerStep("height")}
+          onContinuePhoto={() => setSetupDrawerStep("avatarCreating")}
+          onSelectPhoto={actions.setFullBodyPhotoUri}
+          onUseAnotherPhoto={() => setSetupDrawerStep("uploadPhoto")}
+          step={setupDrawerStep}
         />
       ) : null}
     </View>

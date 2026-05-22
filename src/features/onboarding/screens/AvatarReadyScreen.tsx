@@ -1,11 +1,13 @@
-import { Feather } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "../../../components/PrimaryButton";
 import { colors, fonts, radii, spacing } from "../../../theme";
 import { prototypeProductImages } from "../../home/data/prototypeProductImages";
 import { AvatarImageFrame } from "../components/AvatarImageFrame";
-import { OnboardingStepShell } from "../components/OnboardingStepShell";
+import {
+  OnboardingStepShell,
+  type OnboardingStepPresentation
+} from "../components/OnboardingStepShell";
 
 type AvatarReadyScreenProps = {
   avatarUri?: string;
@@ -13,9 +15,9 @@ type AvatarReadyScreenProps = {
     feet: number;
     inches: number;
   };
-  onChangeMeasurement: () => void;
   onContinue: () => void;
   onUseAnotherPhoto: () => void;
+  presentation?: OnboardingStepPresentation;
 };
 
 const fallbackAvatar = prototypeProductImages.maje.pinkRelaxedSet;
@@ -71,18 +73,23 @@ function getMeasurementChips(height?: { feet: number; inches: number }) {
 export function AvatarReadyScreen({
   avatarUri,
   height,
-  onChangeMeasurement,
   onContinue,
-  onUseAnotherPhoto
+  onUseAnotherPhoto,
+  presentation = "screen"
 }: AvatarReadyScreenProps) {
+  const isDrawer = presentation === "drawer";
   const measurementChips = getMeasurementChips(height);
 
   return (
     <OnboardingStepShell
+      presentation={presentation}
       title="You’re ready to try outfits on yourself"
     >
-      <View style={styles.content}>
-        <AvatarImageFrame uri={avatarUri ?? fallbackAvatar}>
+      <View style={[styles.content, isDrawer ? styles.drawerContent : null]}>
+        <AvatarImageFrame
+          style={isDrawer ? styles.drawerFrame : null}
+          uri={avatarUri ?? fallbackAvatar}
+        >
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             {measurementChips.map((chip) => (
               <View
@@ -93,29 +100,21 @@ export function AvatarReadyScreen({
               </View>
             ))}
           </View>
-
-          <Pressable
-            accessibilityLabel="Use another photo"
-            accessibilityRole="button"
-            onPress={onUseAnotherPhoto}
-            style={({ pressed }) => [
-              styles.reuploadAction,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Feather color={colors.text} name="camera" size={14} />
-            <Text style={styles.reuploadLink}>Use another photo</Text>
-          </Pressable>
         </AvatarImageFrame>
 
-        <View style={styles.buttonStack}>
+        <View
+          style={[
+            styles.buttonStack,
+            isDrawer ? styles.drawerButtonStack : null
+          ]}
+        >
           <PrimaryButton
             label="Try your first look"
             onPress={onContinue}
           />
           <PrimaryButton
-            label="Change measurement"
-            onPress={onChangeMeasurement}
+            label="Change photo"
+            onPress={onUseAnotherPhoto}
             variant="outline"
           />
         </View>
@@ -126,11 +125,23 @@ export function AvatarReadyScreen({
 
 const styles = StyleSheet.create({
   buttonStack: {
-    gap: spacing.sm
+    gap: spacing.sm,
+    width: "100%"
   },
   content: {
     gap: spacing.lg,
     paddingTop: spacing.xl
+  },
+  drawerButtonStack: {
+    alignSelf: "stretch"
+  },
+  drawerContent: {
+    alignItems: "center",
+    gap: spacing.md,
+    paddingTop: spacing.lg
+  },
+  drawerFrame: {
+    width: "78%"
   },
   measurementChip: {
     alignItems: "center",
@@ -178,34 +189,5 @@ const styles = StyleSheet.create({
   measurementChipTopRight: {
     right: 32,
     top: 58
-  },
-  pressed: {
-    opacity: 0.72
-  },
-  reuploadAction: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceTranslucent,
-    borderColor: colors.border,
-    borderRadius: radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    elevation: 3,
-    flexDirection: "row",
-    gap: 4,
-    justifyContent: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    position: "absolute",
-    right: spacing.md,
-    shadowColor: "#000000",
-    shadowOffset: { height: 2, width: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    top: spacing.md
-  },
-  reuploadLink: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 15
-  },
+  }
 });

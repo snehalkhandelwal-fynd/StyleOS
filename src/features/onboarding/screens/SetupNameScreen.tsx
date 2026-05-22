@@ -11,12 +11,16 @@ import { useEffect, useRef } from "react";
 import type { TextInput as TextInputType } from "react-native";
 
 import { colors, fonts, spacing, typography } from "../../../theme";
-import { OnboardingStepShell } from "../components/OnboardingStepShell";
+import {
+  OnboardingStepShell,
+  type OnboardingStepPresentation
+} from "../components/OnboardingStepShell";
 
 type SetupNameScreenProps = {
   name: string;
   onChangeName: (name: string) => void;
   onContinue: () => void;
+  presentation?: OnboardingStepPresentation;
 };
 
 const webTextInputReset =
@@ -30,10 +34,12 @@ const webTextInputReset =
 export function SetupNameScreen({
   name,
   onChangeName,
-  onContinue
+  onContinue,
+  presentation = "screen"
 }: SetupNameScreenProps) {
   const canContinue = name.trim().length > 0;
   const inputRef = useRef<TextInputType | null>(null);
+  const totalSteps = presentation === "drawer" ? 5 : 4;
 
   useEffect(() => {
     const focusTimer = setTimeout(() => {
@@ -46,6 +52,7 @@ export function SetupNameScreen({
   return (
     <OnboardingStepShell
       currentStep={1}
+      presentation={presentation}
       nextButton={{
         accessibilityLabel: "Continue to height setup",
         disabled: !canContinue,
@@ -53,6 +60,7 @@ export function SetupNameScreen({
       }}
       title="What’s your name?"
       titleStyle={styles.title}
+      totalSteps={totalSteps}
     >
       <Pressable
         accessibilityLabel="Enter your name"

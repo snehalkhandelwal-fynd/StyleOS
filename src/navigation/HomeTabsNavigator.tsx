@@ -15,7 +15,11 @@ import {
 
 import { BottomTabBar } from "../features/home/components/BottomTabBar";
 import type { ProductListingProduct } from "../features/home/components/ProductListingScreen";
-import { AccountScreen } from "../features/home/screens/AccountScreen";
+import {
+  AccountScreen,
+  type AccountPage
+} from "../features/home/screens/AccountScreen";
+import { getStyleCardsForFashionInterest } from "../data/styleQuiz";
 import {
   getRupeeValue,
   type LookPiece
@@ -32,6 +36,7 @@ import {
 } from "../features/home/screens/ModelLookPdpScreen";
 import { ProductPdpScreen } from "../features/home/screens/ProductPdpScreen";
 import { SearchDiscoveryScreen } from "../features/home/screens/SearchDiscoveryScreen";
+import { StylistScreen } from "../features/home/screens/StylistScreen";
 import {
   ShopThisLookScreen,
   TRY_ON_RENDER_DELAY_MS,
@@ -45,11 +50,15 @@ import type { HomeTabName } from "./types";
 
 type HomeTabsNavigatorProps = {
   draft: OnboardingDraft;
+  initialAccountPage?: AccountPage | null;
   initialTab: HomeTabName;
   isGuest: boolean;
   onChangeAddress: () => void;
   onSelectPhoto: (uri: string) => void;
-  onStartStyleQuiz: () => void;
+  onStartStyleQuiz: (
+    returnTab?: HomeTabName,
+    returnAccountPage?: AccountPage
+  ) => void;
 };
 
 type TryOnEntry = {
@@ -138,6 +147,31 @@ function toCartItemFromProduct(product: ProductListingProduct): CartItem {
     quantity: 1,
     size,
     title: product.title
+  };
+}
+
+function toStylistProductLook(pieces: LookPiece[]): ProductLook {
+  const topPiece = pieces.find((piece) => piece.kind === "top");
+  const total = pieces.reduce(
+    (sum, piece) => sum + getRupeeValue(piece.price),
+    0
+  );
+
+  return {
+    brand: "Stylus",
+    id: `stylist-look-${Date.now()}`,
+    image: topPiece?.image ?? pieces[0]?.image ?? "",
+    itemCount: `${pieces.length} pieces`,
+    match: "Try now",
+    outfitItems: pieces.map((piece) => ({
+      image: piece.image,
+      kind: piece.kind,
+      label: piece.category
+    })),
+    price: total > 0 ? `From ₹${total.toLocaleString("en-IN")}` : "Try now",
+    title: "Your styled look",
+    tries: "Ready to try",
+    vibe: "Styled by you"
   };
 }
 
@@ -263,6 +297,7 @@ function TryOnRenderStatusBar({
 
 export function HomeTabsNavigator({
   draft,
+  initialAccountPage,
   initialTab,
   isGuest,
   onChangeAddress,
@@ -620,6 +655,22 @@ export function HomeTabsNavigator({
     [activeTab, beginTryOnRender]
   );
 
+  const handleStartStylistTryOn = useCallback(
+    (pieces: LookPiece[]) => {
+      const stylistLook = toStylistProductLook(pieces);
+
+      setLookSnapshots((current) => ({
+        ...current,
+        [stylistLook.id]: {
+          isSaved: false,
+          pieces
+        }
+      }));
+      openTryOnSession(stylistLook, "Stylist");
+    },
+    [openTryOnSession]
+  );
+
   const handleTryOnClose = useCallback(
     (state: TryOnExitState) => {
       const sessionLook = tryOnEntry?.look;
@@ -803,6 +854,12 @@ export function HomeTabsNavigator({
     tryOnRender.isBrowsing &&
     tryOnRender.status === "ready" &&
     isReadyToastVisible;
+  const shouldShowStylistFallback =
+    activeTab === "TryOn" &&
+    !tryOnEntry &&
+    !selectedProduct &&
+    !isTryOnShopLookOpen &&
+    tryOnRender.status === "idle";
   const renderStatusBar = shouldShowRenderStatus ? (
     <TryOnRenderStatusBar
       onPress={handleOpenReadyLook}
@@ -824,9 +881,29 @@ export function HomeTabsNavigator({
     !selectedProduct &&
     !selectedBrandId &&
     activeTab !== "Cart" &&
-    activeTab !== "TryOn" &&
+    (activeTab !== "TryOn" || shouldShowStylistFallback) &&
     !(activeTab === "Feed" && isExploreInternalViewOpen);
   const hasStyleProfile = hasCompletedStyleProfile(draft);
+  const styleQuiz = draft.styleQuiz;
+  const styleCardsForInterest = getStyleCardsForFashionInterest(
+    draft.fashionInterest
+  );
+  const styleLabelById = Object.fromEntries(
+    styleCardsForInterest.map((card) => [card.id, card.label])
+  );
+  const likedStyleLabels =
+    styleQuiz?.likedStyleIds
+      .map((styleId) => styleLabelById[styleId])
+      .filter((label): label is string => Boolean(label)) ?? [];
+  const styleProfile = {
+    answeredCount:
+      (styleQuiz?.likedStyleIds.length ?? 0) +
+      (styleQuiz?.rejectedStyleIds.length ?? 0),
+    isRecorded: hasStyleProfile,
+    likedStyleLabels,
+    requiredCount: 5,
+    skipped: styleQuiz?.skipped
+  };
   const selectedLookSnapshot = selectedLook
     ? lookSnapshots[selectedLook.id]
     : undefined;
@@ -926,7 +1003,10 @@ export function HomeTabsNavigator({
             pieces={shopLookPieces ?? tryOnLookSnapshot?.pieces ?? []}
           />
         ) : null}
-        {activeTab === "TryOn" && !selectedProduct && !isTryOnShopLookOpen ? (
+        {activeTab === "TryOn" &&
+        !selectedProduct &&
+        !isTryOnShopLookOpen &&
+        !shouldShowStylistFallback ? (
           <TryOnScreen
             cartCount={cartCount}
             draft={draft}
@@ -943,6 +1023,12 @@ export function HomeTabsNavigator({
             onOpenShopLook={handleOpenShopLookFromTryOn}
             onSelectPhoto={onSelectPhoto}
             onViewCart={handleViewCartFromTryOn}
+          />
+        ) : null}
+        {activeTab === "Stylist" || shouldShowStylistFallback ? (
+          <StylistScreen
+            onTryOn={handleStartStylistTryOn}
+            onUploadItems={() => handleChangeTab("Closet")}
           />
         ) : null}
         {activeTab === "Closet" ? (
@@ -978,7 +1064,14 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "Profile" ? (
           <AccountScreen
+            actions={{
+              onOpenExplore: () => handleChangeTab("Feed"),
+              onStartStyleQuiz: () => onStartStyleQuiz("Profile", "style"),
+              onStartTryOn: (context) => openTryOnSession(undefined, context)
+            }}
             appVersion="1.0.1"
+            initialPage={initialAccountPage}
+            styleProfile={styleProfile}
             user={{
               avatarUri: draft.avatarUri,
               name: draft.name?.trim() || "Guest",
@@ -991,7 +1084,10 @@ export function HomeTabsNavigator({
       </View>
       {shouldShowBottomTabs ? (
         <View pointerEvents="box-none" style={styles.navHost}>
-          <BottomTabBar activeTab={activeTab} onChangeTab={handleChangeTab} />
+          <BottomTabBar
+            activeTab={shouldShowStylistFallback ? "Stylist" : activeTab}
+            onChangeTab={handleChangeTab}
+          />
         </View>
       ) : null}
       {renderStatusBar}
@@ -1006,8 +1102,10 @@ const styles = StyleSheet.create({
   navHost: {
     bottom: spacing.md,
     left: 0,
+    paddingHorizontal: spacing.screen,
     position: "absolute",
-    right: 0
+    right: 0,
+    zIndex: 9
   },
   renderProgressLine: {
     backgroundColor: colors.text,

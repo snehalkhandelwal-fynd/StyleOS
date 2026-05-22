@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import { ResizeMode, Video } from "expo-av";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -93,7 +92,6 @@ const bottomSafeInset = Platform.OS === "ios" ? 22 : 0;
 export const TRY_ON_RENDER_DELAY_MS = 3000;
 const avatarCreationImage = require("../../../../Images/imagewithoutbg.png");
 const tryOnModelImage = require("../../../../Images/modelimage.png");
-const tryOnVideoAsset = require("../../../../Images/Woman_looks_left_right_herself_202605200140.mp4");
 const shopThisLookImages = {
   brownBag: Image.resolveAssetSource(
     require("../../../../Images/brownbag.jpg")
@@ -153,6 +151,19 @@ const buildSlots: BuildSlotConfig[] = [
 
 function getBuildSlotLabel(kind: BuildSlotKind) {
   return buildSlots.find((slot) => slot.kind === kind)?.label ?? "Piece";
+}
+
+function getBuildSlotSearchPlaceholder(kind: BuildSlotKind) {
+  const placeholders: Record<BuildSlotKind, string> = {
+    accessory: "Search accessories",
+    bag: "Search bags",
+    bottom: "Search bottoms",
+    jacket: "Search layers",
+    shoe: "Search footwear",
+    top: "Search tops"
+  };
+
+  return placeholders[kind];
 }
 
 function getBuildSlotPiece(pieces: LookPiece[], kind: BuildSlotKind) {
@@ -250,33 +261,6 @@ function isSameBuildPiece(firstPiece: LookPiece, secondPiece: LookPiece) {
     firstPiece.image === secondPiece.image &&
     firstPiece.name === secondPiece.name
   );
-}
-
-function getBuildSlotCarouselPieces(kind: BuildSlotKind, piece?: LookPiece) {
-  const alternatives = getPieceAlternatives(kind).filter(
-    (candidate, index, allCandidates) =>
-      allCandidates.findIndex((item) => isSameBuildPiece(item, candidate)) ===
-      index
-  );
-
-  if (!piece) {
-    return alternatives.slice(0, 3);
-  }
-
-  const currentIndex = alternatives.findIndex((candidate) =>
-    isSameBuildPiece(candidate, piece)
-  );
-
-  if (currentIndex >= 0 && currentIndex < 3) {
-    return alternatives.slice(0, 3);
-  }
-
-  return [
-    piece,
-    ...alternatives
-      .filter((candidate) => !isSameBuildPiece(candidate, piece))
-      .slice(0, 2)
-  ];
 }
 
 function ShuffleIcon() {
@@ -894,102 +878,24 @@ function BuildSlotCard({
   label,
   onClear,
   onPress,
-  onSelectPiece,
   piece
 }: {
   kind: BuildSlotKind;
   label: string;
   onClear: (kind: BuildSlotKind) => void;
   onPress: (kind: BuildSlotKind) => void;
-  onSelectPiece: (kind: BuildSlotKind, piece: LookPiece) => void;
   piece?: LookPiece;
 }) {
-  const imageScrollRef = useRef<ScrollView | null>(null);
-  const carouselPieces = useMemo(
-    () => getBuildSlotCarouselPieces(kind, piece),
-    [kind, piece]
-  );
-  const selectedIndex = Math.max(
-    0,
-    carouselPieces.findIndex(
-      (carouselPiece) => piece && isSameBuildPiece(carouselPiece, piece)
-    )
-  );
-  const [frameWidth, setFrameWidth] = useState(0);
-  const [activeImageIndex, setActiveImageIndex] = useState(selectedIndex);
-
-  useEffect(() => {
-    setActiveImageIndex(selectedIndex);
-
-    if (frameWidth > 0) {
-      imageScrollRef.current?.scrollTo({
-        animated: false,
-        x: selectedIndex * frameWidth,
-        y: 0
-      });
-    }
-  }, [frameWidth, selectedIndex]);
-
-  const handleCarouselScrollEnd = (event: {
-    nativeEvent: { contentOffset: { x: number } };
-  }) => {
-    if (frameWidth <= 0) {
-      return;
-    }
-
-    const nextIndex = Math.max(
-      0,
-      Math.min(
-        Math.round(event.nativeEvent.contentOffset.x / frameWidth),
-        carouselPieces.length - 1
-      )
-    );
-    const nextPiece = carouselPieces[nextIndex];
-
-    setActiveImageIndex(nextIndex);
-
-    if (nextPiece && (!piece || !isSameBuildPiece(nextPiece, piece))) {
-      onSelectPiece(kind, nextPiece);
-    }
-  };
-
   return (
     <View style={styles.buildSlot}>
       {piece ? (
-        <View
-          onLayout={(event) => {
-            setFrameWidth(event.nativeEvent.layout.width);
-          }}
-          style={styles.buildSlotFrame}
-        >
-          <ScrollView
-            bounces={false}
-            decelerationRate="fast"
-            directionalLockEnabled
-            horizontal
-            nestedScrollEnabled
-            onMomentumScrollEnd={handleCarouselScrollEnd}
-            onScrollEndDrag={handleCarouselScrollEnd}
-            pagingEnabled
-            ref={imageScrollRef}
-            scrollEnabled={carouselPieces.length > 1}
-            scrollEventThrottle={16}
-            showsHorizontalScrollIndicator={false}
-            style={styles.buildSlotCarousel}
-          >
-            {carouselPieces.map((carouselPiece) => (
-              <Image
-                accessibilityLabel={`${label} option: ${carouselPiece.name}`}
-                key={`${kind}-${carouselPiece.id}-${carouselPiece.image}`}
-                resizeMode="cover"
-                source={{ uri: carouselPiece.image }}
-                style={[
-                  styles.buildSlotImage,
-                  { width: Math.max(frameWidth, 1) }
-                ]}
-              />
-            ))}
-          </ScrollView>
+        <View style={styles.buildSlotFrame}>
+          <Image
+            accessibilityLabel={`${label}: ${piece.name}`}
+            resizeMode="cover"
+            source={{ uri: piece.image }}
+            style={styles.buildSlotImage}
+          />
           <Pressable
             accessibilityLabel={`Remove ${label}`}
             accessibilityRole="button"
@@ -1005,19 +911,6 @@ function BuildSlotCard({
           >
             <Feather color={colors.soft} name="x" size={21} />
           </Pressable>
-          <View style={styles.buildSlotDots}>
-            {carouselPieces.map((carouselPiece, index) => (
-              <View
-                key={`${kind}-${carouselPiece.id}-${carouselPiece.image}-${index}-dot`}
-                style={[
-                  styles.buildSlotDot,
-                  index === activeImageIndex
-                    ? styles.buildSlotDotActive
-                    : null
-                ]}
-              />
-            ))}
-          </View>
         </View>
       ) : (
         <Pressable
@@ -1052,7 +945,6 @@ function BuildLookScreen({
   onClearSlot,
   onGenerate,
   onOpenCategory,
-  onSelectPiece,
   onShuffle,
   onStylePromptChange,
   pieces,
@@ -1061,7 +953,6 @@ function BuildLookScreen({
   onClearSlot: (kind: BuildSlotKind) => void;
   onGenerate: () => void;
   onOpenCategory: (kind: BuildSlotKind) => void;
-  onSelectPiece: (kind: BuildSlotKind, piece: LookPiece) => void;
   onShuffle: () => void;
   onStylePromptChange: (prompt: string) => void;
   pieces: LookPiece[];
@@ -1103,7 +994,6 @@ function BuildLookScreen({
               label={slot.label}
               onClear={onClearSlot}
               onPress={onOpenCategory}
-              onSelectPiece={onSelectPiece}
               piece={getBuildSlotPiece(pieces, slot.kind)}
             />
           ))}
@@ -1375,7 +1265,6 @@ export function TryOnScreen({
   const [isPiecePanelOpen, setIsPiecePanelOpen] = useState(false);
   const [isPiecePanelVisible, setIsPiecePanelVisible] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
-  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [isCartToastVisible, setIsCartToastVisible] = useState(false);
   const [addedPieceCount, setAddedPieceCount] = useState(0);
   const [isBuildLookOpen, setIsBuildLookOpen] = useState(false);
@@ -1398,22 +1287,6 @@ export function TryOnScreen({
     () => getShopThisLookPieces(pieces),
     [pieces]
   );
-  const mediaSlides = useMemo(
-    () => [
-      {
-        accessibilityLabel: `${activeLook.title} try-on image`,
-        id: "image",
-        isVideo: false
-      },
-      {
-        accessibilityLabel: `${activeLook.title} try-on video preview`,
-        id: "video",
-        isVideo: true
-      }
-    ],
-    [activeLook.title]
-  );
-  const activeMediaSlide = mediaSlides[activeMediaIndex] ?? mediaSlides[0];
 
   useEffect(() => {
     const nextPieces =
@@ -1423,7 +1296,6 @@ export function TryOnScreen({
 
     setPieces(nextPieces);
     setSelectedPieceId(nextPieces[0]?.id ?? "");
-    setActiveMediaIndex(0);
     setIsPiecePanelOpen(false);
     setIsPiecePanelVisible(false);
     setIsBuildLookOpen(false);
@@ -1666,26 +1538,6 @@ export function TryOnScreen({
     setActiveBuildCategory(null);
   };
 
-  const handleSelectBuildSlotPiece = (
-    kind: BuildSlotKind,
-    selectedPiece: LookPiece
-  ) => {
-    setPieces((currentPieces) => {
-      const nextPieces = replaceBuildSlotPiece(
-        currentPieces,
-        kind,
-        selectedPiece
-      );
-      const nextPiece = getBuildSlotPiece(nextPieces, kind);
-
-      if (nextPiece) {
-        setSelectedPieceId(nextPiece.id);
-      }
-
-      return nextPieces;
-    });
-  };
-
   const handleGenerateBuildLook = () => {
     setIsBuildLookOpen(false);
     setActiveBuildCategory(null);
@@ -1810,7 +1662,9 @@ export function TryOnScreen({
             }
           }}
           products={listingOptions.map((option) => option.product)}
+          searchPlaceholder={getBuildSlotSearchPlaceholder(activeSlot.kind)}
           showDrawerHandle
+          showSearchBar
           title={activeSlot.listingTitle}
         />
       );
@@ -1820,7 +1674,6 @@ export function TryOnScreen({
           onClearSlot={handleClearBuildSlot}
           onGenerate={handleGenerateBuildLook}
           onOpenCategory={setActiveBuildCategory}
-          onSelectPiece={handleSelectBuildSlotPiece}
           onShuffle={handleShuffleBuildLook}
           onStylePromptChange={setBuildStylePrompt}
           pieces={pieces}
@@ -1850,75 +1703,24 @@ export function TryOnScreen({
               </View>
             </View>
           ) : (
-            <>
-              <View
-                accessibilityLabel={activeMediaSlide.accessibilityLabel}
-                accessibilityRole="image"
-                style={styles.mediaFrame}
+            <View
+              accessibilityLabel={`${activeLook.title} try-on image`}
+              accessibilityRole="image"
+              style={styles.mediaFrame}
+            >
+              <Animated.View
+                style={[
+                  styles.avatarMediaFrame,
+                  { transform: avatarTransform }
+                ]}
               >
-                <Animated.View
-                  style={[
-                    styles.avatarMediaFrame,
-                    { transform: avatarTransform }
-                  ]}
-                >
-                  {activeMediaSlide.isVideo ? (
-                    <View style={styles.avatarVideoClip}>
-                      <Video
-                        isLooping
-                        isMuted
-                        resizeMode={ResizeMode.COVER}
-                        shouldPlay={activeMediaSlide.isVideo}
-                        source={tryOnVideoAsset}
-                        style={styles.avatarVideo}
-                        useNativeControls={false}
-                      />
-                    </View>
-                  ) : (
-                    <Image
-                      resizeMode="contain"
-                      source={tryOnModelImage}
-                      style={styles.avatarImage}
-                    />
-                  )}
-                </Animated.View>
-              </View>
-
-              {!isPiecePanelVisible ? (
-                <View pointerEvents="box-none" style={styles.mediaControlDock}>
-                  <View style={styles.mediaSegmentedControl}>
-                    {mediaSlides.map((slide, index) => (
-                      <Pressable
-                        accessibilityLabel={`Show ${slide.id}`}
-                        accessibilityRole="button"
-                        accessibilityState={{
-                          selected: activeMediaIndex === index
-                        }}
-                        key={slide.id}
-                        onPress={() => setActiveMediaIndex(index)}
-                        style={[
-                          styles.mediaSegment,
-                          index === activeMediaIndex
-                            ? styles.mediaSegmentActive
-                            : null
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.mediaSegmentText,
-                            index === activeMediaIndex
-                              ? styles.mediaSegmentTextActive
-                              : null
-                          ]}
-                        >
-                          {slide.id === "image" ? "Image" : "Video"}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-            </>
+                <Image
+                  resizeMode="contain"
+                  source={tryOnModelImage}
+                  style={styles.avatarImage}
+                />
+              </Animated.View>
+            </View>
           )}
         </View>
 
@@ -2145,15 +1947,6 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%"
   },
-  avatarVideoClip: {
-    height: "100%",
-    overflow: "hidden",
-    width: "100%"
-  },
-  avatarVideo: {
-    height: "100%",
-    width: "100%"
-  },
   avatarRegion: {
     backgroundColor: colors.background,
     overflow: "hidden"
@@ -2265,34 +2058,6 @@ const styles = StyleSheet.create({
     flexBasis: "48.1%",
     flexGrow: 0,
     minWidth: 0
-  },
-  buildSlotCarousel: {
-    height: "100%",
-    width: "100%"
-  },
-  buildSlotDot: {
-    backgroundColor: colors.border,
-    borderRadius: 999,
-    height: 6,
-    width: 6
-  },
-  buildSlotDotActive: {
-    backgroundColor: colors.text
-  },
-  buildSlotDots: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceTranslucent,
-    borderRadius: 999,
-    bottom: spacing.sm,
-    flexDirection: "row",
-    gap: 6,
-    height: 18,
-    justifyContent: "center",
-    left: "50%",
-    paddingHorizontal: spacing.sm,
-    position: "absolute",
-    transform: [{ translateX: -25 }],
-    width: 50
   },
   buildSlotEmptyContent: {
     alignItems: "center",
@@ -2825,49 +2590,6 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     width: "100%"
-  },
-  mediaControlDock: {
-    alignItems: "center",
-    bottom: spacing.xl,
-    height: 56,
-    justifyContent: "center",
-    left: 0,
-    position: "absolute",
-    right: 0,
-    zIndex: 2
-  },
-  mediaSegment: {
-    alignItems: "center",
-    borderRadius: 999,
-    height: 38,
-    justifyContent: "center",
-    minWidth: 76,
-    paddingHorizontal: spacing.md
-  },
-  mediaSegmentActive: {
-    backgroundColor: colors.text
-  },
-  mediaSegmentedControl: {
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
-    borderColor: "rgba(10, 10, 10, 0.18)",
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: "row",
-    padding: 3,
-    shadowColor: "#000000",
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12
-  },
-  mediaSegmentText: {
-    color: colors.text,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 18
-  },
-  mediaSegmentTextActive: {
-    color: colors.inverseText,
-    fontFamily: fonts.bodyMedium
   },
   screen: {
     backgroundColor: colors.background,

@@ -68,16 +68,16 @@ export function AccountProfileCard({
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.imageSurface,
     borderRadius: radii.pill,
-    height: 56,
+    height: 72,
     justifyContent: "center",
     overflow: "hidden",
-    width: 56
+    width: 72
   },
   avatarImage: {
-    height: 56,
-    width: 56
+    height: 72,
+    width: 72
   },
   card: {
     alignItems: "center",
@@ -85,31 +85,28 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.card,
     borderWidth: StyleSheet.hairlineWidth,
-    elevation: 2,
     flexDirection: "row",
-    gap: spacing.md,
-    padding: spacing.md,
-    shadowColor: "#000000",
-    shadowOffset: {
-      height: 4,
-      width: 0
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 12
+    gap: spacing.lg,
+    padding: spacing.lg
   },
   detail: {
-    ...typography.caption,
+    ...typography.body,
     color: colors.muted
   },
   edit: {
-    padding: spacing.xs
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    height: 34,
+    justifyContent: "center",
+    width: 34
   },
   info: {
     flex: 1,
     gap: spacing.xs
   },
   name: {
-    ...typography.cardTitle,
+    ...typography.sectionHeading,
     color: colors.text
   },
   pressed: {

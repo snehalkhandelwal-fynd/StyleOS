@@ -12,7 +12,7 @@ import {
 import { EditIcon } from "../../../components/EditIcon";
 import { colors, fonts, radii, spacing, typography } from "../../../theme";
 import { OtpInput } from "../components/OtpInput";
-import { onboardingHeadingTop } from "../layout";
+import { authScreenContentLayout } from "../layout";
 
 type OtpVerificationScreenProps = {
   countryCode: string;
@@ -248,8 +248,7 @@ export function OtpVerificationScreen({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: spacing.screen,
-    paddingTop: onboardingHeadingTop
+    ...authScreenContentLayout
   },
   editButton: {
     alignItems: "center",

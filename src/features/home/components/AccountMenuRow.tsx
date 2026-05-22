@@ -31,7 +31,9 @@ export function AccountMenuRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed ? styles.pressed : null]}
     >
-      <Feather color={colors.text} name={icon} size={20} />
+      <View style={styles.iconShell}>
+        <Feather color={colors.text} name={icon} size={19} />
+      </View>
       <View style={styles.text}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
@@ -42,13 +44,24 @@ export function AccountMenuRow({
 }
 
 const styles = StyleSheet.create({
+  iconShell: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
   pressed: {
     opacity: 0.6
   },
   row: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md
+    gap: spacing.md,
+    minHeight: 74,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm
   },
   subtitle: {
     ...typography.caption,
@@ -59,8 +72,9 @@ const styles = StyleSheet.create({
     gap: 2
   },
   title: {
-    ...typography.bodyLarge,
     color: colors.text,
-    fontFamily: fonts.bodyMedium
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    lineHeight: 19
   }
 });

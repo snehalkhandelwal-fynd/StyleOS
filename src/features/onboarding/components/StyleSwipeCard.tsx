@@ -12,9 +12,11 @@ import {
   Easing,
   ImageBackground,
   PanResponder,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
+  type ViewStyle,
   View
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -43,9 +45,22 @@ type StyleSwipeActionsProps = {
 };
 
 const swipeThreshold = 80;
+const swipeFlickDistance = 28;
+const swipeVelocityThreshold = 0.45;
 const swipeExitDistance = 520;
 const cardRadius = 20;
 const deckStackOffset = 24;
+const deckPeekOffset = 9;
+const deckPeekSideOffset = 8;
+
+const webSwipeCardStyle =
+  Platform.OS === "web"
+    ? ({
+        cursor: "grab",
+        touchAction: "none",
+        userSelect: "none"
+      } as unknown as ViewStyle)
+    : null;
 
 function XIcon() {
   return (
@@ -79,25 +94,56 @@ function DeckCard({
   card,
   cardHeight,
   cardWidth,
+  dragX,
   index
 }: {
   card: StyleCard;
   cardHeight: number;
   cardWidth: number;
+  dragX: Animated.Value;
   index: 1 | 2;
 }) {
+  const stackOpacity = dragX.interpolate({
+    inputRange: [-swipeExitDistance, 0, swipeExitDistance],
+    outputRange: index === 1 ? [1, 0.74, 1] : [0.74, 0.48, 0.74],
+    extrapolate: "clamp"
+  });
+  const stackScale = dragX.interpolate({
+    inputRange: [-swipeExitDistance, 0, swipeExitDistance],
+    outputRange:
+      index === 1 ? [1, 0.975, 1] : [0.975, 0.95, 0.975],
+    extrapolate: "clamp"
+  });
+  const stackTranslateX = dragX.interpolate({
+    inputRange: [-swipeExitDistance, 0, swipeExitDistance],
+    outputRange:
+      index === 1
+        ? [0, deckPeekSideOffset, 0]
+        : [deckPeekSideOffset, deckPeekSideOffset * 2, deckPeekSideOffset],
+    extrapolate: "clamp"
+  });
+  const stackTranslateY = dragX.interpolate({
+    inputRange: [-swipeExitDistance, 0, swipeExitDistance],
+    outputRange:
+      index === 1
+        ? [0, deckPeekOffset, 0]
+        : [deckPeekOffset, deckPeekOffset * 2, deckPeekOffset],
+    extrapolate: "clamp"
+  });
+
   return (
-    <View
+    <Animated.View
       pointerEvents="none"
       style={[
         styles.deckCard,
         {
           height: cardHeight,
-          opacity: index === 1 ? 0.75 : 0.45,
+          opacity: stackOpacity,
           top: deckStackOffset,
           transform: [
-            { translateY: index === 1 ? -12 : -deckStackOffset },
-            { scale: index === 1 ? 0.96 : 0.92 }
+            { translateX: stackTranslateX },
+            { translateY: stackTranslateY },
+            { scale: stackScale }
           ],
           width: cardWidth,
           zIndex: index === 1 ? 2 : 1
@@ -110,7 +156,7 @@ function DeckCard({
         source={{ uri: card.image }}
         style={styles.imageBackground}
       />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -130,22 +176,18 @@ export const StyleSwipeCard = forwardRef<
   ref
 ) {
   const dragX = useRef(new Animated.Value(0)).current;
-  const cardScale = useRef(new Animated.Value(1)).current;
+  const dragStartX = useRef(0);
   const isAnimatingAway = useRef(false);
 
   useEffect(() => {
+    dragX.stopAnimation();
     dragX.setValue(0);
-    cardScale.setValue(0.98);
+    dragStartX.current = 0;
     isAnimatingAway.current = false;
-    Animated.timing(cardScale, {
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-      toValue: 1,
-      useNativeDriver: true
-    }).start();
-  }, [card.id, cardScale, dragX]);
+  }, [card.id, dragX]);
 
   const resetCard = useCallback(() => {
+    dragStartX.current = 0;
     Animated.spring(dragX, {
       damping: 20,
       mass: 0.7,
@@ -162,10 +204,12 @@ export const StyleSwipeCard = forwardRef<
       }
 
       isAnimatingAway.current = true;
+      dragStartX.current = 0;
+      dragX.stopAnimation();
       const direction = preference === "liked" ? 1 : -1;
 
       Animated.timing(dragX, {
-        duration: 190,
+        duration: 220,
         easing: Easing.out(Easing.cubic),
         toValue: direction * swipeExitDistance,
         useNativeDriver: true
@@ -176,6 +220,35 @@ export const StyleSwipeCard = forwardRef<
       });
     },
     [dragX, onPreference]
+  );
+
+  const settleGesture = useCallback(
+    (gestureDx: number, velocityX: number) => {
+      const finalX = dragStartX.current + gestureDx;
+      const projectedX = finalX + velocityX * 120;
+
+      dragStartX.current = 0;
+      dragX.setValue(finalX);
+
+      if (
+        projectedX >= swipeThreshold ||
+        (velocityX >= swipeVelocityThreshold && finalX >= swipeFlickDistance)
+      ) {
+        commitPreference("liked");
+        return;
+      }
+
+      if (
+        projectedX <= -swipeThreshold ||
+        (velocityX <= -swipeVelocityThreshold && finalX <= -swipeFlickDistance)
+      ) {
+        commitPreference("rejected");
+        return;
+      }
+
+      resetCard();
+    },
+    [commitPreference, dragX, resetCard]
   );
 
   useImperativeHandle(
@@ -189,41 +262,55 @@ export const StyleSwipeCard = forwardRef<
   const panResponder = useMemo(
     () =>
       PanResponder.create({
+        onStartShouldSetPanResponder: () => !isAnimatingAway.current,
         onMoveShouldSetPanResponderCapture: (_, gesture) =>
+          !isAnimatingAway.current &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy) &&
           Math.abs(gesture.dx) > 4,
         onMoveShouldSetPanResponder: (_, gesture) =>
+          !isAnimatingAway.current &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy) &&
           Math.abs(gesture.dx) > 4,
         onPanResponderGrant: () => {
-          dragX.stopAnimation();
+          dragX.stopAnimation((value) => {
+            dragStartX.current = value;
+          });
         },
         onPanResponderMove: (_, gesture) => {
-          dragX.setValue(gesture.dx);
+          if (isAnimatingAway.current) {
+            return;
+          }
+
+          dragX.setValue(dragStartX.current + gesture.dx);
         },
         onPanResponderRelease: (_, gesture) => {
-          if (gesture.dx >= swipeThreshold) {
-            commitPreference("liked");
-            return;
-          }
-
-          if (gesture.dx <= -swipeThreshold) {
-            commitPreference("rejected");
-            return;
-          }
-
+          settleGesture(gesture.dx, gesture.vx);
+        },
+        onPanResponderTerminate: () => {
+          dragStartX.current = 0;
           resetCard();
         },
-        onPanResponderTerminate: resetCard,
         onPanResponderTerminationRequest: () => false,
         onShouldBlockNativeResponder: () => true
       }),
-    [commitPreference, dragX, resetCard]
+    [dragX, resetCard, settleGesture]
   );
 
   const cardRotation = dragX.interpolate({
     inputRange: [-swipeExitDistance, 0, swipeExitDistance],
-    outputRange: ["-8deg", "0deg", "8deg"]
+    outputRange: ["-14deg", "0deg", "14deg"],
+    extrapolate: "clamp"
+  });
+  const currentCardOpacity = dragX.interpolate({
+    inputRange: [
+      -swipeExitDistance,
+      -swipeExitDistance * 0.42,
+      0,
+      swipeExitDistance * 0.42,
+      swipeExitDistance
+    ],
+    outputRange: [0, 0.78, 1, 0.78, 0],
+    extrapolate: "clamp"
   });
 
   return (
@@ -241,23 +328,23 @@ export const StyleSwipeCard = forwardRef<
           card={nextCard}
           cardHeight={cardHeight}
           cardWidth={cardWidth}
+          dragX={dragX}
           index={(index + 1) as 1 | 2}
           key={nextCard.id}
         />
       ))}
 
       <Animated.View
-        renderToHardwareTextureAndroid
-        shouldRasterizeIOS
         style={[
           styles.currentCard,
+          webSwipeCardStyle,
           {
             height: cardHeight,
+            opacity: currentCardOpacity,
             top: deckStackOffset,
             transform: [
               { translateX: dragX },
-              { rotate: cardRotation },
-              { scale: cardScale }
+              { rotate: cardRotation }
             ],
             width: cardWidth,
             zIndex: 3
@@ -392,7 +479,7 @@ const styles = StyleSheet.create({
   deck: {
     alignItems: "center",
     justifyContent: "flex-start",
-    overflow: "hidden"
+    overflow: "visible"
   },
   deckCard: {
     backgroundColor: colors.imageSurface,

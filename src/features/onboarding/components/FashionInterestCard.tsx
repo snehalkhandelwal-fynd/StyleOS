@@ -9,14 +9,18 @@ type FashionInterestCardProps = {
   isSelected: boolean;
   label: string;
   onPress: () => void;
+  variant?: "default" | "compact";
 };
 
 export function FashionInterestCard({
   image,
   isSelected,
   label,
-  onPress
+  onPress,
+  variant = "default"
 }: FashionInterestCardProps) {
+  const isCompact = variant === "compact";
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -25,8 +29,9 @@ export function FashionInterestCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
+        isCompact ? styles.cardCompact : null,
         isSelected ? styles.selected : null,
-        isSelected ? styles.selectedScale : null,
+        isSelected && !isCompact ? styles.selectedScale : null,
         pressed ? styles.pressed : null
       ]}
     >
@@ -50,8 +55,12 @@ export function FashionInterestCard({
           <Ionicons color={colors.inverseText} name="checkmark" size={18} />
         </View>
       ) : null}
-      <View style={styles.content}>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={styles.label}>
+      <View style={[styles.content, isCompact ? styles.contentCompact : null]}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={[styles.label, isCompact ? styles.labelCompact : null]}
+        >
           {label}
         </Text>
       </View>
@@ -68,6 +77,11 @@ const styles = StyleSheet.create({
     minHeight: 244,
     overflow: "hidden",
     position: "relative"
+  },
+  cardCompact: {
+    borderRadius: 16,
+    height: 184,
+    minHeight: 0
   },
   checkWrap: {
     alignItems: "center",
@@ -87,6 +101,9 @@ const styles = StyleSheet.create({
     right: spacing.md,
     zIndex: 2
   },
+  contentCompact: {
+    bottom: spacing.md
+  },
   copyGradient: {
     bottom: 0,
     height: "42%",
@@ -104,6 +121,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.sectionHeading.fontFamily,
     fontSize: 18,
     lineHeight: 23
+  },
+  labelCompact: {
+    fontSize: 15,
+    lineHeight: 19.5
   },
   overlay: {
     backgroundColor: "rgba(255, 255, 255, 0.1)",

@@ -9,7 +9,7 @@ import {
   type TextStyle,
   View
 } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TextInput as TextInputType } from "react-native";
 
 import { Divider } from "../../../components/Divider";
@@ -20,12 +20,11 @@ import type { CountryOption } from "../../../data/countries";
 import { socialOptions } from "../../../data/onboarding";
 import { colors, radii, spacing, typography } from "../../../theme";
 import { CountryCodePicker } from "../components/CountryCodePicker";
-import { onboardingHeadingTop } from "../layout";
+import { authScreenContentLayout } from "../layout";
 
 type PhoneSignInScreenProps = {
   onChangeCountry: (country: CountryOption) => void;
   onChangePhone: (value: string) => void;
-  onSkip: () => void;
   onSubmit: () => void;
   phoneNumber: string;
   selectedCountry: CountryOption;
@@ -42,15 +41,16 @@ const webTextInputReset =
 export function PhoneSignInScreen({
   onChangeCountry,
   onChangePhone,
-  onSkip,
   onSubmit,
   phoneNumber,
   selectedCountry
 }: PhoneSignInScreenProps) {
   const isComplete = phoneNumber.trim().length === requiredPhoneNumberDigits;
+  const [isCountryPickerOpen, setIsCountryPickerOpen] = useState(false);
   const phoneInputRef = useRef<TextInputType | null>(null);
 
   const focusPhoneInput = () => {
+    setIsCountryPickerOpen(false);
     requestAnimationFrame(() => {
       phoneInputRef.current?.focus();
     });
@@ -71,27 +71,23 @@ export function PhoneSignInScreen({
   }, []);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView
+      onTouchStart={() => {
+        if (isCountryPickerOpen) {
+          setIsCountryPickerOpen(false);
+        }
+      }}
+      style={styles.screen}
+    >
       <View style={styles.content}>
-        <Pressable
-          accessibilityLabel="Skip sign in"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onSkip}
-          style={({ pressed }) => [
-            styles.skip,
-            pressed ? styles.skipPressed : null
-          ]}
-        >
-          <Text style={styles.skipText}>Skip</Text>
-        </Pressable>
-
         <Text style={styles.title}>What's your phone number?</Text>
 
         <View style={styles.form}>
           <View style={styles.phoneRow}>
             <CountryCodePicker
+              isOpen={isCountryPickerOpen}
               onChangeCountry={onChangeCountry}
+              onOpenChange={setIsCountryPickerOpen}
               selectedCountry={selectedCountry}
             />
             <Pressable
@@ -107,6 +103,7 @@ export function PhoneSignInScreen({
                 keyboardType="phone-pad"
                 maxLength={requiredPhoneNumberDigits}
                 onChangeText={(value) => onChangePhone(value.replace(/\D/g, ""))}
+                onFocus={() => setIsCountryPickerOpen(false)}
                 placeholder="Phone number"
                 placeholderTextColor={colors.soft}
                 ref={phoneInputRef}
@@ -145,9 +142,8 @@ export function PhoneSignInScreen({
 
 const styles = StyleSheet.create({
   content: {
-    gap: spacing.xl,
-    paddingHorizontal: spacing.screen,
-    paddingTop: onboardingHeadingTop
+    ...authScreenContentLayout,
+    gap: spacing.xl
   },
   form: {
     gap: spacing.lg
@@ -189,20 +185,6 @@ const styles = StyleSheet.create({
   screen: {
     backgroundColor: colors.background,
     flex: 1
-  },
-  skip: {
-    paddingVertical: spacing.xs,
-    position: "absolute",
-    right: spacing.screen,
-    top: spacing.xs,
-    zIndex: 20
-  },
-  skipPressed: {
-    opacity: 0.6
-  },
-  skipText: {
-    color: colors.muted,
-    ...typography.bodyLarge
   },
   title: {
     color: colors.text,

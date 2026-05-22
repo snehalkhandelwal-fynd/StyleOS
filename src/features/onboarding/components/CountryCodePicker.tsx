@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -17,7 +17,9 @@ import { countryOptions, type CountryOption } from "../../../data/countries";
 import { colors, fonts, radii, spacing } from "../../../theme";
 
 type CountryCodePickerProps = {
+  isOpen?: boolean;
   onChangeCountry: (country: CountryOption) => void;
+  onOpenChange?: (isOpen: boolean) => void;
   selectedCountry: CountryOption;
 };
 
@@ -30,14 +32,32 @@ const webTextInputReset =
     : null;
 
 export function CountryCodePicker({
+  isOpen: controlledIsOpen,
   onChangeCountry,
+  onOpenChange,
   selectedCountry
 }: CountryCodePickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [listHeight, setListHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [scrollY, setScrollY] = useState(0);
+  const isOpen = controlledIsOpen ?? uncontrolledIsOpen;
+
+  const setPickerOpen = (nextIsOpen: boolean) => {
+    if (controlledIsOpen === undefined) {
+      setUncontrolledIsOpen(nextIsOpen);
+    }
+
+    onOpenChange?.(nextIsOpen);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery("");
+      setScrollY(0);
+    }
+  }, [isOpen]);
 
   const visibleCountries = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -63,8 +83,7 @@ export function CountryCodePicker({
 
   const handleSelectCountry = (country: CountryOption) => {
     onChangeCountry(country);
-    setIsOpen(false);
-    setQuery("");
+    setPickerOpen(false);
   };
 
   const hasScrollableContent = contentHeight > listHeight + 1;
@@ -78,11 +97,14 @@ export function CountryCodePicker({
     : 0;
 
   return (
-    <View style={styles.wrap}>
+    <View
+      onTouchStart={(event) => event.stopPropagation()}
+      style={styles.wrap}
+    >
       <Pressable
         accessibilityLabel="Select country code"
         accessibilityRole="button"
-        onPress={() => setIsOpen((value) => !value)}
+        onPress={() => setPickerOpen(!isOpen)}
         style={({ pressed }) => [
           styles.selector,
           pressed ? styles.pressed : null

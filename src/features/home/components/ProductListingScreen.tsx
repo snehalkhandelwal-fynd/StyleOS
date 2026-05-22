@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View
 } from "react-native";
@@ -81,6 +82,8 @@ type ProductListingScreenProps = {
   onOpenProduct?: (product: ProductListingProduct) => void;
   onOpenWishlist?: () => void;
   products: ProductListingProduct[];
+  searchPlaceholder?: string;
+  showSearchBar?: boolean;
   showDrawerHandle?: boolean;
   subtitle?: string;
   title: string;
@@ -232,6 +235,29 @@ function getChipFilteredProducts(
       product.deliveryText?.startsWith("3 day")
     );
   });
+}
+
+function getSearchFilteredProducts(
+  products: ProductListingProduct[],
+  searchQuery: string
+) {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return products;
+  }
+
+  return products.filter((product) =>
+    [
+      product.brand,
+      product.color,
+      product.occasion,
+      product.price,
+      product.styleLabel,
+      product.title,
+      product.vibe
+    ].some((value) => value?.toLowerCase().includes(normalizedQuery))
+  );
 }
 
 function getSortedProducts(
@@ -618,6 +644,8 @@ export function ProductListingScreen({
   onOpenProduct,
   onOpenWishlist,
   products,
+  searchPlaceholder = "Search pieces",
+  showSearchBar = false,
   showDrawerHandle = false,
   subtitle,
   title
@@ -628,19 +656,24 @@ export function ProductListingScreen({
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({});
   const [activeChip, setActiveChip] = useState<ListingChipKey | null>(null);
   const [activeSheet, setActiveSheet] = useState<SheetState>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [scrollProgressProduct, setScrollProgressProduct] = useState(0);
   const cardWidth = (width - spacing.screen * 2 - spacing.md) / 2;
   const displayedProducts = useMemo(() => {
     const filteredProducts = getFilteredProducts(products, selectedFilters);
-    const chipFilteredProducts = getChipFilteredProducts(
+    const searchFilteredProducts = getSearchFilteredProducts(
       filteredProducts,
+      searchQuery
+    );
+    const chipFilteredProducts = getChipFilteredProducts(
+      searchFilteredProducts,
       activeChip
     );
     const productsToSort =
       activeChip &&
       keepProductsVisibleOnEmptyChip &&
       chipFilteredProducts.length === 0
-        ? filteredProducts
+        ? searchFilteredProducts
         : chipFilteredProducts;
 
     return getSortedProducts(productsToSort, selectedSort);
@@ -648,6 +681,7 @@ export function ProductListingScreen({
     activeChip,
     keepProductsVisibleOnEmptyChip,
     products,
+    searchQuery,
     selectedFilters,
     selectedSort
   ]);
@@ -767,6 +801,38 @@ export function ProductListingScreen({
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
+        {showSearchBar ? (
+          <View style={styles.searchField}>
+            <Feather color={colors.soft} name="search" size={20} />
+            <TextInput
+              accessibilityLabel="Search products"
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+              onChangeText={setSearchQuery}
+              placeholder={searchPlaceholder}
+              placeholderTextColor={colors.soft}
+              returnKeyType="search"
+              style={styles.searchInput}
+              value={searchQuery}
+            />
+            {searchQuery ? (
+              <Pressable
+                accessibilityLabel="Clear search"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => setSearchQuery("")}
+                style={({ pressed }) => [
+                  styles.searchClearButton,
+                  pressed ? styles.pressed : null
+                ]}
+              >
+                <Feather color={colors.muted} name="x" size={17} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
         <ScrollView
           contentContainerStyle={styles.chipTrack}
           horizontal
@@ -889,14 +955,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     flexDirection: "row",
-    gap: 2,
+    gap: spacing.xs,
     justifyContent: "center",
     minWidth: 0,
-    paddingHorizontal: spacing.screen
+    paddingBottom: bottomControlBottomPadding
   },
   bottomControlDivider: {
     alignSelf: "stretch",
     backgroundColor: colors.border,
+    height: "100%",
     width: StyleSheet.hairlineWidth
   },
   bottomControlLabel: {
@@ -915,7 +982,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     height: bottomControlDockHeight,
     left: 0,
-    paddingBottom: bottomControlBottomPadding,
     position: "absolute",
     right: 0,
     shadowColor: "#000000",
@@ -1250,6 +1316,35 @@ const styles = StyleSheet.create({
     right: 8,
     top: 8,
     zIndex: 2
+  },
+  searchClearButton: {
+    alignItems: "center",
+    height: 30,
+    justifyContent: "center",
+    width: 30
+  },
+  searchField: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    height: 48,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.screen,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm
+  },
+  searchInput: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 19,
+    minWidth: 0,
+    padding: 0
   },
   screen: {
     backgroundColor: colors.background,

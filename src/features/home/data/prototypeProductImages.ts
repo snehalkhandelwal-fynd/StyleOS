@@ -63,6 +63,22 @@ export const prototypeProductImages = {
     brownShoes: assetUri(require("../../../../Images/brownshoes.jpg")),
     yellowPants: assetUri(require("../../../../Images/yellow pants.jpg")),
     yellowTop: assetUri(require("../../../../Images/yellow top.jpg"))
+  },
+  productOnly: {
+    accessory: assetUri(
+      require("../../../../Images/Maje_MFPPA00802-0101_F_1.jpg")
+    ),
+    bottom: assetUri(
+      require("../../../../Images/Maje_MFPTS01040-G005_F_1.webp")
+    ),
+    dress: assetUri(
+      require("../../../../Images/Maje_MFPCA00729-0140_F_1.jpg")
+    ),
+    jacket: assetUri(
+      require("../../../../Images/Sandro_SFPBL01274-13_F_1.jpg")
+    ),
+    shoe: assetUri(require("../../../../Images/brownshoes.jpg")),
+    top: assetUri(require("../../../../Images/Maje_MFPRO04821-0183_F_1.jpg"))
   }
 } as const;
 

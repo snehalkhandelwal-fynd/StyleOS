@@ -19,14 +19,14 @@ const tabs: Array<{
   name: HomeTabName;
 }> = [
   { icon: "home", label: "Home", name: "Home" },
-  { icon: "grid", label: "Explore", name: "Feed" },
   {
     icon: "shirt-outline",
     iconFamily: "ionicons",
     label: "Closet",
     name: "Closet"
   },
-  { icon: "camera", label: "Stylist", name: "TryOn" },
+  { icon: "grid", label: "Explore", name: "Feed" },
+  { icon: "camera", label: "Stylist", name: "Stylist" },
   { icon: "user", label: "Account", name: "Profile" }
 ];
 
@@ -36,6 +36,7 @@ export function BottomTabBar({ activeTab, onChangeTab }: BottomTabBarProps) {
       {tabs.map((tab) => {
         const isActive = activeTab === tab.name;
         const color = isActive ? colors.text : "#BBBBBB";
+        const iconSize = tab.iconFamily === "ionicons" ? 25 : 23;
 
         return (
           <Pressable
@@ -53,16 +54,24 @@ export function BottomTabBar({ activeTab, onChangeTab }: BottomTabBarProps) {
               <Ionicons
                 color={color}
                 name={tab.icon as ComponentProps<typeof Ionicons>["name"]}
-                size={21}
+                size={iconSize}
               />
             ) : (
               <Feather
                 color={color}
                 name={tab.icon as ComponentProps<typeof Feather>["name"]}
-                size={19}
+                size={iconSize}
               />
             )}
-            <Text style={[styles.label, { color }]}>{tab.label}</Text>
+            <Text
+              style={[
+                styles.label,
+                isActive ? styles.labelActive : null,
+                { color }
+              ]}
+            >
+              {tab.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -74,13 +83,12 @@ const styles = StyleSheet.create({
   bar: {
     backgroundColor: colors.background,
     borderColor: colors.border,
-    borderRadius: 36,
+    borderRadius: 42,
     borderWidth: StyleSheet.hairlineWidth,
     elevation: 8,
     flexDirection: "row",
-    height: 68,
-    marginHorizontal: spacing.screen,
-    paddingHorizontal: 6,
+    height: 76,
+    paddingHorizontal: 10,
     shadowColor: "#000000",
     shadowOffset: {
       height: 4,
@@ -91,8 +99,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.body,
-    fontSize: 9,
-    lineHeight: 11
+    fontSize: 11,
+    lineHeight: 14
+  },
+  labelActive: {
+    fontFamily: fonts.bodyMedium
   },
   pressed: {
     opacity: 0.72
@@ -100,7 +111,7 @@ const styles = StyleSheet.create({
   tab: {
     alignItems: "center",
     flex: 1,
-    gap: 2,
+    gap: 4,
     justifyContent: "center"
   }
 });
