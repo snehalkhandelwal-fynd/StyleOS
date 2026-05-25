@@ -47,6 +47,16 @@ type OnboardingSetupDrawerProps = {
   step: OnboardingSetupDrawerStep;
 };
 
+const photoFlowDrawerPreferredHeight = 732;
+
+function isPhotoFlowStep(step: OnboardingSetupDrawerStep) {
+  return (
+    step === "uploadPhoto" ||
+    step === "avatarCreating" ||
+    step === "avatarReady"
+  );
+}
+
 export function OnboardingSetupDrawer({
   draft,
   onAvatarCreated,
@@ -65,6 +75,11 @@ export function OnboardingSetupDrawer({
 }: OnboardingSetupDrawerProps) {
   const { height } = useWindowDimensions();
   const maxDrawerHeight = Math.max(320, height - spacing.xl);
+  const shouldLockPhotoFlowHeight = isPhotoFlowStep(step);
+  const photoFlowDrawerHeight = Math.min(
+    photoFlowDrawerPreferredHeight,
+    maxDrawerHeight
+  );
   const fallbackDrawerHeight = Math.min(320, maxDrawerHeight);
   const [measuredDrawerHeight, setMeasuredDrawerHeight] = useState(0);
   const keyboardLift = useRef(new Animated.Value(0)).current;
@@ -121,10 +136,12 @@ export function OnboardingSetupDrawer({
           {
             maxHeight: maxDrawerHeight,
             transform: [{ translateY: keyboardLift }]
-          }
+          },
+          shouldLockPhotoFlowHeight ? { height: photoFlowDrawerHeight } : null
         ]}
       >
         <OnboardingDrawerHeaderProvider
+          fillDrawer={shouldLockPhotoFlowHeight}
           onBack={onBack}
           showBackButton={shouldShowBackButton}
         >

@@ -8,6 +8,7 @@ import {
   Image,
   ImageBackground,
   ImageSourcePropType,
+  type GestureResponderEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -42,6 +43,9 @@ import { colors, fonts, radii, spacing } from "../../../theme";
 const AnimatedHeaderView = Animated.createAnimatedComponent(View);
 const homeHeaderTopInset =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
+const homeHeaderTopPadding = homeHeaderTopInset + spacing.sm;
+const defaultLocationHeaderHeight = 44;
+const defaultSearchHeaderHeight = 60;
 
 type HomeScreenProps = {
   cartCount?: number;
@@ -460,84 +464,80 @@ function getShortDeliveryAddress(address?: string) {
   return area ? `Deliver to ${area}` : "Deliver to Andheri East";
 }
 
-function TopNavigation({
+function LocationNavigation({
   address,
   cartCount = 0,
-  hasBorder,
   onChangeAddress,
-  onOpenCart,
-  onOpenSearch
+  onOpenCart
 }: {
   address: string;
   cartCount?: number;
-  hasBorder: boolean;
   onChangeAddress: () => void;
   onOpenCart: () => void;
-  onOpenSearch: () => void;
 }) {
   return (
-    <View style={[styles.topNav, hasBorder ? styles.topNavScrolled : null]}>
-      <View style={styles.navRow}>
+    <View style={styles.navRow}>
+      <Pressable
+        accessibilityLabel="Change location"
+        accessibilityRole="button"
+        onPress={onChangeAddress}
+        style={styles.locationButton}
+      >
+        <HeaderTruckIcon />
+        <Text numberOfLines={1} style={styles.locationText}>
+          {address}
+        </Text>
+        <Feather color="#8F8E8C" name="chevron-down" size={22} />
+      </Pressable>
+      <View style={styles.headerActions}>
         <Pressable
-          accessibilityLabel="Change location"
+          accessibilityLabel="Notifications"
           accessibilityRole="button"
-          onPress={onChangeAddress}
-          style={styles.locationButton}
+          style={styles.headerIconButton}
         >
-          <HeaderTruckIcon />
-          <Text numberOfLines={1} style={styles.locationText}>
-            {address}
-          </Text>
-          <Feather color="#8F8E8C" name="chevron-down" size={22} />
+          <Feather
+            color={colors.text}
+            name="bell"
+            size={headerActionIconSize}
+            strokeWidth={headerActionStrokeWidth}
+          />
         </Pressable>
-        <View style={styles.headerActions}>
-          <Pressable
-            accessibilityLabel="Notifications"
-            accessibilityRole="button"
-            style={styles.headerIconButton}
-          >
-            <Feather
-              color={colors.text}
-              name="bell"
-              size={headerActionIconSize}
-              strokeWidth={headerActionStrokeWidth}
-            />
-          </Pressable>
-          <Pressable
-            accessibilityLabel="Cart"
-            accessibilityRole="button"
-            onPress={onOpenCart}
-            style={styles.headerIconButton}
-          >
-            <Feather
-              color={colors.text}
-              name="shopping-cart"
-              size={headerActionIconSize}
-              strokeWidth={headerActionStrokeWidth}
-            />
-            <CartCountBadge count={cartCount} />
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.searchActionRow}>
         <Pressable
-          accessibilityLabel="Open search"
+          accessibilityLabel="Cart"
           accessibilityRole="button"
-          onPress={onOpenSearch}
-          style={styles.searchBar}
+          onPress={onOpenCart}
+          style={styles.headerIconButton}
         >
-          <HeaderSearchIcon />
-          <Text numberOfLines={1} style={styles.searchPlaceholder}>
-            Search by occasion, style, or vibe...
-          </Text>
-          <View style={styles.searchIcons}>
-            <HeaderMicIcon />
-            <HeaderCameraIcon />
-          </View>
+          <Feather
+            color={colors.text}
+            name="shopping-cart"
+            size={headerActionIconSize}
+            strokeWidth={headerActionStrokeWidth}
+          />
+          <CartCountBadge count={cartCount} />
         </Pressable>
       </View>
     </View>
+  );
+}
+
+function SearchNavigation({ onOpenSearch }: { onOpenSearch: () => void }) {
+  return (
+    <Pressable
+      accessibilityLabel="Open search"
+      accessibilityRole="button"
+      onPress={onOpenSearch}
+      style={styles.searchBar}
+    >
+      <HeaderSearchIcon />
+      <Text numberOfLines={1} style={styles.searchPlaceholder}>
+        Search by occasion, style, or vibe...
+      </Text>
+      <View style={styles.searchIcons}>
+        <HeaderMicIcon />
+        <HeaderCameraIcon />
+      </View>
+    </Pressable>
   );
 }
 
@@ -856,7 +856,9 @@ function SaveButton({
   const [localSaved, setLocalSaved] = useState(false);
   const saved = controlledSaved ?? localSaved;
 
-  const handlePress = () => {
+  const handlePress = (event: GestureResponderEvent) => {
+    event.stopPropagation();
+
     if (onPress) {
       onPress();
       return;
@@ -1162,7 +1164,16 @@ function SavedLookCard({
   width: number;
 }) {
   return (
-    <View style={[styles.savedLookCard, { height: cardHeight, width }]}>
+    <Pressable
+      accessibilityLabel={`Open ${product.title} look`}
+      accessibilityRole="button"
+      onPress={onOpenLook}
+      style={({ pressed }) => [
+        styles.savedLookCard,
+        { height: cardHeight, width },
+        pressed ? styles.pressed : null
+      ]}
+    >
       <ImageBackground
         imageStyle={styles.savedLookImageStyle}
         resizeMode="cover"
@@ -1182,7 +1193,10 @@ function SavedLookCard({
         <Pressable
           accessibilityLabel={`Shop ${product.title}`}
           accessibilityRole="button"
-          onPress={onShopLook}
+          onPress={(event) => {
+            event.stopPropagation();
+            onShopLook();
+          }}
           style={({ pressed }) => [
             styles.shopLookButton,
             pressed ? styles.pressed : null
@@ -1192,7 +1206,7 @@ function SavedLookCard({
           <Text style={styles.shopLookText}>Shop this look</Text>
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -1604,10 +1618,11 @@ export function HomeScreen({
   onStartStyleQuiz
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
-  const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const isHeaderVisible = useRef(true);
+  const headerCollapseProgress = useRef(new Animated.Value(0)).current;
+  const isLocationHeaderVisible = useRef(true);
   const lastScrollY = useRef(0);
-  const [headerHeight, setHeaderHeight] = useState(0);
+  const [locationHeaderHeight, setLocationHeaderHeight] = useState(0);
+  const [searchHeaderHeight, setSearchHeaderHeight] = useState(0);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [selectedOccasion, setSelectedOccasion] = useState("Work");
   const [wishlistProductIds, setWishlistProductIds] = useState<Set<string>>(
@@ -1617,6 +1632,23 @@ export function HomeScreen({
   const hasStyleProfile = hasCompletedStyleProfile(draft);
   const cardWidth = (width - spacing.screen * 2 - spacing.sm) / 2;
   const savedLookCardWidth = Math.min(width * 0.68, 268);
+  const visibleLocationHeaderHeight =
+    locationHeaderHeight || defaultLocationHeaderHeight;
+  const visibleSearchHeaderHeight =
+    searchHeaderHeight || defaultSearchHeaderHeight;
+  const headerHeight =
+    homeHeaderTopPadding +
+    visibleLocationHeaderHeight +
+    visibleSearchHeaderHeight;
+  const searchHeaderTop = homeHeaderTopPadding + visibleLocationHeaderHeight;
+  const locationTranslateY = headerCollapseProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -(homeHeaderTopPadding + visibleLocationHeaderHeight)]
+  });
+  const searchTranslateY = headerCollapseProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -visibleLocationHeaderHeight]
+  });
 
   const filteredLooks = useMemo(() => {
     return looks.filter(
@@ -1647,28 +1679,28 @@ export function HomeScreen({
     });
   };
 
-  const revealHeader = () => {
-    if (isHeaderVisible.current) {
+  const revealLocationHeader = () => {
+    if (isLocationHeaderVisible.current) {
       return;
     }
 
-    isHeaderVisible.current = true;
-    Animated.timing(headerTranslateY, {
+    isLocationHeaderVisible.current = true;
+    Animated.timing(headerCollapseProgress, {
       duration: 180,
       toValue: 0,
       useNativeDriver: true
     }).start();
   };
 
-  const hideHeader = () => {
-    if (!isHeaderVisible.current) {
+  const hideLocationHeader = () => {
+    if (!isLocationHeaderVisible.current) {
       return;
     }
 
-    isHeaderVisible.current = false;
-    Animated.timing(headerTranslateY, {
+    isLocationHeaderVisible.current = false;
+    Animated.timing(headerCollapseProgress, {
       duration: 180,
-      toValue: -(headerHeight || 220),
+      toValue: 1,
       useNativeDriver: true
     }).start();
   };
@@ -1686,11 +1718,11 @@ export function HomeScreen({
     );
 
     if (currentY <= 12) {
-      revealHeader();
+      revealLocationHeader();
     } else if (deltaY > 8 && currentY > hideThreshold) {
-      hideHeader();
+      hideLocationHeader();
     } else if (deltaY < -4) {
-      revealHeader();
+      revealLocationHeader();
     }
 
     lastScrollY.current = currentY;
@@ -1698,33 +1730,54 @@ export function HomeScreen({
 
   return (
     <View style={styles.screen}>
-      <AnimatedHeaderView
-        onLayout={(event) => {
-          const measuredHeight = event.nativeEvent.layout.height;
-          setHeaderHeight((current) =>
-            current === measuredHeight ? current : measuredHeight
-          );
-        }}
-        style={[
-          styles.safeTop,
-          hasScrolled ? styles.topNavScrolled : null,
-          { transform: [{ translateY: headerTranslateY }] }
-        ]}
-      >
-        <TopNavigation
-          address={address}
-          cartCount={cartCount}
-          hasBorder={false}
-          onChangeAddress={onChangeAddress}
-          onOpenCart={onOpenCart}
-          onOpenSearch={onOpenSearch}
-        />
-      </AnimatedHeaderView>
+      <View pointerEvents="box-none" style={styles.headerOverlay}>
+        <View pointerEvents="none" style={styles.headerSafeArea} />
+        <AnimatedHeaderView
+          onLayout={(event) => {
+            const measuredHeight = event.nativeEvent.layout.height;
+            setLocationHeaderHeight((current) =>
+              current === measuredHeight ? current : measuredHeight
+            );
+          }}
+          style={[
+            styles.locationHeader,
+            {
+              top: homeHeaderTopPadding,
+              transform: [{ translateY: locationTranslateY }]
+            }
+          ]}
+        >
+          <LocationNavigation
+            address={address}
+            cartCount={cartCount}
+            onChangeAddress={onChangeAddress}
+            onOpenCart={onOpenCart}
+          />
+        </AnimatedHeaderView>
+        <AnimatedHeaderView
+          onLayout={(event) => {
+            const measuredHeight = event.nativeEvent.layout.height;
+            setSearchHeaderHeight((current) =>
+              current === measuredHeight ? current : measuredHeight
+            );
+          }}
+          style={[
+            styles.searchHeader,
+            hasScrolled ? styles.topNavScrolled : null,
+            {
+              top: searchHeaderTop,
+              transform: [{ translateY: searchTranslateY }]
+            }
+          ]}
+        >
+          <SearchNavigation onOpenSearch={onOpenSearch} />
+        </AnimatedHeaderView>
+      </View>
 
       <Animated.ScrollView
         contentContainerStyle={[
           styles.feed,
-          { paddingTop: headerHeight || 152 }
+          { paddingTop: headerHeight }
         ]}
         onScroll={handleHomeScroll}
         scrollEventThrottle={16}
@@ -2562,14 +2615,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     justifyContent: "center"
   },
-  safeTop: {
-    backgroundColor: colors.background,
-    elevation: 10,
+  headerOverlay: {
     left: 0,
     position: "absolute",
     right: 0,
     top: 0,
     zIndex: 20
+  },
+  headerSafeArea: {
+    backgroundColor: colors.background,
+    height: homeHeaderTopPadding,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0
   },
   searchBar: {
     alignItems: "center",
@@ -2581,8 +2640,15 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 16
   },
-  searchActionRow: {
-    marginTop: spacing.sm
+  searchHeader: {
+    backgroundColor: colors.background,
+    elevation: 10,
+    left: 0,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.screen,
+    position: "absolute",
+    right: 0,
+    zIndex: 3
   },
   searchIcons: {
     alignItems: "center",
@@ -2689,12 +2755,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6
   },
-  topNav: {
+  locationHeader: {
     backgroundColor: colors.background,
-    paddingBottom: spacing.md,
+    elevation: 10,
+    left: 0,
+    paddingBottom: spacing.sm,
     paddingHorizontal: spacing.screen,
-    paddingTop: homeHeaderTopInset + spacing.sm,
-    zIndex: 4
+    position: "absolute",
+    right: 0,
+    zIndex: 2
   },
   topNavScrolled: {
     borderBottomColor: colors.border,

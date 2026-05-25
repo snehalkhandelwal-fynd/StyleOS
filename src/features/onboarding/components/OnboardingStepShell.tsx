@@ -9,6 +9,7 @@ import {
   View
 } from "react-native";
 
+import { OnboardingProgress } from "../../../components/OnboardingProgress";
 import { PrimaryButton } from "../../../components/PrimaryButton";
 import { colors, spacing, typography } from "../../../theme";
 import { onboardingHeadingTop } from "../layout";
@@ -42,6 +43,7 @@ export type OnboardingStepPresentation = NonNullable<
 >;
 
 type DrawerHeaderContextValue = {
+  fillDrawer?: boolean;
   onBack?: () => void;
   showBackButton?: boolean;
 };
@@ -50,13 +52,16 @@ const DrawerHeaderContext = createContext<DrawerHeaderContextValue>({});
 
 export function OnboardingDrawerHeaderProvider({
   children,
+  fillDrawer,
   onBack,
   showBackButton
 }: DrawerHeaderContextValue & {
   children: ReactNode;
 }) {
   return (
-    <DrawerHeaderContext.Provider value={{ onBack, showBackButton }}>
+    <DrawerHeaderContext.Provider
+      value={{ fillDrawer, onBack, showBackButton }}
+    >
       {children}
     </DrawerHeaderContext.Provider>
   );
@@ -77,11 +82,11 @@ export function OnboardingStepShell({
 }: OnboardingStepShellProps) {
   const isDrawer = presentation === "drawer";
   const drawerHeader = useContext(DrawerHeaderContext);
+  const shouldFillDrawer = isDrawer && drawerHeader.fillDrawer;
   const shouldShowDrawerBackCta =
     isDrawer && drawerHeader.showBackButton && drawerHeader.onBack;
   const shouldShowDrawerProgress =
     isDrawer && currentStep !== undefined && totalSteps > 1;
-  const drawerProgressStep = currentStep ?? 0;
   const drawerFallbackSecondaryButton = shouldShowDrawerBackCta
     ? {
         label: "Back",
@@ -96,12 +101,17 @@ export function OnboardingStepShell({
       behavior={
         isDrawer ? undefined : Platform.OS === "ios" ? "padding" : undefined
       }
-      style={[styles.screen, isDrawer ? styles.drawerScreen : null]}
+      style={[
+        styles.screen,
+        isDrawer ? styles.drawerScreen : null,
+        shouldFillDrawer ? styles.drawerScreenFilled : null
+      ]}
     >
       <View
         style={[
           styles.content,
           isDrawer ? styles.drawerContent : null,
+          shouldFillDrawer ? styles.drawerContentFilled : null,
           contentTop === undefined ? null : { paddingTop: contentTop }
         ]}
       >
@@ -115,22 +125,11 @@ export function OnboardingStepShell({
         ) : null}
 
         {shouldShowDrawerProgress ? (
-          <View
-            accessibilityLabel={`Step ${currentStep} of ${totalSteps}`}
-            accessibilityRole="progressbar"
-            style={styles.drawerProgress}
-          >
-            {Array.from({ length: totalSteps }).map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.drawerProgressSegment,
-                  index < drawerProgressStep
-                    ? styles.drawerProgressSegmentActive
-                    : styles.drawerProgressSegmentInactive
-                ]}
-              />
-            ))}
+          <View style={styles.drawerProgress}>
+            <OnboardingProgress
+              currentStep={currentStep ?? 1}
+              totalSteps={totalSteps}
+            />
           </View>
         ) : null}
 
@@ -215,11 +214,17 @@ const styles = StyleSheet.create({
     flex: 0,
     paddingTop: spacing.md
   },
+  drawerContentFilled: {
+    flex: 1
+  },
   drawerScreen: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     flex: 0,
     overflow: "hidden"
+  },
+  drawerScreenFilled: {
+    flex: 1
   },
   drawerCtaHost: {
     paddingBottom: spacing.xl,
@@ -234,22 +239,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md
   },
   drawerProgress: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.lg,
     marginBottom: spacing.xl,
     marginTop: spacing.lg
-  },
-  drawerProgressSegment: {
-    borderRadius: 999,
-    height: 9,
-    width: 9
-  },
-  drawerProgressSegmentActive: {
-    backgroundColor: colors.inverse
-  },
-  drawerProgressSegmentInactive: {
-    backgroundColor: colors.border
   },
   drawerHandle: {
     alignSelf: "center",

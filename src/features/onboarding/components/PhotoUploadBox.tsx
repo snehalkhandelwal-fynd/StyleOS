@@ -23,6 +23,7 @@ type PhotoUploadBoxProps = {
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 const exampleModelImage = require("../../../assets/upload-example.png");
+const drawerUploadBoxHeight = 424;
 
 const photoGuidelines: { icon: IoniconName; text: string }[] = [
   { icon: "body-outline", text: "Full body, face & feet visible" },
@@ -270,11 +271,12 @@ const styles = StyleSheet.create({
   },
   drawerBox: {
     flex: 0,
+    height: drawerUploadBoxHeight,
     marginTop: spacing.lg
   },
   drawerPreviewBox: {
     flex: 0,
-    height: 424,
+    height: drawerUploadBoxHeight,
     marginTop: spacing.lg
   },
   boxWithPreview: {

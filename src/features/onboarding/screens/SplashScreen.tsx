@@ -195,13 +195,13 @@ export function SplashScreen({ onGetStarted }: SplashScreenProps) {
                 source={{ uri: item.image }}
                 style={[styles.card, { width: cardWidth }]}
               >
-                <View style={styles.overlay} />
                 <LinearGradient
                   colors={[
                     "rgba(255, 255, 255, 0)",
-                    "rgba(255, 255, 255, 0.18)",
-                    "rgba(255, 255, 255, 0.42)"
+                    "rgba(255, 255, 255, 0.72)",
+                    "rgba(255, 255, 255, 0.96)"
                   ]}
+                  locations={[0, 0.56, 1]}
                   pointerEvents="none"
                   style={styles.copyGradient}
                 />
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   copyGradient: {
     bottom: 0,
-    height: "44%",
+    height: "46%",
     left: 0,
     position: "absolute",
     right: 0
@@ -317,15 +317,6 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.text,
     ...typography.caption
-  },
-  overlay: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    borderRadius: radii.card,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-    right: 0,
-    top: 0
   },
   screen: {
     backgroundColor: colors.background,

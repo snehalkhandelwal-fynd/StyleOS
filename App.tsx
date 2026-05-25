@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   statusBarGuard: {
-    backgroundColor: colors.surfaceTertiary,
+    backgroundColor: colors.background,
     elevation: 1000,
     height: appTopSafeGuardHeight,
     left: 0,

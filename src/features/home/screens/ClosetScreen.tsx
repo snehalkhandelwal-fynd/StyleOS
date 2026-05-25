@@ -1,9 +1,15 @@
 import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
-import { useState } from "react";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -42,6 +48,25 @@ type ClosetPiece = {
   tags: string[];
   title: string;
   wornCount: number;
+};
+
+type QuickAddMode = "select" | "analyzing" | "review";
+type DetectedCategory = "Top" | "Bottom" | "Layer" | "Shoes" | "Bag";
+
+type DetectedClosetItem = {
+  category: DetectedCategory;
+  color: string;
+  id: string;
+  image: string;
+  name: string;
+  size: string;
+  sourceAssetKey?: string;
+  tags: string[];
+};
+
+type PickedPhotoAsset = {
+  key: string;
+  uri: string;
 };
 
 const closetPieces: ClosetPiece[] = [
@@ -97,6 +122,162 @@ const detailFacts: {
   { key: "gender", label: "Gender" },
   { key: "condition", label: "Condition" }
 ];
+
+const detectedCategories: DetectedCategory[] = [
+  "Top",
+  "Bottom",
+  "Layer",
+  "Shoes",
+  "Bag"
+];
+const defaultSizeOptions = ["XS", "S", "M", "L", "XL"];
+const bottomSizeOptions = ["26", "28", "30", "32", "34", "36"];
+const shoeSizeOptions = ["5", "6", "7", "8", "9", "10"];
+const detectedGraphicTeeImage = Image.resolveAssetSource(
+  require("../../../../Images/Product Images/Tops/Maje_MFPTO01351-10_F_P.jpg")
+).uri;
+const detectedLightWashJeansImage = Image.resolveAssetSource(
+  require("../../../../Images/Product Images/Bottoms/Sandro_SFPJE00818-4785_F_P.jpg")
+).uri;
+const detectedItemTemplates: Array<{
+  category: DetectedCategory;
+  color: string;
+  fallbackImage: string;
+  name: string;
+  slug: string;
+  tags: string[];
+}> = [
+  {
+    category: "Top",
+    color: "White",
+    fallbackImage: detectedGraphicTeeImage,
+    name: "White Graphic Tee",
+    slug: "top",
+    tags: ["casual", "graphic print", "short sleeve"]
+  },
+  {
+    category: "Bottom",
+    color: "Blue",
+    fallbackImage: detectedLightWashJeansImage,
+    name: "Light Wash Jeans",
+    slug: "bottom",
+    tags: ["casual", "light wash", "straight leg"]
+  },
+  {
+    category: "Layer",
+    color: "Beige",
+    fallbackImage: prototypeProductImages.productOnly.jacket,
+    name: "Cropped Knit Jacket",
+    slug: "layer",
+    tags: ["casual", "cropped", "light layer"]
+  },
+  {
+    category: "Shoes",
+    color: "Brown",
+    fallbackImage: prototypeProductImages.productOnly.shoe,
+    name: "Everyday Leather Shoes",
+    slug: "shoe",
+    tags: ["casual", "leather", "everyday"]
+  },
+  {
+    category: "Bag",
+    color: "Neutral",
+    fallbackImage: prototypeProductImages.productOnly.accessory,
+    name: "Shoulder Bag",
+    slug: "bag",
+    tags: ["casual", "shoulder bag", "daywear"]
+  }
+];
+
+function getSizeOptions(category: DetectedCategory) {
+  if (category === "Bottom") {
+    return bottomSizeOptions;
+  }
+
+  if (category === "Shoes") {
+    return shoeSizeOptions;
+  }
+
+  return defaultSizeOptions;
+}
+
+function getPickedAssetKey(
+  asset: { assetId?: string | null; fileName?: string | null; name?: string | null; uri?: string },
+  index: number
+) {
+  return asset.assetId ?? asset.uri ?? asset.fileName ?? asset.name ?? `picked-${index}`;
+}
+
+function createDetectedItems(
+  seed: number,
+  selectedAssets: PickedPhotoAsset[] = []
+): DetectedClosetItem[] {
+  const sourceAssets =
+    selectedAssets.length > 0
+      ? selectedAssets
+      : Array.from({ length: 2 }, (_, index) => ({
+          key: `sample-${seed}-${index}`,
+          uri: ""
+        }));
+
+  return sourceAssets.map((sourceAsset, index) => {
+    const template =
+      detectedItemTemplates[index % detectedItemTemplates.length];
+    const cycle = Math.floor(index / detectedItemTemplates.length);
+
+    return {
+      category: template.category,
+      color: template.color,
+      id: `detected-${template.slug}-${seed}-${index}`,
+      image: template.fallbackImage,
+      name: cycle > 0 ? `${template.name} ${cycle + 1}` : template.name,
+      size: "",
+      sourceAssetKey: sourceAsset.key,
+      tags: template.tags
+    };
+  });
+}
+
+function getClosetCategory(category: DetectedCategory) {
+  switch (category) {
+    case "Top":
+      return "Tops";
+    case "Bottom":
+      return "Bottoms";
+    case "Layer":
+      return "Layers";
+    case "Shoes":
+      return "Shoes";
+    case "Bag":
+      return "Bags";
+    default:
+      return "Items";
+  }
+}
+
+function getDetectedSaveLabel(count: number) {
+  return `Add ${count} ${count === 1 ? "Item" : "Items"}`;
+}
+
+function toClosetPiece(item: DetectedClosetItem): ClosetPiece {
+  return {
+    category: getClosetCategory(item.category),
+    color: item.color,
+    condition: "New",
+    detailImage: item.image,
+    fit: "+ Add fit",
+    gender: "Women",
+    id: item.id,
+    image: item.image,
+    lastWorn: "Never",
+    material: "+ Add material",
+    size: item.size || "+ Add size",
+    status: "Available",
+    tags: item.tags,
+    title: item.name || "Untitled item",
+    wornCount: 0
+  };
+}
 
 function ClosetToolbarButton({
   accessibilityLabel,
@@ -188,7 +369,7 @@ function ClosetPieceCard({
         <View style={styles.tagRow}>
           {piece.tags.slice(0, 3).map((tag) => (
             <View key={`${piece.id}-${tag}`} style={styles.tag}>
-              <Text numberOfLines={1} style={styles.tagText}>
+              <Text style={styles.tagText}>
                 {tag}
               </Text>
             </View>
@@ -433,13 +614,196 @@ function ClosetPieceDetailScreen({
   );
 }
 
+function ChoicePill({
+  label,
+  onPress,
+  selected
+}: {
+  label: string;
+  onPress: () => void;
+  selected: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.detectedChoicePill,
+        selected ? styles.detectedChoicePillSelected : null,
+        pressed ? styles.pressed : null
+      ]}
+    >
+      <Text
+        style={[
+          styles.detectedChoicePillText,
+          selected ? styles.detectedChoicePillTextSelected : null
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function DetectedItemCard({
+  expanded,
+  item,
+  onAddMoreDetails,
+  onRemove,
+  onToggle,
+  onUpdateCategory,
+  onUpdateName,
+  onUpdateSize
+}: {
+  expanded: boolean;
+  item: DetectedClosetItem;
+  onAddMoreDetails: () => void;
+  onRemove: () => void;
+  onToggle: () => void;
+  onUpdateCategory: (category: DetectedCategory) => void;
+  onUpdateName: (name: string) => void;
+  onUpdateSize: (size: string) => void;
+}) {
+  const sizeOptions = getSizeOptions(item.category);
+
+  return (
+    <View style={[styles.detectedCard, expanded ? styles.detectedCardExpanded : null]}>
+      <Pressable
+        accessibilityLabel={`Edit ${item.name}`}
+        accessibilityRole="button"
+        onPress={onToggle}
+        style={({ pressed }) => [
+          styles.detectedCardSummary,
+          pressed ? styles.pressed : null
+        ]}
+      >
+        <Image
+          resizeMode="cover"
+          source={{ uri: item.image }}
+          style={styles.detectedItemImage}
+        />
+        <View style={styles.detectedItemCopy}>
+          <Text numberOfLines={1} style={styles.detectedItemName}>
+            {item.name}
+          </Text>
+          <Text numberOfLines={1} style={styles.detectedItemMeta}>
+            {getClosetCategory(item.category)} · {item.color}
+          </Text>
+          <Text numberOfLines={1} style={styles.detectedItemTags}>
+            {item.tags.join(", ")}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityLabel={`Remove ${item.name}`}
+          accessibilityRole="button"
+          onPress={onRemove}
+          style={({ pressed }) => [
+            styles.detectedRemoveButton,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <Feather color={colors.soft} name="x" size={20} />
+        </Pressable>
+      </Pressable>
+
+      {expanded ? (
+        <View style={styles.detectedEditor}>
+          <View style={styles.detectedNameField}>
+            <TextInput
+              accessibilityLabel="Item name"
+              onChangeText={onUpdateName}
+              placeholder="Item name"
+              placeholderTextColor={colors.soft}
+              style={styles.detectedNameInput}
+              value={item.name}
+            />
+            {item.name.length > 0 ? (
+              <Pressable
+                accessibilityLabel="Clear item name"
+                accessibilityRole="button"
+                onPress={() => onUpdateName("")}
+                style={({ pressed }) => [
+                  styles.detectedNameClearButton,
+                  pressed ? styles.pressed : null
+                ]}
+              >
+                <Feather color={colors.soft} name="x" size={16} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.detectedPillRow}>
+            {detectedCategories.map((category) => (
+              <ChoicePill
+                key={category}
+                label={category}
+                onPress={() => onUpdateCategory(category)}
+                selected={item.category === category}
+              />
+            ))}
+          </View>
+
+          <View style={styles.detectedPillRow}>
+            {sizeOptions.map((size) => (
+              <ChoicePill
+                key={`${item.id}-${size}`}
+                label={size}
+                onPress={() => onUpdateSize(size)}
+                selected={item.size === size}
+              />
+            ))}
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={onAddMoreDetails}
+            style={({ pressed }) => [
+              styles.detectedMoreDetailsButton,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Text style={styles.detectedMoreDetailsText}>
+              Add more details →
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function QuickAddBatchDrawer({
+  detectedItems,
+  expandedItemId,
+  mode,
   onClose,
+  onMarkDetailAfterSave,
+  onRemoveDetectedItem,
+  onSaveDetectedItems,
+  onSelectPhotos,
+  onToggleDetectedItem,
+  onUpdateDetectedCategory,
+  onUpdateDetectedName,
+  onUpdateDetectedSize,
   visible
 }: {
+  detectedItems: DetectedClosetItem[];
+  expandedItemId: string | null;
+  mode: QuickAddMode;
   onClose: () => void;
+  onMarkDetailAfterSave: (itemId: string) => void;
+  onRemoveDetectedItem: (itemId: string) => void;
+  onSaveDetectedItems: () => void;
+  onSelectPhotos: () => void;
+  onToggleDetectedItem: (itemId: string) => void;
+  onUpdateDetectedCategory: (itemId: string, category: DetectedCategory) => void;
+  onUpdateDetectedName: (itemId: string, name: string) => void;
+  onUpdateDetectedSize: (itemId: string, size: string) => void;
   visible: boolean;
 }) {
+  const uploadLabel = mode === "select" ? "Select Photos" : "Add More Photos";
+  const hasDetectedItems = detectedItems.length > 0;
+
   return (
     <Modal
       animationType="slide"
@@ -454,7 +818,12 @@ function QuickAddBatchDrawer({
           onPress={onClose}
           style={styles.addDrawerScrim}
         />
-        <View style={styles.addDrawer}>
+        <View
+          style={[
+            styles.addDrawer,
+            mode !== "select" ? styles.addDrawerReview : null
+          ]}
+        >
           <View style={styles.addDrawerHandle} />
           <View style={styles.addDrawerHeader}>
             <View style={styles.addDrawerCopy}>
@@ -464,30 +833,75 @@ function QuickAddBatchDrawer({
                 automatically.
               </Text>
             </View>
-            <Pressable
-              accessibilityLabel="Close quick add drawer"
-              accessibilityRole="button"
-              onPress={onClose}
-              style={({ pressed }) => [
-                styles.addDrawerCloseButton,
-                pressed ? styles.pressed : null
-              ]}
-            >
-              <Feather color={colors.muted} name="x" size={24} />
-            </Pressable>
           </View>
 
           <Pressable
             accessibilityLabel="Select photos for batch closet upload"
             accessibilityRole="button"
+            onPress={onSelectPhotos}
             style={({ pressed }) => [
               styles.addDrawerUploadTarget,
               pressed ? styles.pressed : null
             ]}
           >
-            <Feather color={colors.muted} name="upload-cloud" size={28} />
-            <Text style={styles.addDrawerUploadText}>Select Photos</Text>
+            <Feather color={colors.muted} name="upload-cloud" size={22} />
+            <Text style={styles.addDrawerUploadText}>{uploadLabel}</Text>
           </Pressable>
+
+          {mode === "analyzing" ? (
+            <View style={styles.analyzingPanel}>
+              <ActivityIndicator color={colors.text} size="small" />
+              <View style={styles.analyzingCopy}>
+                <Text style={styles.analyzingTitle}>Analyzing items...</Text>
+                <Text style={styles.analyzingText}>
+                  Mira is detecting each clothing piece from your photos.
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {mode === "review" ? (
+            <>
+              <ScrollView
+                contentContainerStyle={styles.detectedListContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={styles.detectedList}
+              >
+                {detectedItems.map((item) => (
+                  <DetectedItemCard
+                    expanded={expandedItemId === item.id}
+                    item={item}
+                    key={item.id}
+                    onAddMoreDetails={() => onMarkDetailAfterSave(item.id)}
+                    onRemove={() => onRemoveDetectedItem(item.id)}
+                    onToggle={() => onToggleDetectedItem(item.id)}
+                    onUpdateCategory={(category) =>
+                      onUpdateDetectedCategory(item.id, category)
+                    }
+                    onUpdateName={(name) => onUpdateDetectedName(item.id, name)}
+                    onUpdateSize={(size) => onUpdateDetectedSize(item.id, size)}
+                  />
+                ))}
+              </ScrollView>
+
+              <Pressable
+                accessibilityRole="button"
+                disabled={!hasDetectedItems}
+                onPress={onSaveDetectedItems}
+                style={({ pressed }) => [
+                  styles.addDetectedCta,
+                  !hasDetectedItems ? styles.addDetectedCtaDisabled : null,
+                  pressed && hasDetectedItems ? styles.pressed : null
+                ]}
+              >
+                <Feather color={colors.inverseText} name="plus" size={18} />
+                <Text style={styles.addDetectedCtaText}>
+                  {getDetectedSaveLabel(detectedItems.length)}
+                </Text>
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -495,8 +909,329 @@ function QuickAddBatchDrawer({
 }
 
 export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
+  const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pieces, setPieces] = useState<ClosetPiece[]>(closetPieces);
   const [selectedPiece, setSelectedPiece] = useState<ClosetPiece | null>(null);
   const [isQuickAddVisible, setIsQuickAddVisible] = useState(false);
+  const [quickAddMode, setQuickAddMode] = useState<QuickAddMode>("select");
+  const [detectedItems, setDetectedItems] = useState<DetectedClosetItem[]>([]);
+  const [selectedPhotoAssetKeys, setSelectedPhotoAssetKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [expandedDetectedItemId, setExpandedDetectedItemId] =
+    useState<string | null>(null);
+  const [detailAfterSaveItemId, setDetailAfterSaveItemId] =
+    useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (analysisTimerRef.current) {
+        clearTimeout(analysisTimerRef.current);
+      }
+    };
+  }, []);
+
+  const resetQuickAdd = () => {
+    if (analysisTimerRef.current) {
+      clearTimeout(analysisTimerRef.current);
+      analysisTimerRef.current = null;
+    }
+
+    setIsQuickAddVisible(false);
+    setQuickAddMode("select");
+    setDetectedItems([]);
+    setSelectedPhotoAssetKeys(new Set());
+    setExpandedDetectedItemId(null);
+    setDetailAfterSaveItemId(null);
+  };
+
+  const getNewPickedAssets = (
+    assets: Array<{
+      assetId?: string | null;
+      fileName?: string | null;
+      name?: string | null;
+      uri?: string;
+    }>
+  ) => {
+    const seenAssetKeys = new Set(selectedPhotoAssetKeys);
+    const pickedAssets: PickedPhotoAsset[] = [];
+
+    assets.forEach((asset, index) => {
+      if (!asset.uri) {
+        return;
+      }
+
+      const assetKey = getPickedAssetKey(asset, index);
+
+      if (seenAssetKeys.has(assetKey)) {
+        return;
+      }
+
+      seenAssetKeys.add(assetKey);
+      pickedAssets.push({ key: assetKey, uri: asset.uri });
+    });
+
+    return pickedAssets;
+  };
+
+  const rememberPickedAssets = (pickedAssets: PickedPhotoAsset[]) => {
+    setSelectedPhotoAssetKeys((currentKeys) => {
+      const nextKeys = new Set(currentKeys);
+
+      pickedAssets.forEach((asset) => nextKeys.add(asset.key));
+
+      return nextKeys;
+    });
+  };
+
+  const beginDetectedReview = (pickedAssets: PickedPhotoAsset[] = []) => {
+    if (analysisTimerRef.current) {
+      clearTimeout(analysisTimerRef.current);
+    }
+
+    const shouldAppendItems = detectedItems.length > 0;
+
+    setIsQuickAddVisible(true);
+    setQuickAddMode(shouldAppendItems ? "review" : "analyzing");
+    setExpandedDetectedItemId(null);
+
+    analysisTimerRef.current = setTimeout(() => {
+      const nextDetectedItems = createDetectedItems(
+        Date.now(),
+        pickedAssets
+      );
+
+      setDetectedItems((currentItems) =>
+        shouldAppendItems ? [...currentItems, ...nextDetectedItems] : nextDetectedItems
+      );
+      setQuickAddMode("review");
+      analysisTimerRef.current = null;
+    }, 1700);
+  };
+
+  const handleOpenPhotoLibrary = async () => {
+    try {
+      if (selectedPhotoAssetKeys.size >= 10) {
+        Alert.alert(
+          "Photo limit reached",
+          "Add these items first, then start another batch."
+        );
+        return;
+      }
+
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Photo access needed",
+          "Allow photo access to add items from your closet."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: false,
+        allowsMultipleSelection: true,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        orderedSelection: true,
+        quality: 0.9,
+        selectionLimit: Math.max(1, 10 - selectedPhotoAssetKeys.size)
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const pickedAssets = getNewPickedAssets(result.assets);
+
+        if (pickedAssets.length === 0) {
+          Alert.alert(
+            "Already added",
+            "Those photos are already in this batch."
+          );
+          return;
+        }
+
+        rememberPickedAssets(pickedAssets);
+        beginDetectedReview(pickedAssets);
+      }
+    } catch {
+      Alert.alert(
+        "Photo library unavailable",
+        "Please try selecting photos again."
+      );
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Camera access needed",
+          "Allow camera access to take a photo of your item."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.9
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        const pickedAssets = getNewPickedAssets(result.assets);
+
+        if (pickedAssets.length === 0) {
+          Alert.alert("Already added", "That photo is already in this batch.");
+          return;
+        }
+
+        rememberPickedAssets(pickedAssets);
+        beginDetectedReview(pickedAssets);
+      }
+    } catch {
+      Alert.alert("Camera unavailable", "Please try taking the photo again.");
+    }
+  };
+
+  const handleChooseFiles = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: true,
+        type: "image/*"
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const pickedAssets = getNewPickedAssets(result.assets);
+
+        if (pickedAssets.length === 0) {
+          Alert.alert(
+            "Already added",
+            "Those files are already in this batch."
+          );
+          return;
+        }
+
+        rememberPickedAssets(pickedAssets);
+        beginDetectedReview(pickedAssets);
+      }
+    } catch {
+      Alert.alert("Files unavailable", "Please try choosing files again.");
+    }
+  };
+
+  const handleSelectPhotos = () => {
+    const options = ["Photo library", "Take photo", "Choose files", "Cancel"];
+    const cancelButtonIndex = options.length - 1;
+    const openPhotoLibraryAfterSheetCloses = () => {
+      setTimeout(() => {
+        void handleOpenPhotoLibrary();
+      }, 250);
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          cancelButtonIndex,
+          options,
+          title: "Add New Items"
+        },
+        (selectedButtonIndex) => {
+          if (selectedButtonIndex === 0) {
+            openPhotoLibraryAfterSheetCloses();
+          }
+
+          if (selectedButtonIndex === 1) {
+            void handleTakePhoto();
+          }
+
+          if (selectedButtonIndex === 2) {
+            void handleChooseFiles();
+          }
+        }
+      );
+      return;
+    }
+
+    Alert.alert("Add New Items", "Choose how you want to add items.", [
+      { onPress: () => void handleOpenPhotoLibrary(), text: "Photo library" },
+      { onPress: () => void handleTakePhoto(), text: "Take photo" },
+      { onPress: () => void handleChooseFiles(), text: "Choose files" },
+      { style: "cancel", text: "Cancel" }
+    ]);
+  };
+
+  const handleToggleDetectedItem = (itemId: string) => {
+    setExpandedDetectedItemId((currentItemId) =>
+      currentItemId === itemId ? null : itemId
+    );
+  };
+
+  const handleRemoveDetectedItem = (itemId: string) => {
+    const removedItem = detectedItems.find((item) => item.id === itemId);
+
+    setDetectedItems((items) => items.filter((item) => item.id !== itemId));
+    setSelectedPhotoAssetKeys((currentKeys) => {
+      if (!removedItem?.sourceAssetKey) {
+        return currentKeys;
+      }
+
+      const nextKeys = new Set(currentKeys);
+
+      nextKeys.delete(removedItem.sourceAssetKey);
+
+      return nextKeys;
+    });
+    setExpandedDetectedItemId((currentItemId) =>
+      currentItemId === itemId ? null : currentItemId
+    );
+    setDetailAfterSaveItemId((currentItemId) =>
+      currentItemId === itemId ? null : currentItemId
+    );
+  };
+
+  const handleUpdateDetectedName = (itemId: string, name: string) => {
+    setDetectedItems((items) =>
+      items.map((item) => (item.id === itemId ? { ...item, name } : item))
+    );
+  };
+
+  const handleUpdateDetectedCategory = (
+    itemId: string,
+    category: DetectedCategory
+  ) => {
+    setDetectedItems((items) =>
+      items.map((item) =>
+        item.id === itemId ? { ...item, category, size: "" } : item
+      )
+    );
+  };
+
+  const handleUpdateDetectedSize = (itemId: string, size: string) => {
+    setDetectedItems((items) =>
+      items.map((item) => (item.id === itemId ? { ...item, size } : item))
+    );
+  };
+
+  const handleSaveDetectedItems = () => {
+    if (detectedItems.length === 0) {
+      return;
+    }
+
+    const newPieces = detectedItems.map(toClosetPiece);
+    const detailPiece = detailAfterSaveItemId
+      ? newPieces.find((piece) => piece.id === detailAfterSaveItemId) ?? null
+      : null;
+
+    setPieces((currentPieces) => [...newPieces, ...currentPieces]);
+    resetQuickAdd();
+
+    if (detailPiece) {
+      setSelectedPiece(detailPiece);
+    }
+  };
 
   if (selectedPiece) {
     return (
@@ -528,7 +1263,7 @@ export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
               />
             </View>
           }
-          subtitle={`${closetPieces.length} items`}
+          subtitle={`${pieces.length} items`}
           title="My Closet"
         />
 
@@ -558,7 +1293,7 @@ export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
         </View>
 
         <View style={styles.grid}>
-          {closetPieces.map((piece) => (
+          {pieces.map((piece) => (
             <ClosetPieceCard
               key={piece.id}
               onPress={() => setSelectedPiece(piece)}
@@ -568,7 +1303,18 @@ export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
         </View>
       </ScrollView>
       <QuickAddBatchDrawer
-        onClose={() => setIsQuickAddVisible(false)}
+        detectedItems={detectedItems}
+        expandedItemId={expandedDetectedItemId}
+        mode={quickAddMode}
+        onClose={resetQuickAdd}
+        onMarkDetailAfterSave={setDetailAfterSaveItemId}
+        onRemoveDetectedItem={handleRemoveDetectedItem}
+        onSaveDetectedItems={handleSaveDetectedItems}
+        onSelectPhotos={handleSelectPhotos}
+        onToggleDetectedItem={handleToggleDetectedItem}
+        onUpdateDetectedCategory={handleUpdateDetectedCategory}
+        onUpdateDetectedName={handleUpdateDetectedName}
+        onUpdateDetectedSize={handleUpdateDetectedSize}
         visible={isQuickAddVisible}
       />
     </SafeAreaView>
@@ -585,13 +1331,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md
   },
-  addDrawerCloseButton: {
+  addDetectedCta: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 26,
+    backgroundColor: colors.inverse,
+    borderRadius: radii.button,
+    flexDirection: "row",
+    gap: spacing.sm,
     height: 52,
     justifyContent: "center",
-    width: 52
+    paddingHorizontal: spacing.lg
+  },
+  addDetectedCtaDisabled: {
+    backgroundColor: colors.soft
+  },
+  addDetectedCtaText: {
+    color: colors.inverseText,
+    fontFamily: fonts.cta,
+    fontSize: 16,
+    lineHeight: 20
   },
   addDrawerCopy: {
     flex: 1,
@@ -614,6 +1371,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end"
   },
+  addDrawerReview: {
+    maxHeight: "82%",
+    paddingBottom: spacing.xl
+  },
   addDrawerScrim: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.scrimMedium
@@ -621,9 +1382,9 @@ const styles = StyleSheet.create({
   addDrawerSubtitle: {
     color: colors.muted,
     fontFamily: fonts.body,
-    fontSize: 17,
-    lineHeight: 24,
-    marginTop: spacing.md
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: spacing.sm
   },
   addDrawerTitle: {
     ...typography.sectionHeading,
@@ -633,25 +1394,184 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surfaceTertiary,
     borderColor: colors.border,
-    borderRadius: 20,
+    borderRadius: 16,
     borderStyle: "dashed",
     borderWidth: 1.5,
     flexDirection: "row",
     gap: spacing.md,
+    height: 60,
     justifyContent: "center",
-    minHeight: 88,
     paddingHorizontal: spacing.lg
   },
   addDrawerUploadText: {
     color: colors.muted,
     fontFamily: fonts.bodyMedium,
-    fontSize: 20,
-    lineHeight: 26
+    fontSize: 14,
+    lineHeight: 18
+  },
+  analyzingCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  analyzingPanel: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTertiary,
+    borderColor: colors.border,
+    borderRadius: radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: spacing.md,
+    minHeight: 88,
+    padding: spacing.lg
+  },
+  analyzingText: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2
+  },
+  analyzingTitle: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 20
   },
   content: {
     paddingBottom: 116,
     paddingHorizontal: spacing.screen,
     paddingTop: appScreenTopPadding
+  },
+  detectedCard: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.sm
+  },
+  detectedCardExpanded: {
+    maxHeight: 200
+  },
+  detectedCardSummary: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 50
+  },
+  detectedChoicePill: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexShrink: 1,
+    height: 24,
+    justifyContent: "center",
+    paddingHorizontal: spacing.sm
+  },
+  detectedChoicePillSelected: {
+    backgroundColor: colors.inverse,
+    borderColor: colors.inverse
+  },
+  detectedChoicePillText: {
+    color: colors.muted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 14
+  },
+  detectedChoicePillTextSelected: {
+    color: colors.inverseText
+  },
+  detectedEditor: {
+    gap: 4,
+    marginTop: spacing.sm
+  },
+  detectedItemCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  detectedItemImage: {
+    backgroundColor: colors.imageSurface,
+    borderRadius: radii.card,
+    height: 50,
+    width: 50
+  },
+  detectedItemMeta: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 17
+  },
+  detectedItemName: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    lineHeight: 19
+  },
+  detectedItemTags: {
+    color: colors.soft,
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 1
+  },
+  detectedList: {
+    maxHeight: 300
+  },
+  detectedListContent: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xs
+  },
+  detectedMoreDetailsButton: {
+    alignSelf: "flex-start",
+    marginTop: spacing.xs
+  },
+  detectedMoreDetailsText: {
+    color: colors.soft,
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 14,
+    textDecorationLine: "underline"
+  },
+  detectedNameClearButton: {
+    alignItems: "center",
+    height: 32,
+    justifyContent: "center",
+    width: 32
+  },
+  detectedNameField: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    flexDirection: "row",
+    height: 40,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.xs
+  },
+  detectedNameInput: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    height: 40,
+    includeFontPadding: false,
+    lineHeight: 18,
+    minWidth: 0,
+    padding: 0
+  },
+  detectedPillRow: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    gap: spacing.xs,
+    overflow: "hidden"
+  },
+  detectedRemoveButton: {
+    alignItems: "center",
+    height: 32,
+    justifyContent: "center",
+    width: 32
   },
   detailActionButton: {
     alignItems: "center",
@@ -926,7 +1846,8 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   pieceCopy: {
-    padding: spacing.md
+    paddingHorizontal: 10,
+    paddingVertical: spacing.md
   },
   pieceImage: {
     height: "100%",
@@ -985,10 +1906,10 @@ const styles = StyleSheet.create({
   tag: {
     backgroundColor: colors.surface,
     borderRadius: radii.pill,
-    flexShrink: 1,
+    flexShrink: 0,
     maxWidth: "100%",
     minWidth: 0,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     paddingVertical: 4
   },
   tagRow: {
@@ -1000,10 +1921,9 @@ const styles = StyleSheet.create({
   },
   tagText: {
     color: colors.muted,
-    flexShrink: 1,
     fontFamily: fonts.body,
-    fontSize: 11,
-    lineHeight: 14
+    fontSize: 10,
+    lineHeight: 13
   },
   toolbar: {
     flexDirection: "row",

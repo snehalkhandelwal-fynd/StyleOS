@@ -21,6 +21,7 @@ type AvatarReadyScreenProps = {
 };
 
 const fallbackAvatar = prototypeProductImages.maje.pinkRelaxedSet;
+const drawerAvatarFrameHeight = 424;
 
 function formatHeight(height?: { feet: number; inches: number }) {
   if (!height) {
@@ -98,6 +99,7 @@ export function AvatarReadyScreen({
   return (
     <OnboardingStepShell
       currentStep={4}
+      drawerCtaTopSpacing={spacing.md}
       drawerSecondaryButton={drawerSecondaryButton}
       nextButton={drawerNextButton}
       presentation={presentation}
@@ -151,11 +153,12 @@ const styles = StyleSheet.create({
   drawerContent: {
     alignItems: "center",
     gap: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: 0,
     paddingTop: spacing.lg
   },
   drawerFrame: {
-    width: "78%"
+    height: drawerAvatarFrameHeight,
+    width: "100%"
   },
   measurementChip: {
     alignItems: "center",
