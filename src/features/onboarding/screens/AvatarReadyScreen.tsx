@@ -79,11 +79,30 @@ export function AvatarReadyScreen({
 }: AvatarReadyScreenProps) {
   const isDrawer = presentation === "drawer";
   const measurementChips = getMeasurementChips(height);
+  const drawerNextButton = isDrawer
+    ? {
+        accessibilityLabel: "Try your first look",
+        disabled: false,
+        label: "Try your first look",
+        onPress: onContinue
+      }
+    : undefined;
+  const drawerSecondaryButton = isDrawer
+    ? {
+        label: "Change photo",
+        onPress: onUseAnotherPhoto,
+        variant: "outline" as const
+      }
+    : undefined;
 
   return (
     <OnboardingStepShell
+      currentStep={4}
+      drawerSecondaryButton={drawerSecondaryButton}
+      nextButton={drawerNextButton}
       presentation={presentation}
       title="You’re ready to try outfits on yourself"
+      totalSteps={4}
     >
       <View style={[styles.content, isDrawer ? styles.drawerContent : null]}>
         <AvatarImageFrame
@@ -102,22 +121,19 @@ export function AvatarReadyScreen({
           </View>
         </AvatarImageFrame>
 
-        <View
-          style={[
-            styles.buttonStack,
-            isDrawer ? styles.drawerButtonStack : null
-          ]}
-        >
-          <PrimaryButton
-            label="Try your first look"
-            onPress={onContinue}
-          />
-          <PrimaryButton
-            label="Change photo"
-            onPress={onUseAnotherPhoto}
-            variant="outline"
-          />
-        </View>
+        {!isDrawer ? (
+          <View style={styles.buttonStack}>
+            <PrimaryButton
+              label="Try your first look"
+              onPress={onContinue}
+            />
+            <PrimaryButton
+              label="Change photo"
+              onPress={onUseAnotherPhoto}
+              variant="outline"
+            />
+          </View>
+        ) : null}
       </View>
     </OnboardingStepShell>
   );
@@ -132,12 +148,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingTop: spacing.xl
   },
-  drawerButtonStack: {
-    alignSelf: "stretch"
-  },
   drawerContent: {
     alignItems: "center",
     gap: spacing.md,
+    paddingBottom: spacing.xl,
     paddingTop: spacing.lg
   },
   drawerFrame: {

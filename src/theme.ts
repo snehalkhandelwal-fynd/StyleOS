@@ -36,11 +36,22 @@ export const typography = {
   displayHeadline: {
     fontFamily: fonts.heading,
     fontSize: 26,
+    fontWeight: "600" as const,
+    letterSpacing: 0,
+    lineHeight: 31.2
+  },
+  screenTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 26,
+    fontWeight: "600" as const,
+    letterSpacing: 0,
     lineHeight: 31.2
   },
   h2: {
     fontFamily: fonts.heading,
     fontSize: 26,
+    fontWeight: "600" as const,
+    letterSpacing: 0,
     lineHeight: 31.2
   },
   sectionHeading: {

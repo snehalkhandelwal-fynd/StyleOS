@@ -18,10 +18,13 @@ import {
 
 import { colors, fonts, spacing, typography } from "../../../theme";
 import { CartCountBadge } from "./CartCountBadge";
+import { formatMatchLabel } from "./MatchRibbonTag";
+import { WishlistHeartIcon } from "./WishlistHeartIcon";
 import {
-  isMatchLabel,
-  MatchRibbonTag
-} from "./MatchRibbonTag";
+  appBottomSafeInset,
+  appSearchHeaderTopPadding,
+  appTopSafeInset
+} from "../utils/safeArea";
 
 export type ProductListingProduct = {
   brand?: string;
@@ -89,8 +92,8 @@ type ProductListingScreenProps = {
   title: string;
 };
 
-const topSafeInset = Platform.OS === "ios" ? 44 : 0;
-const bottomSafeInset = Platform.OS === "ios" ? 34 : 0;
+const topSafeInset = appTopSafeInset;
+const bottomSafeInset = appBottomSafeInset;
 const bottomControlBottomPadding =
   Platform.OS === "ios" ? spacing.lg : spacing.md;
 const bottomControlDockHeight = 52 + bottomControlBottomPadding;
@@ -499,28 +502,13 @@ function ProductCard({
               accessibilityRole="button"
               style={styles.saveButton}
             >
-              <Feather color={colors.text} name="heart" size={14} />
+              <WishlistHeartIcon saved={false} />
             </Pressable>
           </View>
         ) : null}
         {!hideImageTags ? (
-          isMatchLabel(matchLabel) ? (
-            <MatchRibbonTag
-              height={26}
-              label={matchLabel}
-              style={styles.matchRibbon}
-              textStyle={styles.matchRibbonText}
-              width={90}
-            />
-          ) : (
-            <View style={styles.matchPill}>
-              <Text style={styles.matchText}>{matchLabel}</Text>
-            </View>
-          )
-        ) : null}
-        {!hideImageTags && product.tries ? (
-          <View style={styles.tryPill}>
-            <Text style={styles.tryText}>{product.tries}</Text>
+          <View style={styles.matchPill}>
+            <Text style={styles.matchText}>{formatMatchLabel(matchLabel)}</Text>
           </View>
         ) : null}
       </ImageBackground>
@@ -1064,10 +1052,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flexDirection: "row",
     gap: spacing.sm,
-    minHeight: topSafeInset + 70,
+    minHeight: appSearchHeaderTopPadding + 62,
     paddingBottom: 10,
     paddingHorizontal: spacing.screen,
-    paddingTop: topSafeInset + spacing.sm
+    paddingTop: appSearchHeaderTopPadding
   },
   headerCopy: {
     flex: 1,
@@ -1188,32 +1176,20 @@ const styles = StyleSheet.create({
     lineHeight: 17
   },
   matchPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
+    backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 999,
-    borderWidth: 0.5,
-    left: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    bottom: 7,
+    left: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     position: "absolute",
-    top: 10
-  },
-  matchRibbon: {
-    left: 0,
-    position: "absolute",
-    top: 10
-  },
-  matchRibbonText: {
-    fontSize: 10,
-    lineHeight: 13,
-    paddingLeft: 8,
-    paddingRight: 18
+    zIndex: 2
   },
   matchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    lineHeight: 13
+    color: "#141414",
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 16
   },
   priceRow: {
     alignItems: "center",
@@ -1267,20 +1243,17 @@ const styles = StyleSheet.create({
     lineHeight: 17
   },
   productCard: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 16,
     overflow: "hidden"
   },
   productImage: {
-    aspectRatio: 3 / 4,
-    backgroundColor: colors.imageSurface,
+    backgroundColor: "#FAFAFA",
+    height: 216,
     position: "relative"
   },
   productImageStyle: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12
+    borderRadius: 16
   },
   productInfo: {
     backgroundColor: colors.background,
@@ -1305,15 +1278,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.background,
     borderColor: colors.border,
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 0.5,
-    height: 30,
+    height: 32,
     justifyContent: "center",
-    width: 30
+    width: 32
   },
   saveWrap: {
     position: "absolute",
-    right: 8,
+    right: 9,
     top: 8,
     zIndex: 2
   },
@@ -1426,22 +1399,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 20,
     lineHeight: 25
-  },
-  tryPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    bottom: 10,
-    left: 10,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    position: "absolute"
-  },
-  tryText: {
-    color: colors.muted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 15
   }
 });

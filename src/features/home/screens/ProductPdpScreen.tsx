@@ -13,7 +13,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -26,6 +25,12 @@ import { CartCountBadge } from "../components/CartCountBadge";
 import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
 import { colors, fonts, spacing } from "../../../theme";
+import {
+  appBottomSafeInset,
+  appSearchHeaderHeight,
+  appSearchHeaderTopPadding,
+  appTopSafeInset
+} from "../utils/safeArea";
 
 type ProductPdpScreenProps = {
   cartCount?: number;
@@ -59,12 +64,11 @@ type Review = {
   text: string;
 };
 
-const topSafeInset =
-  Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
-const bottomSafeInset = Platform.OS === "ios" ? 34 : 0;
+const topSafeInset = appTopSafeInset;
+const bottomSafeInset = appBottomSafeInset;
 const ctaDockBottomPadding = Platform.OS === "ios" ? spacing.lg : spacing.md;
 const ctaDockHeight = 48 + spacing.md + ctaDockBottomPadding;
-const pdpHeaderHeight = topSafeInset + 64;
+const pdpHeaderHeight = appSearchHeaderHeight;
 const galleryDotsHeight = 30;
 const sizeOptionsFallback: SizeOption[] = ["XS", "S", "M", "L", "XL"];
 const detailImage =
@@ -2288,8 +2292,9 @@ const styles = StyleSheet.create({
     height: pdpHeaderHeight,
     justifyContent: "flex-end",
     left: 0,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
-    paddingTop: topSafeInset,
+    paddingTop: appSearchHeaderTopPadding,
     position: "absolute",
     right: 0,
     shadowColor: "#000000",
@@ -2303,7 +2308,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 10,
-    height: 64
+    height: 44
   },
   pressed: {
     opacity: 0.72

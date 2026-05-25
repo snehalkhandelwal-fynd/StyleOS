@@ -49,8 +49,8 @@ const swipeFlickDistance = 28;
 const swipeVelocityThreshold = 0.45;
 const swipeExitDistance = 520;
 const cardRadius = 20;
-const deckStackOffset = 24;
-const deckPeekOffset = 9;
+const deckStackOffset = 12;
+const deckPeekOffset = 7;
 const deckPeekSideOffset = 8;
 
 const webSwipeCardStyle =
@@ -374,6 +374,9 @@ export const StyleSwipeCard = forwardRef<
             pointerEvents="none"
             style={styles.bottomGradient}
           />
+          <View style={styles.cardCopy}>
+            <Text style={styles.cardTitle}>{card.title}</Text>
+          </View>
         </ImageBackground>
       </Animated.View>
     </View>
@@ -451,6 +454,19 @@ const styles = StyleSheet.create({
   },
   cardImage: {
     borderRadius: cardRadius
+  },
+  cardCopy: {
+    bottom: spacing.lg,
+    left: spacing.lg,
+    position: "absolute",
+    right: spacing.lg,
+    zIndex: 2
+  },
+  cardTitle: {
+    color: colors.inverseText,
+    fontFamily: fonts.heading,
+    fontSize: 24,
+    lineHeight: 30
   },
   chip: {
     backgroundColor: colors.surfaceTranslucent,

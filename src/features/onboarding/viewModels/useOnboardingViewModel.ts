@@ -15,7 +15,6 @@ export interface OnboardingDraft {
     inches: number;
     centimeters: number;
   };
-  weightKilograms?: number;
   fashionInterest?: FashionInterest;
   styleQuiz?: {
     likedStyleIds: string[];
@@ -31,7 +30,6 @@ type OnboardingAction =
   | { type: "phoneChanged"; country: CountryOption; phoneNumber: string }
   | { type: "nameChanged"; name: string }
   | { type: "heightChanged"; feet: number; inches: number }
-  | { type: "weightChanged"; weightKilograms: number }
   | { type: "fashionInterestChanged"; fashionInterest: FashionInterest }
   | { type: "styleLiked"; styleId: string }
   | { type: "styleRejected"; styleId: string }
@@ -49,7 +47,6 @@ const defaultHeight = {
 
 const initialDraft: OnboardingDraft = {
   height: defaultHeight,
-  weightKilograms: 55,
   styleQuiz: {
     likedStyleIds: [],
     rejectedStyleIds: [],
@@ -94,13 +91,6 @@ function onboardingReducer(
         feet: action.feet,
         inches: action.inches
       }
-    };
-  }
-
-  if (action.type === "weightChanged") {
-    return {
-      ...state,
-      weightKilograms: action.weightKilograms
     };
   }
 
@@ -222,8 +212,6 @@ export function useOnboardingViewModel() {
       setName: (name: string) => dispatch({ name, type: "nameChanged" }),
       setPhone: (country: CountryOption, phoneNumber: string) =>
         dispatch({ country, phoneNumber, type: "phoneChanged" }),
-      setWeightKilograms: (weightKilograms: number) =>
-        dispatch({ type: "weightChanged", weightKilograms }),
       resetStyleQuiz: () => dispatch({ type: "styleQuizReset" }),
       skipStyleQuiz: () => dispatch({ type: "styleQuizSkipped" }),
       submitStylePreference: (

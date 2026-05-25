@@ -1,5 +1,5 @@
 import { Image, StyleSheet, View } from "react-native";
-import Svg, { Image as SvgImage, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 
 import type { BrandLogoVariant } from "../data/brandCatalog";
 
@@ -38,21 +38,11 @@ function ImageLogo({
 function VeroModaLogo({ height, width }: Omit<BrandLogoMarkProps, "variant">) {
   return (
     <View style={[styles.logoFrame, { height, width }]}>
-      <Svg
-        height={height}
-        preserveAspectRatio="none"
-        viewBox="0 0 4096 432"
-        width={width}
-      >
-        <SvgImage
-          height={2460}
-          href={require("../../../assets/brand-vero-moda.png")}
-          preserveAspectRatio="none"
-          width={4096}
-          x={0}
-          y={-1014}
-        />
-      </Svg>
+      <Image
+        resizeMode="cover"
+        source={require("../../../../Images/VeroModa.png")}
+        style={styles.logoImage}
+      />
     </View>
   );
 }

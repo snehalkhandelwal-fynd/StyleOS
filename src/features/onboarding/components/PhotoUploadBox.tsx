@@ -64,7 +64,7 @@ export function PhotoUploadBox({
         onPress={openPhotoDrawer}
         style={({ pressed }) => [
           styles.box,
-          isDrawer ? styles.drawerBox : null,
+          isDrawer ? (uri ? styles.drawerPreviewBox : styles.drawerBox) : null,
           uri ? styles.boxWithPreview : styles.emptyBox,
           pressed ? styles.pressed : null
         ]}
@@ -269,6 +269,12 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   drawerBox: {
+    flex: 0,
+    marginTop: spacing.lg
+  },
+  drawerPreviewBox: {
+    flex: 0,
+    height: 424,
     marginTop: spacing.lg
   },
   boxWithPreview: {
@@ -348,6 +354,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg
   },
   drawerEmptyState: {
+    flex: 0,
     padding: spacing.md
   },
   exampleArea: {

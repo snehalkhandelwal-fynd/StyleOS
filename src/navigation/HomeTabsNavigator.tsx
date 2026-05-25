@@ -21,6 +21,7 @@ import {
 } from "../features/home/screens/AccountScreen";
 import { getStyleCardsForFashionInterest } from "../data/styleQuiz";
 import {
+  buildLookPieces,
   getRupeeValue,
   type LookPiece
 } from "../features/home/data/lookPieces";
@@ -78,6 +79,8 @@ type TryOnRenderState = {
   startedAt: number | null;
   status: "idle" | "ready" | "rendering";
 };
+
+type SelectedLookShopReturnTarget = "home" | "look-detail";
 
 function toProductListingProductFromLookPiece(
   piece: LookPiece,
@@ -328,6 +331,9 @@ export function HomeTabsNavigator({
     status: "idle"
   });
   const [isTryOnShopLookOpen, setIsTryOnShopLookOpen] = useState(false);
+  const [isSelectedLookShopOpen, setIsSelectedLookShopOpen] = useState(false);
+  const [selectedLookShopReturnTarget, setSelectedLookShopReturnTarget] =
+    useState<SelectedLookShopReturnTarget>("look-detail");
   const [shopLookPieces, setShopLookPieces] = useState<LookPiece[] | null>(
     null
   );
@@ -551,6 +557,8 @@ export function HomeTabsNavigator({
     setIsExploreInternalViewOpen(false);
     setTryOnEntry(null);
     setIsTryOnShopLookOpen(false);
+    setIsSelectedLookShopOpen(false);
+    setSelectedLookShopReturnTarget("look-detail");
     setShopLookPieces(null);
     resetTryOnRender();
   }, [initialTab, resetTryOnRender]);
@@ -565,6 +573,8 @@ export function HomeTabsNavigator({
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
     setIsTryOnShopLookOpen(false);
+    setIsSelectedLookShopOpen(false);
+    setSelectedLookShopReturnTarget("look-detail");
     setShopLookPieces(null);
     if (!shouldKeepTryOnEntry) {
       setTryOnEntry(null);
@@ -625,6 +635,18 @@ export function HomeTabsNavigator({
     [addCartItems, selectedLook]
   );
 
+  const handleAddSelectedLookPieceToCart = useCallback(
+    (piece: LookPiece, size: string) => {
+      addCartItems([
+        toCartItemFromLookSelection(
+          { piece, size },
+          selectedLook ?? undefined
+        )
+      ]);
+    },
+    [addCartItems, selectedLook]
+  );
+
   const handleAddProductToCart = useCallback(
     (product: ProductListingProduct) => {
       addCartItems([toCartItemFromProduct(product)]);
@@ -647,6 +669,8 @@ export function HomeTabsNavigator({
       setTryOnEntry(nextEntry);
       beginTryOnRender(nextEntry);
       setIsTryOnShopLookOpen(false);
+      setIsSelectedLookShopOpen(false);
+      setSelectedLookShopReturnTarget("look-detail");
       setShopLookPieces(null);
       setIsSearchOpen(false);
       setIsExploreInternalViewOpen(false);
@@ -681,6 +705,8 @@ export function HomeTabsNavigator({
       setActiveTab(tryOnEntry?.returnTab ?? "Home");
       setTryOnEntry(null);
       setIsTryOnShopLookOpen(false);
+      setIsSelectedLookShopOpen(false);
+      setSelectedLookShopReturnTarget("look-detail");
       setShopLookPieces(null);
     },
     [persistTryOnSnapshot, resetTryOnRender, tryOnEntry]
@@ -705,6 +731,8 @@ export function HomeTabsNavigator({
       setSelectedProduct(null);
       setSelectedProductReturnTab(null);
       setIsTryOnShopLookOpen(false);
+      setIsSelectedLookShopOpen(false);
+      setSelectedLookShopReturnTarget("look-detail");
       setShopLookPieces(null);
       setIsSearchOpen(false);
       setIsExploreInternalViewOpen(false);
@@ -726,6 +754,8 @@ export function HomeTabsNavigator({
       setSelectedProduct(null);
       setSelectedProductReturnTab(null);
       setIsTryOnShopLookOpen(false);
+      setIsSelectedLookShopOpen(false);
+      setSelectedLookShopReturnTarget("look-detail");
       setShopLookPieces(null);
       setActiveTab("Cart");
     },
@@ -739,6 +769,8 @@ export function HomeTabsNavigator({
       persistTryOnSnapshot(state, sessionLook);
       setShopLookPieces(state.pieces);
       setIsTryOnShopLookOpen(true);
+      setIsSelectedLookShopOpen(false);
+      setSelectedLookShopReturnTarget("look-detail");
       setSelectedBrandId(null);
       setSelectedLook(null);
       setSelectedProduct(null);
@@ -752,6 +784,51 @@ export function HomeTabsNavigator({
 
   const handleBackFromShopLook = useCallback(() => {
     setIsTryOnShopLookOpen(false);
+  }, []);
+
+  const handleOpenShopLookFromSelectedLook = useCallback(
+    (look?: ProductLook) => {
+      const nextLook = look ?? selectedLook;
+
+      if (!nextLook) {
+        return;
+      }
+
+      setSelectedLook(nextLook);
+      setSelectedProduct(null);
+      setSelectedProductReturnTab(null);
+      setSelectedBrandId(null);
+      setTryOnEntry(null);
+      setIsTryOnShopLookOpen(false);
+      setIsSelectedLookShopOpen(true);
+      setSelectedLookShopReturnTarget(look ? "home" : "look-detail");
+      setShopLookPieces(
+        lookSnapshots[nextLook.id]?.pieces ?? buildLookPieces(nextLook)
+      );
+      setIsSearchOpen(false);
+      setIsExploreInternalViewOpen(false);
+      setActiveTab("Home");
+    },
+    [lookSnapshots, selectedLook]
+  );
+
+  const handleBackFromSelectedLookShop = useCallback(() => {
+    setIsSelectedLookShopOpen(false);
+    setShopLookPieces(null);
+    if (selectedLookShopReturnTarget === "home") {
+      setSelectedLook(null);
+    }
+    setSelectedLookShopReturnTarget("look-detail");
+  }, [selectedLookShopReturnTarget]);
+
+  const handleViewCartFromSelectedLookShop = useCallback(() => {
+    setIsSelectedLookShopOpen(false);
+    setShopLookPieces(null);
+    setSelectedLook(null);
+    setSelectedProduct(null);
+    setSelectedProductReturnTab(null);
+    setSelectedLookShopReturnTarget("look-detail");
+    setActiveTab("Cart");
   }, []);
 
   const handleAddShopPieceToCart = useCallback(
@@ -788,6 +865,8 @@ export function HomeTabsNavigator({
       isBrowsing: false
     }));
     setIsTryOnShopLookOpen(false);
+    setIsSelectedLookShopOpen(false);
+    setSelectedLookShopReturnTarget("look-detail");
     setShopLookPieces(null);
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
@@ -809,6 +888,7 @@ export function HomeTabsNavigator({
         toProductListingProductFromLookPiece(piece, selectedLook ?? undefined)
       );
       setSelectedBrandId(null);
+      setIsSelectedLookShopOpen(false);
       setIsSearchOpen(false);
       setIsExploreInternalViewOpen(false);
       setActiveTab("Home");
@@ -821,6 +901,7 @@ export function HomeTabsNavigator({
     setSelectedProductReturnTab(null);
     setSelectedLook(look);
     setSelectedBrandId(null);
+    setIsSelectedLookShopOpen(false);
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
     setActiveTab("Home");
@@ -928,7 +1009,28 @@ export function HomeTabsNavigator({
             product={selectedProduct}
           />
         ) : null}
-        {activeTab === "Home" && selectedLook && !selectedProduct ? (
+        {activeTab === "Home" &&
+        selectedLook &&
+        isSelectedLookShopOpen &&
+        !selectedProduct ? (
+          <ShopThisLookScreen
+            cartCount={cartCount}
+            look={selectedLook}
+            onAddPieceToCart={handleAddSelectedLookPieceToCart}
+            onBack={handleBackFromSelectedLookShop}
+            onOpenProduct={handleOpenProductFromBrand}
+            onViewCart={handleViewCartFromSelectedLookShop}
+            pieces={
+              shopLookPieces ??
+              selectedLookSnapshot?.pieces ??
+              buildLookPieces(selectedLook)
+            }
+          />
+        ) : null}
+        {activeTab === "Home" &&
+        selectedLook &&
+        !isSelectedLookShopOpen &&
+        !selectedProduct ? (
           <ModelLookPdpScreen
             cartCount={cartCount}
             hasStyleProfile={hasStyleProfile}
@@ -936,7 +1038,10 @@ export function HomeTabsNavigator({
             look={selectedLook}
             onAddToCart={handleAddSelectedLookToCart}
             onAskMira={() => handleChangeTab("AIStylist")}
-            onBack={() => setSelectedLook(null)}
+            onBack={() => {
+              setIsSelectedLookShopOpen(false);
+              setSelectedLook(null);
+            }}
             onLookSavedChange={(isSaved) => {
               setLookSnapshots((current) => ({
                 ...current,
@@ -951,6 +1056,7 @@ export function HomeTabsNavigator({
             }}
             onOpenCart={() => handleChangeTab("Cart")}
             onOpenPieceProduct={handleOpenProductFromLookPiece}
+            onOpenShopLook={() => handleOpenShopLookFromSelectedLook()}
             onStartTryOn={(context) => openTryOnSession(selectedLook, context)}
             pieceOverrides={selectedLookSnapshot?.pieces}
           />
@@ -973,8 +1079,13 @@ export function HomeTabsNavigator({
             onChangeAddress={onChangeAddress}
             onOpenBrand={setSelectedBrandId}
             onOpenCart={() => handleChangeTab("Cart")}
-            onOpenLook={setSelectedLook}
+            onOpenLook={(look) => {
+              setIsSelectedLookShopOpen(false);
+              setShopLookPieces(null);
+              setSelectedLook(look);
+            }}
             onOpenSearch={() => setIsSearchOpen(true)}
+            onShopLook={handleOpenShopLookFromSelectedLook}
             onStartStyleQuiz={onStartStyleQuiz}
           />
         ) : null}

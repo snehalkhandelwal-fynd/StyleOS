@@ -336,7 +336,11 @@ export function HeightPicker({
 
       <View
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-        style={[styles.rulerWrap, { height: trackHeight }]}
+        style={[
+          styles.rulerWrap,
+          isCompact ? styles.rulerWrapCompact : null,
+          { height: trackHeight }
+        ]}
       >
         <FlatList
           bounces={false}
@@ -460,6 +464,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden"
   },
+  rulerWrapCompact: {
+    marginTop: spacing.sm
+  },
   segment: {
     alignItems: "center",
     borderRadius: radii.pill,
@@ -519,6 +526,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   selectedValueRowCompact: {
+    marginBottom: spacing.xl,
     marginTop: -1
   },
   tick: {

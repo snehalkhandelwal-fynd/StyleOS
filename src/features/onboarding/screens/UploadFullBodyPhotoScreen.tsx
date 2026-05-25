@@ -20,7 +20,7 @@ export function UploadFullBodyPhotoScreen({
   photoUri,
   presentation = "screen"
 }: UploadFullBodyPhotoScreenProps) {
-  const totalSteps = presentation === "drawer" ? 5 : 4;
+  const totalSteps = 4;
   const isDrawer = presentation === "drawer";
 
   return (
@@ -36,7 +36,7 @@ export function UploadFullBodyPhotoScreen({
       title="See yourself in every look"
       totalSteps={totalSteps}
     >
-      <View style={styles.body}>
+      <View style={[styles.body, isDrawer ? styles.drawerBody : null]}>
         <PhotoUploadBox
           onSelectPhoto={onSelectPhoto}
           uri={photoUri}
@@ -52,5 +52,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 96,
     zIndex: 2
+  },
+  drawerBody: {
+    flex: 0,
+    paddingBottom: 0
   }
 });

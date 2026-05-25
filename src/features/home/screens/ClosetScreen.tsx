@@ -1,8 +1,9 @@
 import { prototypeProductImages } from "../data/prototypeProductImages";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   Image,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -13,6 +14,12 @@ import {
 } from "react-native";
 
 import { colors, fonts, radii, spacing, typography } from "../../../theme";
+import {
+  AppScreenHeader,
+  appScreenTopPadding
+} from "../components/AppScreenHeader";
+import { WishlistHeartIcon } from "../components/WishlistHeartIcon";
+import { appBottomSafeInset } from "../utils/safeArea";
 
 type ClosetScreenProps = {
   onAskMira?: () => void;
@@ -94,18 +101,14 @@ const detailFacts: {
 function ClosetToolbarButton({
   accessibilityLabel,
   icon,
-  isExpanded,
   label,
   onPress,
-  showChevron = false,
   variant = "secondary"
 }: {
   accessibilityLabel?: string;
   icon: keyof typeof Feather.glyphMap;
-  isExpanded?: boolean;
   label: string;
   onPress?: () => void;
-  showChevron?: boolean;
   variant?: "primary" | "secondary";
 }) {
   const iconColor = variant === "primary" ? colors.inverseText : colors.text;
@@ -114,7 +117,6 @@ function ClosetToolbarButton({
     <Pressable
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityRole="button"
-      accessibilityState={isExpanded === undefined ? undefined : { expanded: isExpanded }}
       onPress={onPress}
       style={({ pressed }) => [
         styles.toolbarButton,
@@ -137,13 +139,6 @@ function ClosetToolbarButton({
       >
         {label}
       </Text>
-      {showChevron ? (
-        <Feather
-          color={iconColor}
-          name={isExpanded ? "chevron-up" : "chevron-down"}
-          size={17}
-        />
-      ) : null}
     </Pressable>
   );
 }
@@ -179,7 +174,7 @@ function ClosetPieceCard({
             pressed ? styles.pressed : null
           ]}
         >
-          <Ionicons color={colors.text} name="heart-outline" size={20} />
+          <WishlistHeartIcon saved={false} />
         </Pressable>
       </View>
 
@@ -191,7 +186,7 @@ function ClosetPieceCard({
           {piece.category}
         </Text>
         <View style={styles.tagRow}>
-          {piece.tags.map((tag) => (
+          {piece.tags.slice(0, 3).map((tag) => (
             <View key={`${piece.id}-${tag}`} style={styles.tag}>
               <Text numberOfLines={1} style={styles.tagText}>
                 {tag}
@@ -438,14 +433,70 @@ function ClosetPieceDetailScreen({
   );
 }
 
-export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
-  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
-  const [selectedPiece, setSelectedPiece] = useState<ClosetPiece | null>(null);
+function QuickAddBatchDrawer({
+  onClose,
+  visible
+}: {
+  onClose: () => void;
+  visible: boolean;
+}) {
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
+      <View style={styles.addDrawerRoot}>
+        <Pressable
+          accessibilityLabel="Close quick add drawer"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.addDrawerScrim}
+        />
+        <View style={styles.addDrawer}>
+          <View style={styles.addDrawerHandle} />
+          <View style={styles.addDrawerHeader}>
+            <View style={styles.addDrawerCopy}>
+              <Text style={styles.addDrawerTitle}>Add New Items</Text>
+              <Text style={styles.addDrawerSubtitle}>
+                Select multiple photos and Mira will detect each item
+                automatically.
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Close quick add drawer"
+              accessibilityRole="button"
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.addDrawerCloseButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.muted} name="x" size={24} />
+            </Pressable>
+          </View>
 
-  const handleSelectAddOption = () => {
-    setIsAddMenuOpen(false);
-    onStartTryOn?.();
-  };
+          <Pressable
+            accessibilityLabel="Select photos for batch closet upload"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.addDrawerUploadTarget,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.muted} name="upload-cloud" size={28} />
+            <Text style={styles.addDrawerUploadText}>Select Photos</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
+  const [selectedPiece, setSelectedPiece] = useState<ClosetPiece | null>(null);
+  const [isQuickAddVisible, setIsQuickAddVisible] = useState(false);
 
   if (selectedPiece) {
     return (
@@ -465,53 +516,21 @@ export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
         showsVerticalScrollIndicator={false}
         style={styles.screen}
       >
-        <View style={styles.header}>
-          <View style={styles.headerTitleBlock}>
-            <Text numberOfLines={1} style={styles.title}>
-              My Closet
-            </Text>
-            <Text style={styles.itemCount}>{closetPieces.length} items</Text>
-          </View>
-
-          <View style={styles.toolbar}>
-            <ClosetToolbarButton
-              accessibilityLabel="Add item options"
-              icon="plus"
-              isExpanded={isAddMenuOpen}
-              label="Add item"
-              onPress={() => setIsAddMenuOpen((isOpen) => !isOpen)}
-              showChevron
-              variant="primary"
-            />
-
-            {isAddMenuOpen ? (
-              <View style={styles.addMenu}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleSelectAddOption}
-                  style={({ pressed }) => [
-                    styles.addMenuOption,
-                    pressed ? styles.pressed : null
-                  ]}
-                >
-                  <Feather color={colors.text} name="plus-circle" size={18} />
-                  <Text style={styles.addMenuOptionText}>Add one item</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleSelectAddOption}
-                  style={({ pressed }) => [
-                    styles.addMenuOption,
-                    pressed ? styles.pressed : null
-                  ]}
-                >
-                  <Feather color={colors.text} name="upload" size={18} />
-                  <Text style={styles.addMenuOptionText}>Add bulk</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
-        </View>
+        <AppScreenHeader
+          rightAccessory={
+            <View style={styles.toolbar}>
+              <ClosetToolbarButton
+                accessibilityLabel="Add item"
+                icon="plus"
+                label="Add item"
+                onPress={() => setIsQuickAddVisible(true)}
+                variant="primary"
+              />
+            </View>
+          }
+          subtitle={`${closetPieces.length} items`}
+          title="My Closet"
+        />
 
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
@@ -548,46 +567,91 @@ export function ClosetScreen({ onStartTryOn }: ClosetScreenProps) {
           ))}
         </View>
       </ScrollView>
+      <QuickAddBatchDrawer
+        onClose={() => setIsQuickAddVisible(false)}
+        visible={isQuickAddVisible}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  addMenu: {
+  addDrawer: {
     backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: radii.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-    paddingVertical: spacing.xs,
-    position: "absolute",
-    right: 0,
-    shadowColor: "#000000",
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    top: 56,
-    width: 196,
-    zIndex: 20
+    borderTopLeftRadius: radii.sheet,
+    borderTopRightRadius: radii.sheet,
+    gap: spacing.lg,
+    paddingBottom: appBottomSafeInset + spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md
   },
-  addMenuOption: {
+  addDrawerCloseButton: {
     alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
-    minHeight: 44,
-    paddingHorizontal: spacing.md
+    backgroundColor: colors.surface,
+    borderRadius: 26,
+    height: 52,
+    justifyContent: "center",
+    width: 52
   },
-  addMenuOptionText: {
-    color: colors.text,
+  addDrawerCopy: {
     flex: 1,
+    minWidth: 0
+  },
+  addDrawerHandle: {
+    alignSelf: "center",
+    backgroundColor: colors.border,
+    borderRadius: radii.pill,
+    height: 5,
+    marginBottom: spacing.sm,
+    width: 48
+  },
+  addDrawerHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.md
+  },
+  addDrawerRoot: {
+    flex: 1,
+    justifyContent: "flex-end"
+  },
+  addDrawerScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.scrimMedium
+  },
+  addDrawerSubtitle: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 17,
+    lineHeight: 24,
+    marginTop: spacing.md
+  },
+  addDrawerTitle: {
+    ...typography.sectionHeading,
+    color: colors.text,
+  },
+  addDrawerUploadTarget: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTertiary,
+    borderColor: colors.border,
+    borderRadius: 20,
+    borderStyle: "dashed",
+    borderWidth: 1.5,
+    flexDirection: "row",
+    gap: spacing.md,
+    justifyContent: "center",
+    minHeight: 88,
+    paddingHorizontal: spacing.lg
+  },
+  addDrawerUploadText: {
+    color: colors.muted,
     fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 18
+    fontSize: 20,
+    lineHeight: 26
   },
   content: {
     paddingBottom: 116,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.xl
+    paddingTop: appScreenTopPadding
   },
   detailActionButton: {
     alignItems: "center",
@@ -834,18 +898,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.xl
   },
-  header: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    gap: spacing.md,
-    justifyContent: "space-between",
-    zIndex: 4
-  },
-  headerTitleBlock: {
-    flex: 1,
-    gap: spacing.xs,
-    minWidth: 0
-  },
   heartButton: {
     alignItems: "center",
     backgroundColor: colors.surfaceTranslucent,
@@ -856,12 +908,6 @@ const styles = StyleSheet.create({
     right: spacing.sm,
     top: spacing.sm,
     width: 36
-  },
-  itemCount: {
-    color: colors.muted,
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 20
   },
   pieceCard: {
     backgroundColor: colors.background,
@@ -939,25 +985,25 @@ const styles = StyleSheet.create({
   tag: {
     backgroundColor: colors.surface,
     borderRadius: radii.pill,
+    flexShrink: 1,
     maxWidth: "100%",
+    minWidth: 0,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4
   },
   tagRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
     gap: spacing.xs,
-    marginTop: spacing.md
+    marginTop: spacing.md,
+    overflow: "hidden"
   },
   tagText: {
     color: colors.muted,
+    flexShrink: 1,
     fontFamily: fonts.body,
     fontSize: 11,
     lineHeight: 14
-  },
-  title: {
-    color: colors.text,
-    ...typography.displayHeadline
   },
   toolbar: {
     flexDirection: "row",

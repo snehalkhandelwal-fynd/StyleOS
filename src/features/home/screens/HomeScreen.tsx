@@ -27,9 +27,11 @@ import type { OnboardingDraft } from "../../onboarding/viewModels/useOnboardingV
 import { CartCountBadge } from "../components/CartCountBadge";
 import { BrandLogoMark } from "../components/BrandLogoMark";
 import {
+  formatMatchLabel,
   isMatchLabel,
   MatchRibbonTag
 } from "../components/MatchRibbonTag";
+import { WishlistHeartIcon } from "../components/WishlistHeartIcon";
 import { allBrandsId, brandRows, type Brand } from "../data/brandCatalog";
 import {
   getMerchandisingLabel,
@@ -50,6 +52,7 @@ type HomeScreenProps = {
   onOpenCart: () => void;
   onOpenLook: (look: ProductLook) => void;
   onOpenSearch: () => void;
+  onShopLook: (look: ProductLook) => void;
   onStartStyleQuiz: () => void;
 };
 
@@ -374,7 +377,6 @@ const heroSpotlights: HeroSpotlight[] = [
 ];
 
 const demoOutfits = [looks[0].image, looks[1].image, looks[3].image];
-const wishlistHeartColor = "#D92D20";
 const headerActionIconSize = 22;
 const headerActionStrokeWidth = 1.8;
 
@@ -729,63 +731,6 @@ function OutfitPieceChips({ pieces }: { pieces: OutfitPiece[] }) {
   );
 }
 
-function OccasionLookCard({
-  displayLabel,
-  isWishlisted,
-  onOpen,
-  onToggleWishlist,
-  product,
-  width
-}: {
-  displayLabel: string;
-  isWishlisted: boolean;
-  onOpen: () => void;
-  onToggleWishlist: () => void;
-  product: ProductLook;
-  width: number;
-}) {
-  return (
-    <Pressable
-      accessibilityLabel={`Open ${product.title} look`}
-      accessibilityRole="button"
-      onPress={onOpen}
-      style={({ pressed }) => [
-        styles.occasionLookCard,
-        { width },
-        pressed ? styles.pressed : null
-      ]}
-    >
-      <ImageBackground
-        imageStyle={styles.occasionLookImageStyle}
-        resizeMode="cover"
-        source={{ uri: product.image }}
-        style={styles.occasionLookImage}
-      >
-        <View style={styles.occasionSaveWrap}>
-          <SaveButton onPress={onToggleWishlist} saved={isWishlisted} />
-        </View>
-      </ImageBackground>
-      <View style={styles.occasionLookFooter}>
-        <OutfitPieceChips pieces={product.outfitItems} />
-        {isMatchLabel(displayLabel) ? (
-          <MatchRibbonTag
-            height={24}
-            label={displayLabel}
-            mirrored
-            style={styles.occasionMatchRibbon}
-            textStyle={styles.smallMatchRibbonText}
-            width={82}
-          />
-        ) : (
-          <Text numberOfLines={1} style={styles.occasionMatchText}>
-            {displayLabel}
-          </Text>
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
 function OccasionSection({
   cardWidth,
   hasStyleProfile,
@@ -811,7 +756,7 @@ function OccasionSection({
       <OccasionFilters onSelect={onSelect} selected={selected} />
       <View style={styles.occasionGrid}>
         {products.slice(0, 6).map((product, index) => (
-          <OccasionLookCard
+          <ProductCard
             displayLabel={getMerchandisingLabel({
               fallbackIndex: index,
               hasStyleProfile,
@@ -820,6 +765,7 @@ function OccasionSection({
             isWishlisted={wishlistProductIds.has(product.id)}
             key={product.id}
             onOpen={() => onOpenLook(product)}
+            onPrimaryAction={() => onOpenLook(product)}
             onToggleWishlist={() => onToggleWishlist(product.id)}
             product={product}
             width={cardWidth}
@@ -900,21 +846,6 @@ function WardrobeIntelligenceCard() {
   );
 }
 
-function WishlistHeartIcon({ saved }: { saved: boolean }) {
-  return (
-    <Svg height={16} viewBox="0 0 24 24" width={16}>
-      <Path
-        d="M20.84 4.61C20.3292 4.099 19.7228 3.69365 19.0554 3.41699C18.3879 3.14032 17.6725 2.99776 16.95 2.99776C16.2275 2.99776 15.5121 3.14032 14.8446 3.41699C14.1772 3.69365 13.5708 4.099 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.5783 8.50903 2.99871 7.05 2.99871C5.59097 2.99871 4.19169 3.5783 3.16 4.61C2.1283 5.6417 1.54871 7.04097 1.54871 8.5C1.54871 9.95903 2.1283 11.3583 3.16 12.39L12 21.23L20.84 12.39C21.351 11.8792 21.7563 11.2728 22.033 10.6054C22.3097 9.93789 22.4522 9.22249 22.4522 8.5C22.4522 7.77751 22.3097 7.0621 22.033 6.39464C21.7563 5.72718 21.351 5.12075 20.84 4.61Z"
-        fill={saved ? wishlistHeartColor : "none"}
-        stroke={saved ? wishlistHeartColor : colors.text}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-      />
-    </Svg>
-  );
-}
-
 function SaveButton({
   onPress,
   saved: controlledSaved
@@ -953,67 +884,46 @@ function SaveButton({
 function ProductCard({
   displayLabel,
   isWishlisted = false,
+  onOpen,
+  onPrimaryAction,
   onToggleWishlist,
   product,
   width
 }: {
   displayLabel: string;
   isWishlisted?: boolean;
+  onOpen?: () => void;
+  onPrimaryAction?: () => void;
   onToggleWishlist?: () => void;
   product: ProductLook;
   width: number;
 }) {
-  const hasMatchLabel = isMatchLabel(displayLabel);
-
   return (
-    <View style={[styles.productCard, { width }]}>
+    <Pressable
+      accessibilityLabel={`Open ${product.title} look`}
+      accessibilityRole="button"
+      disabled={!onOpen}
+      onPress={onOpen}
+      style={({ pressed }) => [
+        styles.productCard,
+        { width },
+        pressed && onOpen ? styles.pressed : null
+      ]}
+    >
       <ImageBackground
         imageStyle={styles.productImageStyle}
         resizeMode="cover"
         source={{ uri: product.image }}
         style={styles.productImage}
       >
-        <View style={styles.productTopRow}>
-          <View style={styles.vibeTag}>
-            <Text style={styles.vibeText}>{product.vibe}</Text>
-          </View>
+        <View style={styles.productSaveWrap}>
           <SaveButton onPress={onToggleWishlist} saved={isWishlisted} />
         </View>
-        <View style={styles.productBottomRow}>
-          {hasMatchLabel ? (
-            <MatchRibbonTag
-              height={26}
-              label={displayLabel}
-              style={styles.productMatchRibbon}
-              textStyle={styles.matchRibbonText}
-              width={90}
-            />
-          ) : (
-            <View style={styles.darkMiniPill}>
-              <Text style={styles.darkMiniPillText}>{product.tries}</Text>
-            </View>
-          )}
-          {hasMatchLabel ? (
-            <View style={styles.darkMiniPill}>
-              <Text style={styles.darkMiniPillText}>{product.tries}</Text>
-            </View>
-          ) : (
-            <View style={styles.matchPill}>
-              <Text style={styles.matchText}>{displayLabel}</Text>
-            </View>
-          )}
+        <View style={styles.matchPill}>
+          <Text style={styles.matchText}>{formatMatchLabel(displayLabel)}</Text>
         </View>
       </ImageBackground>
-      <View style={styles.productInfo}>
-        <Text style={styles.productMeta}>
-          {product.brand} · {product.itemCount}
-        </Text>
-        <Text style={styles.productPrice}>{product.price}</Text>
-        <Pressable accessibilityRole="button" style={styles.tryButtonSmall}>
-          <Text style={styles.tryButtonSmallText}>Try on me</Text>
-        </Pressable>
-      </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -1237,6 +1147,7 @@ function SavedLookCard({
   deliveryText,
   imageHeight,
   onOpenLook,
+  onShopLook,
   onToggleWishlist,
   product,
   width
@@ -1245,6 +1156,7 @@ function SavedLookCard({
   deliveryText: string;
   imageHeight: number;
   onOpenLook: () => void;
+  onShopLook: () => void;
   onToggleWishlist: () => void;
   product: ProductLook;
   width: number;
@@ -1268,8 +1180,9 @@ function SavedLookCard({
 
       <View style={styles.savedLookFooter}>
         <Pressable
+          accessibilityLabel={`Shop ${product.title}`}
           accessibilityRole="button"
-          onPress={onOpenLook}
+          onPress={onShopLook}
           style={({ pressed }) => [
             styles.shopLookButton,
             pressed ? styles.pressed : null
@@ -1286,12 +1199,14 @@ function SavedLookCard({
 function SavedLooksSection({
   cardWidth,
   onOpenLook,
+  onShopLook,
   onToggleWishlist,
   products,
   screenWidth
 }: {
   cardWidth: number;
   onOpenLook: (product: ProductLook) => void;
+  onShopLook: (product: ProductLook) => void;
   onToggleWishlist: (productId: string) => void;
   products: ProductLook[];
   screenWidth: number;
@@ -1474,6 +1389,7 @@ function SavedLooksSection({
                 }
                 imageHeight={imageHeight}
                 onOpenLook={() => onOpenLook(product)}
+                onShopLook={() => onShopLook(product)}
                 onToggleWishlist={() => onToggleWishlist(product.id)}
                 product={product}
                 width={cardWidth}
@@ -1684,6 +1600,7 @@ export function HomeScreen({
   onOpenCart,
   onOpenLook,
   onOpenSearch,
+  onShopLook,
   onStartStyleQuiz
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
@@ -1836,6 +1753,7 @@ export function HomeScreen({
         <SavedLooksSection
           cardWidth={savedLookCardWidth}
           onOpenLook={onOpenLook}
+          onShopLook={onShopLook}
           onToggleWishlist={handleToggleWishlist}
           products={savedLooks}
           screenWidth={width}
@@ -2274,18 +2192,19 @@ const styles = StyleSheet.create({
     lineHeight: 18
   },
   matchPill: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 8,
-    paddingVertical: 3
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderRadius: 999,
+    bottom: 7,
+    left: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    position: "absolute"
   },
   matchText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 10,
-    lineHeight: 13
+    color: "#141414",
+    fontFamily: fonts.body,
+    fontSize: 11,
+    lineHeight: 16
   },
   matchRibbonText: {
     fontSize: 11,
@@ -2313,46 +2232,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm
-  },
-  occasionLookCard: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden"
-  },
-  occasionLookFooter: {
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    flexDirection: "row",
-    height: 34,
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.sm
-  },
-  occasionLookImage: {
-    aspectRatio: 3 / 4,
-    backgroundColor: colors.imageSurface,
-    padding: spacing.sm
-  },
-  occasionLookImageStyle: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12
-  },
-  occasionMatchText: {
-    color: colors.text,
-    flexShrink: 1,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14,
-    marginLeft: spacing.xs,
-    textAlign: "right"
-  },
-  occasionMatchRibbon: {
-    marginLeft: spacing.xs,
-    marginRight: -spacing.sm
-  },
-  occasionSaveWrap: {
-    alignItems: "flex-end"
   },
   occasionSection: {
     gap: spacing.md,
@@ -2422,10 +2301,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   productCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 16,
     overflow: "hidden"
   },
   productGrid: {
@@ -2434,13 +2311,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   productImage: {
-    aspectRatio: 3 / 4,
-    justifyContent: "space-between",
-    padding: spacing.sm
+    backgroundColor: "#FAFAFA",
+    height: 216,
+    position: "relative"
   },
   productImageStyle: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12
+    borderRadius: 16
+  },
+  productSaveWrap: {
+    position: "absolute",
+    right: 9,
+    top: 8,
+    zIndex: 2
   },
   productMatchRibbon: {
     marginLeft: -spacing.sm
@@ -2838,17 +2720,18 @@ const styles = StyleSheet.create({
   unlockButton: {
     alignItems: "center",
     borderColor: colors.secondaryBorder,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 38,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    height: 48,
     justifyContent: "center",
+    paddingHorizontal: 24,
     marginTop: spacing.sm
   },
   unlockButtonText: {
     color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 17
+    fontFamily: fonts.cta,
+    fontSize: 14,
+    lineHeight: 14
   },
   vibeTag: {
     backgroundColor: colors.background,

@@ -7,18 +7,20 @@ import {
   ImageBackground,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  StatusBar,
   Text,
   useWindowDimensions,
   View
 } from "react-native";
 
 import { colors, fonts, spacing, typography } from "../../../theme";
+import {
+  AppScreenHeader,
+  appScreenTopPadding
+} from "../components/AppScreenHeader";
 import {
   ProductListingScreen,
   type ProductListingProduct
@@ -27,6 +29,10 @@ import type { ProductLook } from "./HomeScreen";
 import { ModelLookPdpScreen } from "./ModelLookPdpScreen";
 import { ProductPdpScreen } from "./ProductPdpScreen";
 import { getMerchandisingLabel } from "../utils/stylePersonalization";
+import {
+  appSearchHeaderHeight,
+  appSearchHeaderTopPadding
+} from "../utils/safeArea";
 
 type ExploreScreenProps = {
   cartCount?: number;
@@ -154,7 +160,6 @@ type ActiveCollection = {
   vibe?: VibeName;
 };
 
-const topInset = Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
 const pagePadding = 16;
 const bottomNavSpace = 68 + 16 + 32;
 
@@ -1805,7 +1810,7 @@ function PlaceholderScreen({
 }) {
   return (
     <SafeAreaView style={styles.placeholderScreen}>
-      <Text style={styles.placeholderTitle}>{title}</Text>
+      <AppScreenHeader title={title} />
       <Text style={styles.placeholderCopy}>{copy}</Text>
     </SafeAreaView>
   );
@@ -1986,7 +1991,7 @@ export function ExploreScreen({
       <Animated.ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: headerHeight || topInset + 72 }
+          { paddingTop: headerHeight || appSearchHeaderHeight }
         ]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -2731,11 +2736,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.screen,
     paddingBottom: 128,
-    paddingTop: spacing.xxl
-  },
-  placeholderTitle: {
-    color: colors.text,
-    ...typography.displayHeadline
+    paddingTop: appScreenTopPadding
   },
   pressed: {
     opacity: 0.72
@@ -2778,7 +2779,7 @@ const styles = StyleSheet.create({
     left: 0,
     paddingBottom: spacing.md,
     paddingHorizontal: pagePadding,
-    paddingTop: topInset + spacing.sm,
+    paddingTop: appSearchHeaderTopPadding,
     position: "absolute",
     right: 0,
     top: 0,

@@ -8,10 +8,8 @@ import {
   Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   type StyleProp,
   Text,
@@ -25,6 +23,11 @@ import { colors, fonts, spacing } from "../../../theme";
 import { CartCountBadge } from "../components/CartCountBadge";
 import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
+import {
+  appSearchHeaderHeight,
+  appSearchHeaderTopPadding,
+  appTopSafeInset
+} from "../utils/safeArea";
 import {
   buildLookPieces,
   formatRupeeAmount,
@@ -48,6 +51,7 @@ type ModelLookPdpScreenProps = {
   onLookSavedChange?: (isSaved: boolean) => void;
   onOpenCart?: () => void;
   onOpenPieceProduct?: (piece: LookPiece) => void;
+  onOpenShopLook?: () => void;
   onOpenWishlist?: () => void;
   onShareLook?: () => void;
   onStartTryOn?: (context?: string) => void;
@@ -72,10 +76,9 @@ type SimilarShopItem = {
   price: string;
 };
 
-const topSafeInset =
-  Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
-const lookPdpHeaderHeight = topSafeInset + 64;
-const ctaBottomInset = spacing.md;
+const topSafeInset = appTopSafeInset;
+const lookPdpHeaderHeight = appSearchHeaderHeight;
+const ctaBottomInset = spacing.xl;
 const ctaDockHeight = 48 + spacing.md + ctaBottomInset;
 const lookCarouselCardWidth = 160;
 const contentSheetOverlap = 28;
@@ -385,10 +388,12 @@ function getDefaultCartSelection(pieces: LookPiece[]) {
 function ShopThisLookSection({
   onCartSelectionChange,
   onOpenPieceProduct,
+  onOpenShopLook,
   pieces
 }: {
   onCartSelectionChange?: (items: ShopThisLookCartItem[]) => void;
   onOpenPieceProduct?: (piece: LookPiece) => void;
+  onOpenShopLook?: () => void;
   pieces: LookPiece[];
 }) {
   const shopPieces = pieces;
@@ -499,12 +504,26 @@ function ShopThisLookSection({
 
   return (
     <View style={styles.shopThisLookSection}>
-      <View style={styles.shopThisLookHeader}>
-        <Text style={styles.shopThisLookTitle}>Shop this look</Text>
+      <Pressable
+        accessibilityLabel="Open shop this look"
+        accessibilityRole="button"
+        disabled={!onOpenShopLook}
+        onPress={onOpenShopLook}
+        style={({ pressed }) => [
+          styles.shopThisLookHeader,
+          onOpenShopLook && pressed ? styles.pressed : null
+        ]}
+      >
+        <View style={styles.shopThisLookTitleRow}>
+          <Text style={styles.shopThisLookTitle}>Shop this look</Text>
+          {onOpenShopLook ? (
+            <Feather color={colors.text} name="chevron-right" size={20} />
+          ) : null}
+        </View>
         <Text style={styles.shopThisLookTotal}>
           {formatRupeeAmount(activeTotal)}
         </Text>
-      </View>
+      </Pressable>
       <View style={styles.shopThisLookList}>
         {shopPieces.map((piece) => {
           const isAdded = !removedPieceIds.has(piece.id);
@@ -1040,6 +1059,7 @@ export function ModelLookPdpScreen({
   onLookSavedChange,
   onOpenCart,
   onOpenPieceProduct,
+  onOpenShopLook,
   onOpenWishlist,
   onShareLook,
   onStartTryOn,
@@ -1179,6 +1199,7 @@ export function ModelLookPdpScreen({
           <ShopThisLookSection
             onCartSelectionChange={setShopCartSelection}
             onOpenPieceProduct={onOpenPieceProduct}
+            onOpenShopLook={onOpenShopLook}
             pieces={shopPieces}
           />
 
@@ -1531,8 +1552,9 @@ const styles = StyleSheet.create({
     height: lookPdpHeaderHeight,
     justifyContent: "flex-end",
     left: 0,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
-    paddingTop: topSafeInset,
+    paddingTop: appSearchHeaderTopPadding,
     position: "absolute",
     right: 0,
     shadowColor: "#000000",
@@ -1546,7 +1568,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 10,
-    height: 64
+    height: 44
   },
   pressed: {
     opacity: 0.72
@@ -1788,6 +1810,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 16,
     lineHeight: 21
+  },
+  shopThisLookTitleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+    minWidth: 0
   },
   shopThisLookTotal: {
     color: colors.text,

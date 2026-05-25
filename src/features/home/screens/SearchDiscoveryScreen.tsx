@@ -2,11 +2,13 @@ import { prototypeProductImages } from "../data/prototypeProductImages";
 import { Feather } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Image,
   ImageBackground,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,9 +18,12 @@ import {
 } from "react-native";
 import type { TextInput as TextInputType } from "react-native";
 
-import { colors, fonts, radii, spacing, typography } from "../../../theme";
+import { colors, fonts, radii, spacing } from "../../../theme";
 import { BrandLogoMark } from "../components/BrandLogoMark";
 import { brandRows, type Brand } from "../data/brandCatalog";
+import { appSearchHeaderTopPadding } from "../utils/safeArea";
+
+const AnimatedHeaderView = Animated.createAnimatedComponent(View);
 
 type SearchDiscoveryScreenProps = {
   onClose: () => void;
@@ -221,6 +226,10 @@ function SearchBrandLogoPill({ brand }: { brand: Brand }) {
 
 export function SearchDiscoveryScreen({ onClose }: SearchDiscoveryScreenProps) {
   const inputRef = useRef<TextInputType | null>(null);
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const isHeaderVisible = useRef(true);
+  const lastScrollY = useRef(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const [query, setQuery] = useState("");
   const [showRecent, setShowRecent] = useState(true);
 
@@ -232,10 +241,65 @@ export function SearchDiscoveryScreen({ onClose }: SearchDiscoveryScreenProps) {
     return () => clearTimeout(focusTimer);
   }, []);
 
+  const revealHeader = () => {
+    if (isHeaderVisible.current) {
+      return;
+    }
+
+    isHeaderVisible.current = true;
+    Animated.timing(headerTranslateY, {
+      duration: 180,
+      toValue: 0,
+      useNativeDriver: true
+    }).start();
+  };
+
+  const hideHeader = () => {
+    if (!isHeaderVisible.current) {
+      return;
+    }
+
+    isHeaderVisible.current = false;
+    Animated.timing(headerTranslateY, {
+      duration: 180,
+      toValue: -(headerHeight || 120),
+      useNativeDriver: true
+    }).start();
+  };
+
+  const handleSearchScroll = (
+    event: NativeSyntheticEvent<NativeScrollEvent>
+  ) => {
+    const currentY = Math.max(event.nativeEvent.contentOffset.y, 0);
+    const deltaY = currentY - lastScrollY.current;
+    const hideThreshold = Math.max(64, (headerHeight || 112) - spacing.md);
+
+    if (currentY <= 12) {
+      revealHeader();
+    } else if (deltaY > 8 && currentY > hideThreshold) {
+      hideHeader();
+    } else if (deltaY < -4) {
+      revealHeader();
+    }
+
+    lastScrollY.current = currentY;
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <View style={styles.screen}>
-        <View style={styles.header}>
+        <AnimatedHeaderView
+          onLayout={(event) => {
+            const measuredHeight = event.nativeEvent.layout.height;
+            setHeaderHeight((current) =>
+              current === measuredHeight ? current : measuredHeight
+            );
+          }}
+          style={[
+            styles.header,
+            { transform: [{ translateY: headerTranslateY }] }
+          ]}
+        >
           <Pressable
             accessibilityLabel="Back"
             accessibilityRole="button"
@@ -264,10 +328,15 @@ export function SearchDiscoveryScreen({ onClose }: SearchDiscoveryScreenProps) {
               <Feather color={colors.soft} name="camera" size={20} />
             </View>
           </View>
-        </View>
+        </AnimatedHeaderView>
 
-        <ScrollView
-          contentContainerStyle={styles.content}
+        <Animated.ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: (headerHeight || 112) + spacing.xl }
+          ]}
+          onScroll={handleSearchScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
           {showRecent ? (
@@ -355,9 +424,9 @@ export function SearchDiscoveryScreen({ onClose }: SearchDiscoveryScreenProps) {
               ))}
             </View>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -379,7 +448,7 @@ const styles = StyleSheet.create({
   },
   brandLogoTrack: {
     gap: 6,
-    paddingRight: spacing.screen
+    paddingHorizontal: spacing.screen
   },
   brandPanel: {
     backgroundColor: colors.brandBand,
@@ -432,15 +501,21 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.xxl,
-    paddingBottom: 96,
-    paddingTop: spacing.xl
+    paddingBottom: 96
   },
   header: {
     alignItems: "center",
+    backgroundColor: colors.surfaceTertiary,
     flexDirection: "row",
     gap: spacing.sm,
+    left: 0,
+    paddingBottom: spacing.sm,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.lg
+    paddingTop: appSearchHeaderTopPadding,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 20
   },
   horizontalTrack: {
     gap: spacing.md,
@@ -573,7 +648,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    ...typography.sectionHeading
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    lineHeight: 25
   },
   styleTile: {
     borderRadius: radii.card,

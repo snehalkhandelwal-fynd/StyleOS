@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     position: "relative"
   },
   cardCompact: {
+    aspectRatio: 0.72,
     borderRadius: 16,
-    height: 184,
     minHeight: 0
   },
   checkWrap: {

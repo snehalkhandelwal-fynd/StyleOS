@@ -14,6 +14,10 @@ import { colors, fonts, radii, spacing, typography } from "../../../theme";
 import { AccountMenuRow } from "../components/AccountMenuRow";
 import { AccountPreferenceRow } from "../components/AccountPreferenceRow";
 import { AccountProfileCard } from "../components/AccountProfileCard";
+import {
+  AppScreenHeader,
+  appScreenTopPadding
+} from "../components/AppScreenHeader";
 import { SavedScreen } from "./SavedScreen";
 
 export type SocialPlatform = "whatsapp" | "facebook" | "instagram";
@@ -495,7 +499,7 @@ export function AccountScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.heading}>My Account</Text>
+          <AppScreenHeader title="My Account" />
           <AccountProfileCard
             avatarUri={user.avatarUri}
             email={user.email}
@@ -648,7 +652,8 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     gap: spacing.xl,
-    paddingBottom: 0
+    paddingBottom: 0,
+    paddingTop: appScreenTopPadding
   },
   detailCards: {
     gap: spacing.md
@@ -725,12 +730,7 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.lg,
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.sm
-  },
-  heading: {
-    ...typography.displayHeadline,
-    color: colors.text
+    paddingHorizontal: spacing.screen
   },
   logout: {
     alignItems: "center",

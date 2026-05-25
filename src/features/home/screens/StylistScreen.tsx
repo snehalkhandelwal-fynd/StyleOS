@@ -1,4 +1,4 @@
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import {
@@ -11,6 +11,7 @@ import {
   Text,
   View
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 import { colors, fonts, spacing } from "../../../theme";
 import {
@@ -47,14 +48,36 @@ const slotOrder: Array<{
 ];
 
 const topControls: Array<{
-  icon: "columns" | "list" | "layers";
   id: StylistControlId;
   label: string;
 }> = [
-  { icon: "columns", id: "board", label: "Outfit board" },
-  { icon: "list", id: "rows", label: "Product rows" },
-  { icon: "layers", id: "selection", label: "Selected pieces" }
+  { id: "board", label: "Outfit board" },
+  { id: "rows", label: "Product rows" },
+  { id: "selection", label: "Selected pieces" }
 ];
+
+const controlIconPaths: Record<StylistControlId, string> = {
+  board:
+    "M21 12L21 19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21L5 21C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19L3 12M21 12L21 5C21 4.46957 20.7893 3.96086 20.4142 3.58579C20.0391 3.21071 19.5304 3 19 3L5 3C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21072 3.96086 3 4.46957 3 5L3 12M21 12L3 12",
+  rows:
+    "M21 9L21 19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21L5 21C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19L3 9M21 9L21 5C21 4.46957 20.7893 3.96086 20.4142 3.58579C20.0391 3.21071 19.5304 3 19 3L5 3C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21072 3.96086 3 4.46957 3 5L3 9M21 9L3 9M21 14.5L3 14.5",
+  selection:
+    "M21 12L21 19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21L5 21C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19L3 12M21 12L21 5C21 4.46957 20.7893 3.96086 20.4142 3.58579C20.0391 3.21071 19.5304 3 19 3L5 3C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21072 3.96086 3 4.46957 3 5L3 12M21 12L3 12M21 16.25L3 16.25M21 7.75L3 7.75"
+};
+
+function StylistControlIcon({ id }: { id: StylistControlId }) {
+  return (
+    <Svg fill="none" height={24} viewBox="0 0 24 24" width={24}>
+      <Path
+        d={controlIconPaths[id]}
+        stroke={colors.text}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+      />
+    </Svg>
+  );
+}
 
 function getSlotOptions(kind: StylistSlotKind) {
   const alternatives = getPieceAlternatives(kind);
@@ -174,7 +197,7 @@ export function StylistScreen({ onTryOn, onUploadItems }: StylistScreenProps) {
                 pressed ? styles.pressed : null
               ]}
             >
-              <Feather color={colors.text} name={control.icon} size={26} />
+              <StylistControlIcon id={control.id} />
             </Pressable>
           );
         })}

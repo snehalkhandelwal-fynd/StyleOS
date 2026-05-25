@@ -24,6 +24,14 @@ export function AvatarCreatingScreen({
   presentation = "screen"
 }: AvatarCreatingScreenProps) {
   const isDrawer = presentation === "drawer";
+  const totalSteps = 4;
+  const drawerNextButton = isDrawer
+    ? {
+        accessibilityLabel: "Avatar creation in progress",
+        disabled: true,
+        onPress: () => undefined
+      }
+    : undefined;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,9 +43,12 @@ export function AvatarCreatingScreen({
 
   return (
     <OnboardingStepShell
+      currentStep={4}
+      nextButton={drawerNextButton}
       presentation={presentation}
       subtitle="This may take up to 30 seconds."
       title="Creating your Avatar"
+      totalSteps={totalSteps}
     >
       <View
         style={[
@@ -95,7 +106,7 @@ const styles = StyleSheet.create({
   drawerPreviewFrame: {
     backgroundColor: colors.surface,
     borderRadius: 20,
-    flex: 1,
+    height: 424,
     overflow: "hidden",
     width: "100%"
   },
@@ -105,9 +116,8 @@ const styles = StyleSheet.create({
   },
   drawerStage: {
     alignItems: "stretch",
-    flex: 1,
+    flex: 0,
     justifyContent: "flex-start",
-    paddingBottom: 96,
-    paddingTop: spacing.xl
+    paddingTop: spacing.lg + twoLineSubtitleOffset
   }
 });

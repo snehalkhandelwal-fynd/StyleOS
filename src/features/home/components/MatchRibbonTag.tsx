@@ -31,6 +31,10 @@ export function isMatchLabel(label?: string) {
   return label.toLowerCase().includes("match") || /^\d+%$/.test(label.trim());
 }
 
+export function formatMatchLabel(label: string) {
+  return label.replace(/\bmatch\b/gi, "Match");
+}
+
 function formatPathNumber(value: number) {
   return Number(value.toFixed(2));
 }
@@ -156,7 +160,7 @@ export function MatchRibbonTag({
           mirrored ? styles.mirroredText : null
         ]}
       >
-        {label}
+        {formatMatchLabel(label)}
       </Text>
     </View>
   );

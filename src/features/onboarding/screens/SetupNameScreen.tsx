@@ -39,7 +39,7 @@ export function SetupNameScreen({
 }: SetupNameScreenProps) {
   const canContinue = name.trim().length > 0;
   const inputRef = useRef<TextInputType | null>(null);
-  const totalSteps = presentation === "drawer" ? 5 : 4;
+  const totalSteps = 4;
 
   useEffect(() => {
     const focusTimer = setTimeout(() => {

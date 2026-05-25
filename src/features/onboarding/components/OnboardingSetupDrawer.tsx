@@ -1,17 +1,16 @@
-import { Feather } from "@expo/vector-icons";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
   Keyboard,
   Platform,
-  Pressable,
   StyleSheet,
   useWindowDimensions,
   View
 } from "react-native";
 
 import { colors, spacing } from "../../../theme";
+import { OnboardingDrawerHeaderProvider } from "./OnboardingStepShell";
 import { AvatarCreatingScreen } from "../screens/AvatarCreatingScreen";
 import { AvatarReadyScreen } from "../screens/AvatarReadyScreen";
 import { SetupFashionInterestScreen } from "../screens/SetupFashionInterestScreen";
@@ -37,7 +36,6 @@ type OnboardingSetupDrawerProps = {
   onChangeFashionInterest: (interest: FashionInterest) => void;
   onChangeHeight: (feet: number, inches: number) => void;
   onChangeName: (name: string) => void;
-  onChangeWeightKilograms: (weightKilograms: number) => void;
   onComplete: () => void;
   onContinueFashionInterest: () => void;
   onContinueHeight: () => void;
@@ -49,22 +47,12 @@ type OnboardingSetupDrawerProps = {
   step: OnboardingSetupDrawerStep;
 };
 
-const drawerHeightRatioByStep: Record<OnboardingSetupDrawerStep, number> = {
-  avatarCreating: 0.74,
-  avatarReady: 0.78,
-  fashionInterest: 0.62,
-  height: 0.5,
-  name: 0.5,
-  uploadPhoto: 0.74
-};
-
 export function OnboardingSetupDrawer({
   draft,
   onAvatarCreated,
   onChangeFashionInterest,
   onChangeHeight,
   onChangeName,
-  onChangeWeightKilograms,
   onComplete,
   onContinueFashionInterest,
   onContinueHeight,
@@ -76,13 +64,11 @@ export function OnboardingSetupDrawer({
   step
 }: OnboardingSetupDrawerProps) {
   const { height } = useWindowDimensions();
-  const drawerHeightRatio = drawerHeightRatioByStep[step];
-  const drawerHeight = Math.min(
-    Math.round(height * drawerHeightRatio),
-    height - spacing.xl
-  );
+  const maxDrawerHeight = Math.max(320, height - spacing.xl);
+  const fallbackDrawerHeight = Math.min(320, maxDrawerHeight);
+  const [measuredDrawerHeight, setMeasuredDrawerHeight] = useState(0);
   const keyboardLift = useRef(new Animated.Value(0)).current;
-  const shouldShowBackButton = Boolean(onBack) && step !== "avatarCreating";
+  const shouldShowBackButton = Boolean(onBack);
 
   useEffect(() => {
     const animateLift = (toValue: number, duration = 220) => {
@@ -98,7 +84,8 @@ export function OnboardingSetupDrawer({
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const maxLift = Math.max(0, height - drawerHeight - spacing.xl);
+    const activeDrawerHeight = measuredDrawerHeight || fallbackDrawerHeight;
+    const maxLift = Math.max(0, height - activeDrawerHeight - spacing.xl);
 
     const showSubscription = Keyboard.addListener(showEvent, (event) => {
       const keyboardHeight = event.endCoordinates?.height ?? 0;
@@ -116,118 +103,92 @@ export function OnboardingSetupDrawer({
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [drawerHeight, height, keyboardLift]);
+  }, [height, keyboardLift, measuredDrawerHeight, fallbackDrawerHeight]);
 
   return (
     <View style={styles.host}>
       <View style={styles.scrim} />
       <Animated.View
+        onLayout={(event) => {
+          const nextHeight = Math.round(event.nativeEvent.layout.height);
+
+          setMeasuredDrawerHeight((currentHeight) =>
+            Math.abs(currentHeight - nextHeight) > 1 ? nextHeight : currentHeight
+          );
+        }}
         style={[
           styles.sheet,
           {
-            height: drawerHeight,
+            maxHeight: maxDrawerHeight,
             transform: [{ translateY: keyboardLift }]
           }
         ]}
       >
-        <View style={styles.handle} />
-        {shouldShowBackButton ? (
-          <Pressable
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={onBack}
-            style={({ pressed }) => [
-              styles.backButton,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Feather color={colors.text} name="arrow-left" size={22} />
-          </Pressable>
-        ) : null}
+        <OnboardingDrawerHeaderProvider
+          onBack={onBack}
+          showBackButton={shouldShowBackButton}
+        >
+          {step === "name" ? (
+            <SetupNameScreen
+              name={draft.name ?? ""}
+              onChangeName={onChangeName}
+              onContinue={onContinueName}
+              presentation="drawer"
+            />
+          ) : null}
 
-        {step === "name" ? (
-          <SetupNameScreen
-            name={draft.name ?? ""}
-            onChangeName={onChangeName}
-            onContinue={onContinueName}
-            presentation="drawer"
-          />
-        ) : null}
+          {step === "height" ? (
+            <SetupHeightScreen
+              height={draft.height ?? { feet: 5, inches: 5 }}
+              onChangeHeight={onChangeHeight}
+              onContinue={onContinueHeight}
+              presentation="drawer"
+            />
+          ) : null}
 
-        {step === "height" ? (
-          <SetupHeightScreen
-            height={draft.height ?? { feet: 5, inches: 5 }}
-            onChangeHeight={onChangeHeight}
-            onChangeWeightKilograms={onChangeWeightKilograms}
-            onContinue={onContinueHeight}
-            presentation="drawer"
-            weightKilograms={draft.weightKilograms}
-          />
-        ) : null}
+          {step === "fashionInterest" ? (
+            <SetupFashionInterestScreen
+              interest={draft.fashionInterest}
+              onChangeInterest={onChangeFashionInterest}
+              onContinue={onContinueFashionInterest}
+              presentation="drawer"
+            />
+          ) : null}
 
-        {step === "fashionInterest" ? (
-          <SetupFashionInterestScreen
-            interest={draft.fashionInterest}
-            onChangeInterest={onChangeFashionInterest}
-            onContinue={onContinueFashionInterest}
-            presentation="drawer"
-          />
-        ) : null}
+          {step === "uploadPhoto" ? (
+            <UploadFullBodyPhotoScreen
+              onContinue={onContinuePhoto}
+              onSelectPhoto={onSelectPhoto}
+              onSkip={onComplete}
+              photoUri={draft.fullBodyPhotoUri}
+              presentation="drawer"
+            />
+          ) : null}
 
-        {step === "uploadPhoto" ? (
-          <UploadFullBodyPhotoScreen
-            onContinue={onContinuePhoto}
-            onSelectPhoto={onSelectPhoto}
-            onSkip={onComplete}
-            photoUri={draft.fullBodyPhotoUri}
-            presentation="drawer"
-          />
-        ) : null}
+          {step === "avatarCreating" ? (
+            <AvatarCreatingScreen
+              onComplete={onAvatarCreated}
+              photoUri={draft.fullBodyPhotoUri}
+              presentation="drawer"
+            />
+          ) : null}
 
-        {step === "avatarCreating" ? (
-          <AvatarCreatingScreen
-            onComplete={onAvatarCreated}
-            photoUri={draft.fullBodyPhotoUri}
-            presentation="drawer"
-          />
-        ) : null}
-
-        {step === "avatarReady" ? (
-          <AvatarReadyScreen
-            avatarUri={draft.avatarUri}
-            height={draft.height}
-            onContinue={onComplete}
-            onUseAnotherPhoto={onUseAnotherPhoto}
-            presentation="drawer"
-          />
-        ) : null}
+          {step === "avatarReady" ? (
+            <AvatarReadyScreen
+              avatarUri={draft.avatarUri}
+              height={draft.height}
+              onContinue={onComplete}
+              onUseAnotherPhoto={onUseAnotherPhoto}
+              presentation="drawer"
+            />
+          ) : null}
+        </OnboardingDrawerHeaderProvider>
       </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignItems: "center",
-    borderRadius: 20,
-    height: 36,
-    justifyContent: "center",
-    left: spacing.screen,
-    position: "absolute",
-    top: spacing.xs,
-    width: 36,
-    zIndex: 3
-  },
-  handle: {
-    alignSelf: "center",
-    backgroundColor: colors.border,
-    borderRadius: 999,
-    height: 4,
-    marginTop: spacing.md,
-    width: 48,
-    zIndex: 2
-  },
   host: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "flex-end",
@@ -237,13 +198,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.46)"
   },
-  pressed: {
-    opacity: 0.72
-  },
   sheet: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     elevation: 18,
     overflow: "hidden",
     shadowColor: "#000000",

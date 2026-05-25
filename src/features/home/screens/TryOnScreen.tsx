@@ -2008,7 +2008,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     bottom: 0,
     left: 0,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md,
     position: "absolute",
@@ -2186,7 +2186,7 @@ const styles = StyleSheet.create({
   },
   cartSelectionFooter: {
     backgroundColor: colors.background,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md
   },
@@ -2301,7 +2301,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: spacing.sm,
-    paddingBottom: 0,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md
   },
@@ -2604,7 +2604,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
     marginTop: "auto",
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md
   },
@@ -2663,7 +2663,7 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     backgroundColor: colors.background,
     gap: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md
   },

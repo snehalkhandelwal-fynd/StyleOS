@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -7,10 +8,12 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
 
 import { PrimaryButton } from "../../../components/PrimaryButton";
-import { getStyleCardsForFashionInterest } from "../../../data/styleQuiz";
+import {
+  getStyleCardsForFashionInterest,
+  type StyleCard
+} from "../../../data/styleQuiz";
 import { colors, fonts, radii, spacing, typography } from "../../../theme";
 import { OnboardingStepShell } from "../components/OnboardingStepShell";
 import {
@@ -34,20 +37,15 @@ type StyleQuizAnswer = {
   styleId: string;
 };
 
-const resultChipColors = [
-  {
-    backgroundColor: "#F5F2EC",
-    borderColor: "#D9D4CA"
-  },
-  {
-    backgroundColor: "#F4E9DF",
-    borderColor: "#DFCBBE"
-  },
-  {
-    backgroundColor: "#EEF1F7",
-    borderColor: "#D5DAE8"
-  }
-] as const;
+type ResultStackCardPlacement = {
+  overlayOpacity: number;
+  rotate: string;
+  zIndex: number;
+};
+
+type ResultStackCard = {
+  card: StyleCard;
+};
 
 const resultMoodByStyleId: Record<string, string> = {
   athleisure: "Everyday ease",
@@ -58,26 +56,23 @@ const resultMoodByStyleId: Record<string, string> = {
   streetwear: "Street edge"
 };
 
-function SparklesIcon() {
-  return (
-    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
-      <Path
-        d="M16.2 6.5L18.9 13.1L25.5 15.8L18.9 18.5L16.2 25.1L13.5 18.5L6.9 15.8L13.5 13.1L16.2 6.5Z"
-        stroke={colors.text}
-        strokeLinejoin="round"
-        strokeWidth={2.4}
-      />
-      <Path
-        d="M25.7 5.3L26.8 8L29.5 9.1L26.8 10.2L25.7 12.9L24.6 10.2L21.9 9.1L24.6 8L25.7 5.3Z"
-        fill={colors.text}
-      />
-      <Path
-        d="M25.7 21.1L26.8 23.8L29.5 24.9L26.8 26L25.7 28.7L24.6 26L21.9 24.9L24.6 23.8L25.7 21.1Z"
-        fill={colors.text}
-      />
-    </Svg>
-  );
-}
+const resultStackPlacements: ResultStackCardPlacement[] = [
+  {
+    overlayOpacity: 0,
+    rotate: "4deg",
+    zIndex: 3
+  },
+  {
+    overlayOpacity: 0.1,
+    rotate: "-1deg",
+    zIndex: 2
+  },
+  {
+    overlayOpacity: 0.2,
+    rotate: "-5deg",
+    zIndex: 1
+  }
+];
 
 function getResultLabels(
   answers: StyleQuizAnswer[],
@@ -105,6 +100,122 @@ function getResultLabels(
   ).slice(0, 3);
 }
 
+function getResultCards(
+  answers: StyleQuizAnswer[],
+  visibleCards: StyleCard[]
+): ResultStackCard[] {
+  const cardById = new Map(visibleCards.map((card) => [card.id, card]));
+  const likedIds = answers
+    .filter((answer) => answer.preference === "liked")
+    .map((answer) => answer.styleId);
+  const answeredIds = answers.map((answer) => answer.styleId);
+  const fallbackIds = visibleCards.map((card) => card.id);
+  const orderedIds = Array.from(
+    new Set([...likedIds, ...answeredIds, ...fallbackIds])
+  );
+
+  return orderedIds
+    .map((styleId) => cardById.get(styleId))
+    .filter((card): card is StyleCard => Boolean(card))
+    .slice(0, 3)
+    .map((card) => ({ card }));
+}
+
+function ResultProductStack({
+  cardHeight,
+  cardWidth,
+  cards,
+  deckWidth
+}: {
+  cardHeight: number;
+  cardWidth: number;
+  cards: ResultStackCard[];
+  deckWidth: number;
+}) {
+  const centerLeft = Math.round((deckWidth - cardWidth) / 2);
+  const sideOffset = spacing.lg;
+  const frontLeft = centerLeft + sideOffset;
+  const middleLeft = centerLeft;
+  const backLeft = centerLeft - sideOffset;
+  const frontTop = Math.round(cardHeight * 0.15);
+  const middleTop = Math.round(cardHeight * 0.08);
+  const backTop = Math.round(cardHeight * 0.13);
+
+  const cardPositions = [
+    {
+      left: frontLeft,
+      top: frontTop
+    },
+    {
+      left: middleLeft,
+      top: middleTop
+    },
+    {
+      left: backLeft,
+      top: backTop
+    }
+  ];
+
+  return (
+    <View
+      accessibilityRole="image"
+      accessibilityLabel="Product cards based on your style swipes"
+      style={[
+        styles.resultStack,
+        {
+          height: cardHeight + Math.round(cardHeight * 0.24),
+          width: deckWidth
+        }
+      ]}
+    >
+      {[2, 1, 0].map((cardIndex) => {
+        const resultCard = cards[cardIndex];
+
+        if (!resultCard) {
+          return null;
+        }
+
+        const { card } = resultCard;
+        const placement = resultStackPlacements[cardIndex];
+        const position = cardPositions[cardIndex];
+
+        return (
+          <View
+            key={card.id}
+            pointerEvents="none"
+            style={[
+              styles.resultProductCard,
+              {
+                height: cardHeight,
+                left: position.left,
+                top: position.top,
+                transform: [{ rotate: placement.rotate }],
+                width: cardWidth,
+                zIndex: placement.zIndex
+              }
+            ]}
+          >
+            <Image
+              resizeMode="cover"
+              source={{ uri: card.image }}
+              style={styles.resultProductImage}
+            />
+            {placement.overlayOpacity > 0 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.resultCardOverlay,
+                  { opacity: placement.overlayOpacity }
+                ]}
+              />
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 export function SetupStyleQuizScreen({
   fashionInterest,
   onComplete,
@@ -123,8 +234,8 @@ export function SetupStyleQuizScreen({
   );
   const currentCard = visibleCards[currentIndex];
   const nextCards = visibleCards.slice(currentIndex + 1, currentIndex + 3);
-  const cardWidth = width - 40;
-  const cardHeight = Math.min(height * 0.48, 440);
+  const cardWidth = Math.min(width - spacing.xxl * 2, 328);
+  const cardHeight = Math.min(height * 0.56, cardWidth * 1.5, 500);
 
   const handlePreference = (preference: StylePreference) => {
     if (!currentCard) {
@@ -172,14 +283,20 @@ export function SetupStyleQuizScreen({
 
   if (isDecoded) {
     const resultLabels = getResultLabels(answers, visibleCards);
+    const resultCards = getResultCards(answers, visibleCards);
+    const resultCardWidth = Math.min(width * 0.58, 238);
+    const resultCardHeight = Math.min(
+      resultCardWidth * 1.34,
+      Math.max(226, height * 0.34)
+    );
+    const resultDeckWidth = Math.min(
+      width - spacing.screen * 2,
+      resultCardWidth + 92
+    );
 
     return (
       <SafeAreaView style={styles.resultScreen}>
         <View style={styles.resultContent}>
-          <View style={styles.resultIconWrap}>
-            <SparklesIcon />
-          </View>
-
           <View style={styles.resultCopyGroup}>
             <Text style={styles.resultTitle}>Your style, decoded</Text>
             <Text style={styles.resultSubtitle}>
@@ -188,31 +305,26 @@ export function SetupStyleQuizScreen({
           </View>
 
           <View style={styles.resultChipWrap}>
-            {resultLabels.map((label, index) => {
-              const color = resultChipColors[index % resultChipColors.length];
-
-              return (
-                <View
-                  key={label}
-                  style={[
-                    styles.resultChip,
-                    {
-                      backgroundColor: color.backgroundColor,
-                      borderColor: color.borderColor
-                    }
-                  ]}
-                >
-                  <Text style={styles.resultChipText}>{label}</Text>
-                </View>
-              );
-            })}
+            {resultLabels.map((label) => (
+              <View key={label} style={styles.resultChip}>
+                <Text style={styles.resultChipText}>{label}</Text>
+              </View>
+            ))}
           </View>
+
+          <ResultProductStack
+            cardHeight={resultCardHeight}
+            cardWidth={resultCardWidth}
+            cards={resultCards}
+            deckWidth={resultDeckWidth}
+          />
         </View>
 
         <View style={styles.resultActions}>
           <PrimaryButton
             label="Check the feed out"
             onPress={onComplete}
+            style={styles.resultPrimaryButton}
           />
           <Pressable
             accessibilityRole="button"
@@ -274,12 +386,12 @@ export function SetupStyleQuizScreen({
 
 const styles = StyleSheet.create({
   actionsSection: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     paddingHorizontal: 20
   },
   content: {
     flex: 1,
-    paddingTop: spacing.xl
+    paddingTop: spacing.xs
   },
   deckSection: {
     alignItems: "center",
@@ -289,76 +401,93 @@ const styles = StyleSheet.create({
     opacity: 0.72
   },
   resultActions: {
-    gap: spacing.lg,
-    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
     width: "100%"
   },
   resultChip: {
     alignItems: "center",
+    backgroundColor: "#F5F2EC",
+    borderColor: "#D9D4CA",
     borderRadius: radii.pill,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 42,
-    minWidth: 126,
-    paddingHorizontal: spacing.lg
+    minHeight: 34,
+    paddingHorizontal: spacing.md
   },
   resultChipText: {
     color: colors.text,
     fontFamily: fonts.bodyMedium,
-    fontSize: 16,
+    fontSize: 13,
     includeFontPadding: false,
-    lineHeight: 20
+    lineHeight: 17
   },
   resultChipWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.md,
+    gap: spacing.sm,
     justifyContent: "center",
     marginTop: spacing.lg,
-    maxWidth: 330
+    maxWidth: 344
   },
   resultContent: {
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
+    minHeight: 0,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.xxl
+    paddingTop: spacing.xl
   },
   resultCopyGroup: {
     alignItems: "center",
     gap: spacing.sm,
-    marginTop: spacing.xxl
+    maxWidth: 330
   },
-  resultIconWrap: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceTertiary,
-    borderColor: colors.border,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    height: 112,
-    justifyContent: "center",
-    width: 112
+  resultCardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.text
+  },
+  resultPrimaryButton: {
+    height: 56
+  },
+  resultProductCard: {
+    backgroundColor: "#FAFAFA",
+    borderRadius: 16,
+    elevation: 3,
+    overflow: "hidden",
+    position: "absolute",
+    shadowColor: "#000000",
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.09,
+    shadowRadius: 18
+  },
+  resultProductImage: {
+    height: "100%",
+    width: "100%"
   },
   resultScreen: {
     backgroundColor: colors.background,
     flex: 1,
     justifyContent: "space-between"
   },
+  resultStack: {
+    marginTop: spacing.xl,
+    overflow: "visible"
+  },
   resultSubtitle: {
     color: colors.muted,
-    maxWidth: 318,
+    maxWidth: 310,
     textAlign: "center",
-    ...typography.bodyLarge,
-    fontSize: 18,
-    lineHeight: 25
+    ...typography.bodyLarge
   },
   resultTitle: {
     color: colors.text,
     textAlign: "center",
     ...typography.displayHeadline,
-    fontSize: 34,
-    lineHeight: 40
+    fontSize: 22,
+    lineHeight: 27.5
   },
   skipCopy: {
     color: colors.muted,
@@ -378,7 +507,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 4,
     justifyContent: "center",
-    marginTop: spacing.xl
+    marginTop: spacing.lg
   },
   tertiaryAction: {
     alignItems: "center",

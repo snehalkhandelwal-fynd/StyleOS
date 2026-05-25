@@ -35,7 +35,7 @@ export function SetupFashionInterestScreen({
   onContinue,
   presentation = "screen"
 }: SetupFashionInterestScreenProps) {
-  const totalSteps = presentation === "drawer" ? 5 : 4;
+  const totalSteps = 4;
 
   return (
     <OnboardingStepShell
@@ -59,6 +59,7 @@ export function SetupFashionInterestScreen({
               key={option.value}
               label={option.label}
               onPress={() => onChangeInterest(option.value)}
+              variant={presentation === "drawer" ? "compact" : "default"}
             />
           ))}
         </View>

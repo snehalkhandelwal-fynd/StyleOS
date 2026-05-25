@@ -59,7 +59,7 @@ export function RootNavigator() {
   };
 
   const handleCompleteStyleQuiz = () => {
-    goHome("Feed");
+    goHome("Home");
   };
 
   const handleContinueHeight = () => {
@@ -79,6 +79,8 @@ export function RootNavigator() {
           return "height";
         case "uploadPhoto":
           return "fashionInterest";
+        case "avatarCreating":
+          return "uploadPhoto";
         case "avatarReady":
           return "uploadPhoto";
         default:
@@ -147,9 +149,7 @@ export function RootNavigator() {
         <SetupHeightScreen
           height={state.draft.height ?? { feet: 5, inches: 5 }}
           onChangeHeight={actions.setHeight}
-          onChangeWeightKilograms={actions.setWeightKilograms}
           onContinue={handleContinueHeight}
-          weightKilograms={state.draft.weightKilograms}
         />
       ) : null}
 
@@ -223,7 +223,6 @@ export function RootNavigator() {
           onChangeFashionInterest={actions.setFashionInterest}
           onChangeHeight={actions.setHeight}
           onChangeName={actions.setName}
-          onChangeWeightKilograms={actions.setWeightKilograms}
           onComplete={() => setSetupDrawerStep(null)}
           onContinueFashionInterest={() => setSetupDrawerStep("uploadPhoto")}
           onContinueHeight={handleContinueDrawerHeight}
