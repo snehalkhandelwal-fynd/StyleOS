@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 
 import { requiredPhoneNumberDigits } from "../constants/auth";
@@ -21,8 +21,15 @@ import { SetupStyleQuizScreen } from "../features/onboarding/screens/SetupStyleQ
 import { SplashScreen } from "../features/onboarding/screens/SplashScreen";
 import { UploadFullBodyPhotoScreen } from "../features/onboarding/screens/UploadFullBodyPhotoScreen";
 import { useOnboardingViewModel } from "../features/onboarding/viewModels/useOnboardingViewModel";
+import { colors } from "../theme";
 
-export function RootNavigator() {
+type RootNavigatorProps = {
+  onStatusBarBackgroundChange?: (backgroundColor: string) => void;
+};
+
+export function RootNavigator({
+  onStatusBarBackgroundChange
+}: RootNavigatorProps) {
   const { actions, state } = useOnboardingViewModel();
   const [route, setRoute] = useState<RootRouteName>("Splash");
   const [homeInitialTab, setHomeInitialTab] = useState<HomeTabName>("Home");
@@ -33,6 +40,12 @@ export function RootNavigator() {
     useState<CountryOption>(defaultCountry);
   const [setupDrawerStep, setSetupDrawerStep] =
     useState<OnboardingSetupDrawerStep | null>(null);
+
+  useEffect(() => {
+    if (route !== "HomeTabs") {
+      onStatusBarBackgroundChange?.(colors.background);
+    }
+  }, [onStatusBarBackgroundChange, route]);
 
   const goHome = useCallback((tab: HomeTabName = "Home", accountPage?: AccountPage) => {
     setHomeInitialTab(tab);
@@ -208,6 +221,7 @@ export function RootNavigator() {
           onChangeAddress={handleChangeAddressFromHome}
           onSelectPhoto={actions.setFullBodyPhotoUri}
           onStartStyleQuiz={handleStartStyleQuizFromHome}
+          onStatusBarBackgroundChange={onStatusBarBackgroundChange}
         />
       ) : null}
 

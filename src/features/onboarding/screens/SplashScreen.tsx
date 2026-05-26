@@ -198,10 +198,10 @@ export function SplashScreen({ onGetStarted }: SplashScreenProps) {
                 <LinearGradient
                   colors={[
                     "rgba(255, 255, 255, 0)",
-                    "rgba(255, 255, 255, 0.72)",
-                    "rgba(255, 255, 255, 0.96)"
+                    "rgba(255, 255, 255, 0.42)",
+                    "rgba(255, 255, 255, 0.86)"
                   ]}
-                  locations={[0, 0.56, 1]}
+                  locations={[0, 0.64, 1]}
                   pointerEvents="none"
                   style={styles.copyGradient}
                 />
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   copyGradient: {
     bottom: 0,
-    height: "46%",
+    height: "38%",
     left: 0,
     position: "absolute",
     right: 0

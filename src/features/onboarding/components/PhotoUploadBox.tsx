@@ -37,7 +37,9 @@ export function PhotoUploadBox({
   variant = "default"
 }: PhotoUploadBoxProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [boxLayout, setBoxLayout] = useState({ height: 0, width: 0 });
   const isDrawer = variant === "drawer";
+  const hasBoxLayout = boxLayout.height > 0 && boxLayout.width > 0;
 
   const openPhotoDrawer = () => {
     setIsPickerOpen(true);
@@ -62,6 +64,15 @@ export function PhotoUploadBox({
       <Pressable
         accessibilityLabel="Upload your full-body photo"
         accessibilityRole="button"
+        onLayout={(event) => {
+          const { height, width } = event.nativeEvent.layout;
+
+          setBoxLayout((currentLayout) =>
+            currentLayout.height === height && currentLayout.width === width
+              ? currentLayout
+              : { height, width }
+          );
+        }}
         onPress={openPhotoDrawer}
         style={({ pressed }) => [
           styles.box,
@@ -70,6 +81,43 @@ export function PhotoUploadBox({
           pressed ? styles.pressed : null
         ]}
       >
+        {!uri && hasBoxLayout ? (
+          <Svg
+            height={boxLayout.height}
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+            width={boxLayout.width}
+          >
+            <Defs>
+              <Pattern
+                height={18}
+                id="uploadDots"
+                patternUnits="userSpaceOnUse"
+                width={18}
+              >
+                <Circle cx={2} cy={2} fill={colors.border} r={1.2} />
+              </Pattern>
+            </Defs>
+            <Rect
+              fill="url(#uploadDots)"
+              height={boxLayout.height}
+              width={boxLayout.width}
+            />
+            <Rect
+              fill="none"
+              height={boxLayout.height - 2}
+              rx={19}
+              ry={19}
+              stroke="#B9AFA2"
+              strokeDasharray="8 8"
+              strokeLinecap="round"
+              strokeWidth={2}
+              width={boxLayout.width - 2}
+              x={1}
+              y={1}
+            />
+          </Svg>
+        ) : null}
         {uri ? (
           <>
             <Image
@@ -95,20 +143,6 @@ export function PhotoUploadBox({
           </>
         ) : (
           <View style={[styles.emptyState, isDrawer ? styles.drawerEmptyState : null]}>
-            <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
-              <Defs>
-                <Pattern
-                  height={18}
-                  id="uploadDots"
-                  patternUnits="userSpaceOnUse"
-                  width={18}
-                >
-                  <Circle cx={2} cy={2} fill={colors.border} r={1.2} />
-                </Pattern>
-              </Defs>
-              <Rect fill="url(#uploadDots)" height="100%" width="100%" />
-            </Svg>
-
             <View style={styles.examplePill}>
               <Text style={styles.examplePillText}>EXAMPLE</Text>
             </View>
@@ -346,10 +380,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }]
   },
   emptyBox: {
-    backgroundColor: colors.surface,
-    borderColor: "#B9AFA2",
-    borderStyle: "dashed",
-    borderWidth: 2
+    backgroundColor: colors.surface
   },
   emptyState: {
     flex: 1,

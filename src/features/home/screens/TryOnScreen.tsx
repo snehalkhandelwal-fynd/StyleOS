@@ -51,6 +51,7 @@ type TryOnScreenProps = {
   onOpenShopLook?: (state: TryOnExitState) => void;
   onSelectPhoto: (uri: string) => void;
   onViewCart?: (state: TryOnExitState) => void;
+  useSessionPiecesForShop?: boolean;
 };
 
 export type TryOnExitState = {
@@ -67,6 +68,7 @@ type ShopThisLookScreenProps = {
   onOpenProduct?: (product: ProductListingProduct) => void;
   onViewCart?: () => void;
   pieces: LookPiece[];
+  useProvidedPieces?: boolean;
 };
 type BuildSlotKind = Extract<
   OutfitPieceKind,
@@ -1040,11 +1042,18 @@ export function ShopThisLookScreen({
   onBack,
   onOpenProduct,
   onViewCart,
-  pieces
+  pieces,
+  useProvidedPieces = false
 }: ShopThisLookScreenProps) {
   const { width } = useWindowDimensions();
   const activeLook = look ?? fallbackLook;
-  const buyablePieces = useMemo(() => getShopThisLookPieces(pieces), [pieces]);
+  const buyablePieces = useMemo(
+    () =>
+      useProvidedPieces
+        ? pieces.filter((piece) => !piece.isOwned)
+        : getShopThisLookPieces(pieces),
+    [pieces, useProvidedPieces]
+  );
   const buyablePieceIdsKey = useMemo(
     () => buyablePieces.map((piece) => piece.id).join("|"),
     [buyablePieces]
@@ -1247,7 +1256,8 @@ export function TryOnScreen({
   onOpenProduct,
   onOpenShopLook,
   onSelectPhoto,
-  onViewCart
+  onViewCart,
+  useSessionPiecesForShop = false
 }: TryOnScreenProps) {
   const activeLook = look ?? fallbackLook;
   const avatarUri = draft.avatarUri ?? draft.fullBodyPhotoUri;
@@ -1284,8 +1294,11 @@ export function TryOnScreen({
   );
   const priceSummary = useMemo(() => getTryOnPriceSummary(pieces), [pieces]);
   const fixedLookProductPieces = useMemo(
-    () => getShopThisLookPieces(pieces),
-    [pieces]
+    () =>
+      useSessionPiecesForShop
+        ? pieces.filter((piece) => !piece.isOwned)
+        : getShopThisLookPieces(pieces),
+    [pieces, useSessionPiecesForShop]
   );
 
   useEffect(() => {

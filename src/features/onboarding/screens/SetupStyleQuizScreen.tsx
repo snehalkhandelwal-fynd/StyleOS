@@ -43,17 +43,13 @@ type ResultStackCardPlacement = {
   zIndex: number;
 };
 
-type ResultStackCard = {
-  card: StyleCard;
+type ResultCopy = {
+  subtitle: string;
+  title: string;
 };
 
-const resultMoodByStyleId: Record<string, string> = {
-  athleisure: "Everyday ease",
-  bohemian: "Textured layers",
-  classic: "Work ready",
-  minimalist: "Clean polish",
-  romantic: "Soft details",
-  streetwear: "Street edge"
+type ResultStackCard = {
+  card: StyleCard;
 };
 
 const resultStackPlacements: ResultStackCardPlacement[] = [
@@ -81,23 +77,31 @@ function getResultLabels(
   const likedIds = answers
     .filter((answer) => answer.preference === "liked")
     .map((answer) => answer.styleId);
-  const likedLabels = visibleCards
+
+  return visibleCards
     .filter((card) => likedIds.includes(card.id))
     .map((card) => card.label);
-  const firstLikedMood = likedIds
-    .map((styleId) => resultMoodByStyleId[styleId])
-    .find(Boolean);
-  const labels = [
-    ...likedLabels.slice(0, 2),
-    firstLikedMood,
-    "Fresh looks",
-    "Try-on ready",
-    "Easy styling"
-  ];
+}
 
-  return Array.from(
-    new Set(labels.filter((label): label is string => Boolean(label)))
-  ).slice(0, 3);
+function getResultCopy(likedCount: number): ResultCopy {
+  if (likedCount === 0) {
+    return {
+      title: "Your style is still open",
+      subtitle: "We’ll start broad and keep learning from what you try on"
+    };
+  }
+
+  if (likedCount === 1) {
+    return {
+      title: "Your style, decoded",
+      subtitle: "Based on your swipe, this style stood out"
+    };
+  }
+
+  return {
+    title: "Your style, decoded",
+    subtitle: "Based on your swipes, these styles stood out"
+  };
 }
 
 function getResultCards(
@@ -108,11 +112,9 @@ function getResultCards(
   const likedIds = answers
     .filter((answer) => answer.preference === "liked")
     .map((answer) => answer.styleId);
-  const answeredIds = answers.map((answer) => answer.styleId);
-  const fallbackIds = visibleCards.map((card) => card.id);
-  const orderedIds = Array.from(
-    new Set([...likedIds, ...answeredIds, ...fallbackIds])
-  );
+  const fallbackIds =
+    likedIds.length > 0 ? [] : visibleCards.map((card) => card.id);
+  const orderedIds = Array.from(new Set([...likedIds, ...fallbackIds]));
 
   return orderedIds
     .map((styleId) => cardById.get(styleId))
@@ -134,10 +136,10 @@ function ResultProductStack({
 }) {
   const centerLeft = Math.round((deckWidth - cardWidth) / 2);
   const sideOffset = spacing.lg;
-  const frontLeft = centerLeft + sideOffset;
+  const frontLeft = cards.length === 1 ? centerLeft : centerLeft + sideOffset;
   const middleLeft = centerLeft;
   const backLeft = centerLeft - sideOffset;
-  const frontTop = Math.round(cardHeight * 0.15);
+  const frontTop = Math.round(cardHeight * (cards.length === 1 ? 0.1 : 0.15));
   const middleTop = Math.round(cardHeight * 0.08);
   const backTop = Math.round(cardHeight * 0.13);
 
@@ -283,6 +285,7 @@ export function SetupStyleQuizScreen({
 
   if (isDecoded) {
     const resultLabels = getResultLabels(answers, visibleCards);
+    const resultCopy = getResultCopy(resultLabels.length);
     const resultCards = getResultCards(answers, visibleCards);
     const resultCardWidth = Math.min(width * 0.58, 238);
     const resultCardHeight = Math.min(
@@ -298,19 +301,19 @@ export function SetupStyleQuizScreen({
       <SafeAreaView style={styles.resultScreen}>
         <View style={styles.resultContent}>
           <View style={styles.resultCopyGroup}>
-            <Text style={styles.resultTitle}>Your style, decoded</Text>
-            <Text style={styles.resultSubtitle}>
-              Based on your swipes, here’s what speaks to you
-            </Text>
+            <Text style={styles.resultTitle}>{resultCopy.title}</Text>
+            <Text style={styles.resultSubtitle}>{resultCopy.subtitle}</Text>
           </View>
 
-          <View style={styles.resultChipWrap}>
-            {resultLabels.map((label) => (
-              <View key={label} style={styles.resultChip}>
-                <Text style={styles.resultChipText}>{label}</Text>
-              </View>
-            ))}
-          </View>
+          {resultLabels.length > 0 ? (
+            <View style={styles.resultChipWrap}>
+              {resultLabels.map((label) => (
+                <View key={label} style={styles.resultChip}>
+                  <Text style={styles.resultChipText}>{label}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           <ResultProductStack
             cardHeight={resultCardHeight}

@@ -22,15 +22,22 @@ import {
 import { getStyleCardsForFashionInterest } from "../data/styleQuiz";
 import {
   buildLookPieces,
+  getPieceAlternatives,
   getRupeeValue,
   type LookPiece
 } from "../features/home/data/lookPieces";
 import { BrandPlpScreen } from "../features/home/screens/BrandPlpScreen";
 import { CartScreen, type CartItem } from "../features/home/screens/CartScreen";
-import { ClosetScreen } from "../features/home/screens/ClosetScreen";
+import {
+  ClosetScreen,
+  type ClosetAutoPairItem
+} from "../features/home/screens/ClosetScreen";
 import { ExploreScreen } from "../features/home/screens/ExploreScreen";
 import { HomeScreen } from "../features/home/screens/HomeScreen";
-import type { ProductLook } from "../features/home/screens/HomeScreen";
+import type {
+  OutfitPieceKind,
+  ProductLook
+} from "../features/home/screens/HomeScreen";
 import {
   ModelLookPdpScreen,
   type ShopThisLookCartItem
@@ -60,12 +67,15 @@ type HomeTabsNavigatorProps = {
     returnTab?: HomeTabName,
     returnAccountPage?: AccountPage
   ) => void;
+  onStatusBarBackgroundChange?: (backgroundColor: string) => void;
 };
 
 type TryOnEntry = {
   context?: string;
   look?: ProductLook;
+  renderDelayMs?: number;
   returnTab: HomeTabName;
+  useSessionPiecesForShop?: boolean;
 };
 
 type LookSessionSnapshot = {
@@ -178,8 +188,187 @@ function toStylistProductLook(pieces: LookPiece[]): ProductLook {
   };
 }
 
+function getClosetAutoPairKind(item: ClosetAutoPairItem): OutfitPieceKind {
+  const descriptor = `${item.category} ${item.title} ${item.tags.join(" ")}`.toLowerCase();
+
+  if (descriptor.includes("shoe") || descriptor.includes("sneaker")) {
+    return "shoe";
+  }
+
+  if (descriptor.includes("bag")) {
+    return "bag";
+  }
+
+  if (descriptor.includes("belt") || descriptor.includes("accessory")) {
+    return "accessory";
+  }
+
+  if (
+    descriptor.includes("layer") ||
+    descriptor.includes("jacket") ||
+    descriptor.includes("blazer") ||
+    descriptor.includes("coat")
+  ) {
+    return "jacket";
+  }
+
+  if (
+    descriptor.includes("bottom") ||
+    descriptor.includes("jean") ||
+    descriptor.includes("trouser") ||
+    descriptor.includes("skirt") ||
+    descriptor.includes("pant")
+  ) {
+    return "bottom";
+  }
+
+  if (descriptor.includes("dress")) {
+    return "dress";
+  }
+
+  return "top";
+}
+
+function getAutoPairComplementKinds(
+  closetKind: OutfitPieceKind
+): OutfitPieceKind[] {
+  switch (closetKind) {
+    case "top":
+      return ["bottom", "shoe", "bag"];
+    case "bottom":
+      return ["top", "shoe", "bag"];
+    case "jacket":
+      return ["top", "bottom", "shoe", "bag"];
+    case "shoe":
+      return ["top", "bottom", "bag"];
+    case "bag":
+    case "accessory":
+      return ["top", "bottom", "shoe"];
+    case "dress":
+      return ["shoe", "bag", "jacket"];
+    default:
+      return ["top", "bottom", "shoe"];
+  }
+}
+
+function getAutoPairScore(piece: LookPiece, item: ClosetAutoPairItem) {
+  const itemSignals =
+    `${item.color} ${item.material} ${item.fit} ${item.tags.join(" ")}`.toLowerCase();
+  const pieceSignals =
+    `${piece.name} ${piece.brand} ${piece.category}`.toLowerCase();
+  let score = 80;
+
+  if (
+    itemSignals.includes("brown") &&
+    (pieceSignals.includes("cream") ||
+      pieceSignals.includes("linen") ||
+      pieceSignals.includes("white") ||
+      pieceSignals.includes("khaki"))
+  ) {
+    score += 8;
+  }
+
+  if (
+    itemSignals.includes("cream") &&
+    (pieceSignals.includes("brown") ||
+      pieceSignals.includes("tan") ||
+      pieceSignals.includes("olive") ||
+      pieceSignals.includes("neutral"))
+  ) {
+    score += 7;
+  }
+
+  if (
+    itemSignals.includes("floral") &&
+    (pieceSignals.includes("linen") ||
+      pieceSignals.includes("neutral") ||
+      pieceSignals.includes("brown") ||
+      pieceSignals.includes("white"))
+  ) {
+    score += 6;
+  }
+
+  if (
+    itemSignals.includes("denim") &&
+    (pieceSignals.includes("white") ||
+      pieceSignals.includes("cream") ||
+      pieceSignals.includes("brown"))
+  ) {
+    score += 5;
+  }
+
+  return score;
+}
+
+function getAutoPairPiece(
+  kind: OutfitPieceKind,
+  item: ClosetAutoPairItem,
+  index: number
+): LookPiece {
+  const alternatives = getPieceAlternatives(kind);
+  const bestPiece =
+    alternatives
+      .map((piece, optionIndex) => ({
+        piece,
+        score: getAutoPairScore(piece, item) - optionIndex
+      }))
+      .sort((first, second) => second.score - first.score)[0]?.piece ??
+    alternatives[0];
+
+  return {
+    ...bestPiece,
+    id: `auto-pair-${item.id}-${kind}-${index}`,
+    isOwned: false
+  };
+}
+
+function buildClosetAutoPairSession(item: ClosetAutoPairItem) {
+  const closetKind = getClosetAutoPairKind(item);
+  const ownedPiece: LookPiece = {
+    brand: "Your closet",
+    category: item.category,
+    id: `closet-${item.id}`,
+    image: item.image,
+    isOwned: true,
+    kind: closetKind,
+    name: item.title,
+    price: "₹0",
+    sizes: ["One"]
+  };
+  const complementPieces = getAutoPairComplementKinds(closetKind).map(
+    (kind, index) => getAutoPairPiece(kind, item, index)
+  );
+  const pieces = [ownedPiece, ...complementPieces];
+  const buyableTotal = complementPieces.reduce(
+    (sum, piece) => sum + getRupeeValue(piece.price),
+    0
+  );
+  const look: ProductLook = {
+    brand: "Mira",
+    id: `closet-auto-pair-${item.id}-${Date.now()}`,
+    image: item.image,
+    itemCount: `${pieces.length} pieces`,
+    match: "Auto-paired",
+    outfitItems: pieces.map((piece) => ({
+      image: piece.image,
+      kind: piece.kind,
+      label: piece.category
+    })),
+    price:
+      buyableTotal > 0
+        ? `From ₹${buyableTotal.toLocaleString("en-IN")}`
+        : "Try now",
+    title: `${item.title} auto-pair`,
+    tries: "Ready to try",
+    vibe: "Closet styled"
+  };
+
+  return { look, pieces };
+}
+
 const renderStatusTopInset =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
+const closetAutoPairRenderDelayMs = 1800;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -305,7 +494,8 @@ export function HomeTabsNavigator({
   isGuest,
   onChangeAddress,
   onSelectPhoto,
-  onStartStyleQuiz
+  onStartStyleQuiz,
+  onStatusBarBackgroundChange
 }: HomeTabsNavigatorProps) {
   const renderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readyToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -320,8 +510,12 @@ export function HomeTabsNavigator({
     useState<ProductListingProduct | null>(null);
   const [selectedProductReturnTab, setSelectedProductReturnTab] =
     useState<HomeTabName | null>(null);
+  const [accountPageOverride, setAccountPageOverride] =
+    useState<AccountPage | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isExploreInternalViewOpen, setIsExploreInternalViewOpen] =
+    useState(false);
+  const [isClosetInternalViewOpen, setIsClosetInternalViewOpen] =
     useState(false);
   const [tryOnEntry, setTryOnEntry] = useState<TryOnEntry | null>(null);
   const [tryOnRender, setTryOnRender] = useState<TryOnRenderState>({
@@ -442,6 +636,7 @@ export function HomeTabsNavigator({
   const beginTryOnRender = useCallback(
     (entry: TryOnEntry) => {
       const hasAvatar = Boolean(draft.avatarUri ?? draft.fullBodyPhotoUri);
+      const renderDelayMs = entry.renderDelayMs ?? TRY_ON_RENDER_DELAY_MS;
 
       clearRenderTimer();
       clearReadyToastTimer();
@@ -477,7 +672,7 @@ export function HomeTabsNavigator({
               }
             : current
         );
-      }, TRY_ON_RENDER_DELAY_MS);
+      }, renderDelayMs);
     },
     [
       cancelReadyNotification,
@@ -502,7 +697,9 @@ export function HomeTabsNavigator({
       }
 
       const elapsedMs = Date.now() - tryOnRender.startedAt;
-      const remainingMs = TRY_ON_RENDER_DELAY_MS - elapsedMs;
+      const renderDelayMs =
+        tryOnRender.entry?.renderDelayMs ?? TRY_ON_RENDER_DELAY_MS;
+      const remainingMs = renderDelayMs - elapsedMs;
 
       void scheduleReadyNotification(remainingMs);
     });
@@ -513,6 +710,7 @@ export function HomeTabsNavigator({
   }, [
     cancelReadyNotification,
     scheduleReadyNotification,
+    tryOnRender.entry,
     tryOnRender.startedAt,
     tryOnRender.status
   ]);
@@ -553,8 +751,10 @@ export function HomeTabsNavigator({
     setSelectedLook(null);
     setSelectedProduct(null);
     setSelectedProductReturnTab(null);
+    setAccountPageOverride(null);
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
+    setIsClosetInternalViewOpen(false);
     setTryOnEntry(null);
     setIsTryOnShopLookOpen(false);
     setIsSelectedLookShopOpen(false);
@@ -563,6 +763,19 @@ export function HomeTabsNavigator({
     resetTryOnRender();
   }, [initialTab, resetTryOnRender]);
 
+  useEffect(() => {
+    const statusBarBackground =
+      activeTab === "Closet" && !isClosetInternalViewOpen
+        ? colors.surfaceTertiary
+        : colors.background;
+
+    onStatusBarBackgroundChange?.(
+      statusBarBackground
+    );
+
+    return () => onStatusBarBackgroundChange?.(colors.background);
+  }, [activeTab, isClosetInternalViewOpen, onStatusBarBackgroundChange]);
+
   const handleChangeTab = (tab: HomeTabName) => {
     const shouldKeepTryOnEntry = tryOnRender.status !== "idle";
 
@@ -570,8 +783,10 @@ export function HomeTabsNavigator({
     setSelectedLook(null);
     setSelectedProduct(null);
     setSelectedProductReturnTab(null);
+    setAccountPageOverride(null);
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
+    setIsClosetInternalViewOpen(false);
     setIsTryOnShopLookOpen(false);
     setIsSelectedLookShopOpen(false);
     setSelectedLookShopReturnTarget("look-detail");
@@ -580,6 +795,11 @@ export function HomeTabsNavigator({
       setTryOnEntry(null);
     }
     setActiveTab(tab);
+  };
+
+  const handleOpenWishlist = () => {
+    handleChangeTab("Profile");
+    setAccountPageOverride("wishlist");
   };
 
   const addCartItems = useCallback((items: CartItem[]) => {
@@ -658,12 +878,23 @@ export function HomeTabsNavigator({
     setIsExploreInternalViewOpen(isOpen);
   }, []);
 
+  const handleClosetInternalViewChange = useCallback((isOpen: boolean) => {
+    setIsClosetInternalViewOpen(isOpen);
+  }, []);
+
   const openTryOnSession = useCallback(
-    (look?: ProductLook, context?: string) => {
+    (
+      look?: ProductLook,
+      context?: string,
+      renderDelayMs?: number,
+      useSessionPiecesForShop?: boolean
+    ) => {
       const nextEntry = {
         context,
         look,
-        returnTab: activeTab
+        renderDelayMs,
+        returnTab: activeTab,
+        useSessionPiecesForShop
       };
 
       setTryOnEntry(nextEntry);
@@ -674,6 +905,7 @@ export function HomeTabsNavigator({
       setShopLookPieces(null);
       setIsSearchOpen(false);
       setIsExploreInternalViewOpen(false);
+      setIsClosetInternalViewOpen(false);
       setActiveTab("TryOn");
     },
     [activeTab, beginTryOnRender]
@@ -691,6 +923,27 @@ export function HomeTabsNavigator({
         }
       }));
       openTryOnSession(stylistLook, "Stylist");
+    },
+    [openTryOnSession]
+  );
+
+  const handleStartClosetAutoPairTryOn = useCallback(
+    (item: ClosetAutoPairItem) => {
+      const { look, pieces } = buildClosetAutoPairSession(item);
+
+      setLookSnapshots((current) => ({
+        ...current,
+        [look.id]: {
+          isSaved: false,
+          pieces
+        }
+      }));
+      openTryOnSession(
+        look,
+        "Closet auto-pair",
+        closetAutoPairRenderDelayMs,
+        true
+      );
     },
     [openTryOnSession]
   );
@@ -963,7 +1216,8 @@ export function HomeTabsNavigator({
     !selectedBrandId &&
     activeTab !== "Cart" &&
     (activeTab !== "TryOn" || shouldShowStylistFallback) &&
-    !(activeTab === "Feed" && isExploreInternalViewOpen);
+    !(activeTab === "Feed" && isExploreInternalViewOpen) &&
+    !(activeTab === "Closet" && isClosetInternalViewOpen);
   const hasStyleProfile = hasCompletedStyleProfile(draft);
   const styleQuiz = draft.styleQuiz;
   const styleCardsForInterest = getStyleCardsForFashionInterest(
@@ -1112,6 +1366,7 @@ export function HomeTabsNavigator({
             onOpenProduct={handleOpenProductFromTryOn}
             onViewCart={handleViewCartFromShopLook}
             pieces={shopLookPieces ?? tryOnLookSnapshot?.pieces ?? []}
+            useProvidedPieces={tryOnEntry?.useSessionPiecesForShop}
           />
         ) : null}
         {activeTab === "TryOn" &&
@@ -1134,6 +1389,7 @@ export function HomeTabsNavigator({
             onOpenShopLook={handleOpenShopLookFromTryOn}
             onSelectPhoto={onSelectPhoto}
             onViewCart={handleViewCartFromTryOn}
+            useSessionPiecesForShop={tryOnEntry?.useSessionPiecesForShop}
           />
         ) : null}
         {activeTab === "Stylist" || shouldShowStylistFallback ? (
@@ -1144,7 +1400,13 @@ export function HomeTabsNavigator({
         ) : null}
         {activeTab === "Closet" ? (
           <ClosetScreen
+            cartCount={cartCount}
             onAskMira={() => handleChangeTab("AIStylist")}
+            onInternalViewChange={handleClosetInternalViewChange}
+            onOpenCart={() => handleChangeTab("Cart")}
+            onOpenSearch={() => setIsSearchOpen(true)}
+            onOpenWishlist={handleOpenWishlist}
+            onStartAutoPairTryOn={handleStartClosetAutoPairTryOn}
             onStartTryOn={() => openTryOnSession(undefined, "Closet item")}
           />
         ) : null}
@@ -1181,7 +1443,7 @@ export function HomeTabsNavigator({
               onStartTryOn: (context) => openTryOnSession(undefined, context)
             }}
             appVersion="1.0.1"
-            initialPage={initialAccountPage}
+            initialPage={accountPageOverride ?? initialAccountPage}
             styleProfile={styleProfile}
             user={{
               avatarUri: draft.avatarUri,

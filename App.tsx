@@ -4,7 +4,7 @@ import {
   Outfit_600SemiBold
 } from "@expo-google-fonts/outfit";
 import { useFonts } from "expo-font";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StatusBar, StyleSheet, Text, View } from "react-native";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 
@@ -19,6 +19,13 @@ export default function App() {
     Outfit_600SemiBold
   });
   const [shouldRenderApp, setShouldRenderApp] = useState(false);
+  const [statusBarBackgroundColor, setStatusBarBackgroundColor] = useState(
+    colors.background
+  );
+
+  const handleStatusBarBackgroundChange = useCallback((backgroundColor: string) => {
+    setStatusBarBackgroundColor(backgroundColor);
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -46,12 +53,20 @@ export default function App() {
   }
 
   return (
-    <View style={styles.app}>
+    <View style={[styles.app, { backgroundColor: statusBarBackgroundColor }]}>
       <ExpoStatusBar style="dark" />
       <View style={styles.safeArea}>
-        <RootNavigator />
+        <RootNavigator
+          onStatusBarBackgroundChange={handleStatusBarBackgroundChange}
+        />
       </View>
-      <View pointerEvents="none" style={styles.statusBarGuard} />
+      <View
+        pointerEvents="none"
+        style={[
+          styles.statusBarGuard,
+          { backgroundColor: statusBarBackgroundColor }
+        ]}
+      />
     </View>
   );
 }

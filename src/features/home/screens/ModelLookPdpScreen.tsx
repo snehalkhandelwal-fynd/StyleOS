@@ -274,13 +274,7 @@ function HeroLookImage({
           style={styles.heroMatchTag}
           width={98}
         />
-      ) : (
-        <View style={styles.heroContextTag}>
-          <Text numberOfLines={1} style={styles.heroContextText}>
-            {look.vibe}
-          </Text>
-        </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -1419,24 +1413,6 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     top: spacing.lg
-  },
-  heroContextTag: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 0.5,
-    left: spacing.screen,
-    maxWidth: 140,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    position: "absolute",
-    top: spacing.lg
-  },
-  heroContextText: {
-    color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 11,
-    lineHeight: 14
   },
   infoStrip: {
     gap: 0
