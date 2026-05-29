@@ -10,6 +10,9 @@ export interface OnboardingDraft {
     phoneNumber: string;
   };
   name?: string;
+  email?: string;
+  dateOfBirth?: string;
+  anniversary?: string;
   height?: {
     feet: number;
     inches: number;
@@ -26,9 +29,23 @@ export interface OnboardingDraft {
   address?: string;
 }
 
+export type EditableProfile = {
+  anniversary?: string;
+  avatarUri?: string;
+  dateOfBirth?: string;
+  email?: string;
+  fashionInterest?: FashionInterest;
+  name: string;
+  phone?: {
+    countryCode: string;
+    phoneNumber: string;
+  };
+};
+
 type OnboardingAction =
   | { type: "phoneChanged"; country: CountryOption; phoneNumber: string }
   | { type: "nameChanged"; name: string }
+  | { type: "profileUpdated"; profile: EditableProfile }
   | { type: "heightChanged"; feet: number; inches: number }
   | { type: "fashionInterestChanged"; fashionInterest: FashionInterest }
   | { type: "styleLiked"; styleId: string }
@@ -80,6 +97,25 @@ function onboardingReducer(
     return {
       ...state,
       name: action.name
+    };
+  }
+
+  if (action.type === "profileUpdated") {
+    const cleanOptionalValue = (value?: string) => {
+      const trimmedValue = value?.trim() ?? "";
+
+      return trimmedValue || undefined;
+    };
+
+    return {
+      ...state,
+      anniversary: cleanOptionalValue(action.profile.anniversary),
+      avatarUri: action.profile.avatarUri ?? state.avatarUri,
+      dateOfBirth: cleanOptionalValue(action.profile.dateOfBirth),
+      email: cleanOptionalValue(action.profile.email),
+      fashionInterest: action.profile.fashionInterest ?? state.fashionInterest,
+      name: action.profile.name.trim(),
+      phone: action.profile.phone ?? state.phone
     };
   }
 
@@ -210,6 +246,8 @@ export function useOnboardingViewModel() {
       setHeight: (feet: number, inches: number) =>
         dispatch({ feet, inches, type: "heightChanged" }),
       setName: (name: string) => dispatch({ name, type: "nameChanged" }),
+      updateProfile: (profile: EditableProfile) =>
+        dispatch({ profile, type: "profileUpdated" }),
       setPhone: (country: CountryOption, phoneNumber: string) =>
         dispatch({ country, phoneNumber, type: "phoneChanged" }),
       resetStyleQuiz: () => dispatch({ type: "styleQuizReset" }),

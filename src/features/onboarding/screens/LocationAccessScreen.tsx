@@ -310,8 +310,7 @@ export function LocationAccessScreen({
         <View style={styles.accessCopy}>
           <Text style={styles.accessTitle}>Set your location</Text>
           <Text style={styles.accessSubtitle}>
-            See outfits available near you, delivery options, and
-            weather-friendly recommendations.
+            See outfits available near you and more accurate delivery options.
           </Text>
         </View>
 

@@ -90,7 +90,7 @@ type ProductLook = {
 
 export type { OutfitPiece, OutfitPieceKind, ProductLook };
 
-const demoAvatar = require("../../../assets/bodyimage.png");
+const closetBannerImage = require("../../../assets/closet-banner.png");
 const colourAnalysisImage = require("../../../assets/colour-analysis.png");
 const heroStyleQuizImage = require("../../../assets/hero-style-quiz.jpg");
 const shoeProductImage = prototypeProductImages.sandro.brownJacket;
@@ -816,33 +816,34 @@ function TryOnDemoHero() {
   );
 }
 
-function WardrobeIntelligenceCard() {
+function WardrobeIntelligenceCard({ onPress }: { onPress: () => void }) {
   return (
-    <View style={[styles.creamCard, styles.closetCard]}>
-      <Text style={styles.wardrobeTitle}>Build looks from what you own</Text>
-      <Text style={styles.wardrobeCopy}>
-        Add items you already wear. We’ll suggest outfits and new pieces that go with it.
-      </Text>
-      <View style={styles.ghostRow}>
-        {[0, 1, 2].map((item) => (
-          <View key={item} style={styles.ghostWrap}>
-            <View style={styles.ghostCard}>
-              <Image
-                blurRadius={4}
-                resizeMode="contain"
-                source={demoAvatar}
-                style={styles.ghostImage}
-              />
-              <View style={styles.ghostOverlay} />
-            </View>
-            <Text style={styles.ghostLabel}>Your item + Trends</Text>
-          </View>
-        ))}
+    <Pressable
+      accessibilityLabel="Start swiping to build looks from what you own"
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.closetCard,
+        pressed ? styles.pressed : null
+      ]}
+    >
+      <View pointerEvents="none" style={styles.closetBannerImageFrame}>
+        <Image
+          accessibilityIgnoresInvertColors
+          source={closetBannerImage}
+          style={styles.closetBannerImage}
+        />
       </View>
-      <Pressable accessibilityRole="button" style={styles.wardrobeButton}>
-        <Text style={styles.wardrobeButtonText}>Add my first piece</Text>
-      </Pressable>
-    </View>
+      <View style={styles.wardrobeCopyBlock}>
+        <Text style={styles.wardrobeTitle}>Build looks from what you own</Text>
+        <Text style={styles.wardrobeCopy}>
+          Add items you already own. We’ll suggest outfits and pieces that go with them.
+        </Text>
+        <View style={styles.wardrobeButton}>
+          <Text style={styles.wardrobeButtonText}>Start swiping</Text>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1801,7 +1802,7 @@ export function HomeScreen({
           selected={selectedOccasion}
           wishlistProductIds={wishlistProductIds}
         />
-        <WardrobeIntelligenceCard />
+        <WardrobeIntelligenceCard onPress={onStartStyleQuiz} />
         <ShopByBrandsSection onBrandPress={onOpenBrand} />
         <SavedLooksSection
           cardWidth={savedLookCardWidth}
@@ -1949,7 +1950,27 @@ const styles = StyleSheet.create({
     padding: spacing.md
   },
   closetCard: {
-    alignSelf: "stretch"
+    backgroundColor: "#FCF8F1",
+    borderRadius: 16,
+    height: 188,
+    marginHorizontal: spacing.screen,
+    overflow: "hidden",
+    position: "relative"
+  },
+  closetBannerImage: {
+    height: 279,
+    left: -132,
+    position: "absolute",
+    top: 0,
+    width: 279
+  },
+  closetBannerImageFrame: {
+    height: 279,
+    overflow: "hidden",
+    position: "absolute",
+    right: 0,
+    top: -40,
+    width: 148
   },
   darkMiniPill: {
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -2099,41 +2120,6 @@ const styles = StyleSheet.create({
   filterTrack: {
     gap: spacing.sm,
     paddingHorizontal: spacing.screen
-  },
-  ghostCard: {
-    alignItems: "center",
-    backgroundColor: colors.imageSurface,
-    borderRadius: 10,
-    height: 80,
-    justifyContent: "center",
-    overflow: "hidden",
-    width: 60
-  },
-  ghostImage: {
-    height: 70,
-    opacity: 0.5,
-    width: 42
-  },
-  ghostLabel: {
-    color: "#BBBBBB",
-    fontFamily: fonts.body,
-    fontSize: 10,
-    lineHeight: 13,
-    marginTop: 6,
-    textAlign: "center",
-    width: 72
-  },
-  ghostRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.lg
-  },
-  ghostOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(245, 242, 236, 0.42)"
-  },
-  ghostWrap: {
-    alignItems: "center"
   },
   heroBody: {
     color: colors.inverseText,
@@ -2818,25 +2804,33 @@ const styles = StyleSheet.create({
   },
   wardrobeButton: {
     alignItems: "center",
-    borderColor: colors.secondaryBorder,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 44,
+    backgroundColor: "transparent",
     justifyContent: "center",
-    marginTop: spacing.lg
+    marginTop: spacing.lg,
+    paddingVertical: 4,
+    alignSelf: "flex-start"
   },
   wardrobeButtonText: {
     color: colors.text,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 18
-  },
-  wardrobeCopy: {
-    color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 13,
-    lineHeight: 19.5,
-    marginTop: 6
+    lineHeight: 20,
+    textDecorationLine: "underline"
+  },
+  wardrobeCopy: {
+    color: "#3A3A3A",
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
+    width: 183
+  },
+  wardrobeCopyBlock: {
+    left: 21,
+    position: "absolute",
+    top: 21,
+    width: 214,
+    zIndex: 2
   },
   wardrobeTitle: {
     color: colors.text,

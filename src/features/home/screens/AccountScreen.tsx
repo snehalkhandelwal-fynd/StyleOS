@@ -18,15 +18,28 @@ import {
   AppScreenHeader,
   appScreenTopPadding
 } from "../components/AppScreenHeader";
+import { AccountEditProfileScreen } from "./AccountEditProfileScreen";
+import type {
+  EditableProfile,
+  FashionInterest
+} from "../../onboarding/viewModels/useOnboardingViewModel";
+import { ClosetFavouritesScreen } from "./ClosetFavouritesScreen";
 import { SavedScreen } from "./SavedScreen";
 
 export type SocialPlatform = "whatsapp" | "facebook" | "instagram";
 
 export type AccountUser = {
   name: string;
+  phone?: {
+    countryCode: string;
+    phoneNumber: string;
+  };
   phoneNumber?: string;
   email?: string;
   avatarUri?: string;
+  dateOfBirth?: string;
+  anniversary?: string;
+  fashionInterest?: FashionInterest;
 };
 
 /**
@@ -37,14 +50,15 @@ export type AccountUser = {
 export type AccountActions = {
   onEditProfile?: () => void;
   onOpenExplore?: () => void;
+  onOpenCloset?: () => void;
   onOpenOrders?: () => void;
   onOpenSizeDetails?: () => void;
-  onOpenRewards?: () => void;
   onOpenHelp?: () => void;
   onOpenPayments?: () => void;
   onOpenSocial?: (platform: SocialPlatform) => void;
   onStartStyleQuiz?: () => void;
   onStartTryOn?: (context?: string) => void;
+  onUpdateProfile?: (profile: EditableProfile) => void;
   onLogout?: () => void;
 };
 
@@ -60,18 +74,20 @@ type AccountScreenProps = {
   user: AccountUser;
   appVersion: string;
   actions?: AccountActions;
+  closetItemCount?: number;
   initialPage?: AccountPage | null;
+  onInternalViewChange?: (isOpen: boolean) => void;
   styleProfile?: AccountStyleProfile;
 };
 
-type AccountDetailPageName = "avatar" | "privacy" | "addresses" | "style";
+type AccountDetailPageName =
+  | "addresses"
+  | "avatar"
+  | "measurements"
+  | "privacy"
+  | "style";
 export type AccountPage = AccountDetailPageName | "wishlist";
-
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <Text style={styles.sectionTitle}>{title}</Text>
-  );
-}
+type AccountInternalPage = AccountPage | "closetFavourites" | "editProfile";
 
 function DetailInfoCard({
   body,
@@ -157,6 +173,28 @@ function AccountDetailPage({
       ],
       title: "Avatar"
     },
+    measurements: {
+      cta: "Update measurements",
+      intro: "These details help try-on previews and fit guidance feel closer to your actual body.",
+      items: [
+        {
+          body: "Height, body proportions and fit reference used for try-on",
+          icon: "activity",
+          title: "Body basics"
+        },
+        {
+          body: "Preferred fit, rise, sleeve length and comfort notes",
+          icon: "sliders",
+          title: "Fit notes"
+        },
+        {
+          body: "Used only to improve sizing, try-on and outfit decisions",
+          icon: "lock",
+          title: "Data use"
+        }
+      ],
+      title: "Your measurements"
+    },
     privacy: {
       intro: "Control data, permissions and product policies from one place.",
       items: [
@@ -171,7 +209,7 @@ function AccountDetailPage({
           title: "Terms of use"
         },
         {
-          body: "Manage photo, location and styling-memory permissions",
+          body: "Manage photo, try-on history and styling-memory permissions",
           icon: "lock",
           title: "Data controls"
         }
@@ -358,20 +396,27 @@ export function AccountScreen({
   user,
   appVersion,
   actions,
+  closetItemCount,
   initialPage,
+  onInternalViewChange,
   styleProfile
 }: AccountScreenProps) {
-  const [activePage, setActivePage] = useState<AccountPage | null>(
+  const [activePage, setActivePage] = useState<AccountInternalPage | null>(
     initialPage ?? null
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
 
   useEffect(() => {
     if (initialPage) {
       setActivePage(initialPage);
     }
   }, [initialPage]);
+
+  useEffect(() => {
+    onInternalViewChange?.(Boolean(activePage));
+
+    return () => onInternalViewChange?.(false);
+  }, [activePage, onInternalViewChange]);
 
   const handleOpenStyle = () => {
     if (styleProfile?.isRecorded || !actions?.onStartStyleQuiz) {
@@ -382,7 +427,42 @@ export function AccountScreen({
     actions.onStartStyleQuiz();
   };
 
-  const styleRows: Array<{
+  const minimumClosetItemsForMira = 3;
+  const hasCompletedStyleProfile = Boolean(styleProfile?.isRecorded);
+  const hasEnoughClosetItems =
+    closetItemCount === undefined ||
+    closetItemCount >= minimumClosetItemsForMira;
+  const shouldShowProfilePrompt =
+    !hasCompletedStyleProfile || !hasEnoughClosetItems;
+  const promptTargetsStyleProfile = !hasCompletedStyleProfile;
+  const remainingClosetItems = Math.max(
+    minimumClosetItemsForMira - (closetItemCount ?? 0),
+    0
+  );
+  const closetPromptCopy =
+    remainingClosetItems <= 1
+      ? "Add one more piece you love so Mira can build looks from what you already own."
+      : `Add ${remainingClosetItems} pieces you love so Mira can build looks from what you already own.`;
+
+  const handleProfilePromptPress = () => {
+    if (promptTargetsStyleProfile) {
+      handleOpenStyle();
+      return;
+    }
+
+    actions?.onOpenCloset?.();
+  };
+
+  const handleOpenEditProfile = () => {
+    setActivePage("editProfile");
+  };
+
+  const handleSaveProfile = (profile: EditableProfile) => {
+    actions?.onUpdateProfile?.(profile);
+    setActivePage(null);
+  };
+
+  const youRows: Array<{
     icon: keyof typeof Feather.glyphMap;
     key: string;
     onPress?: () => void;
@@ -393,28 +473,60 @@ export function AccountScreen({
       icon: "sliders",
       key: "style-profile",
       onPress: handleOpenStyle,
-      subtitle: "Fit, sizes and outfit preferences",
+      subtitle: "Vibes, fit preferences and occasions",
       title: "Your style"
+    },
+    {
+      icon: "activity",
+      key: "measurements",
+      onPress:
+        actions?.onOpenSizeDetails ?? (() => setActivePage("measurements")),
+      subtitle: "Height, weight and body data used for try-on",
+      title: "Your measurements"
     },
     {
       icon: "user",
       key: "avatar",
       onPress: () => setActivePage("avatar"),
       subtitle: "Photo used for virtual try-on",
-      title: "Avatar"
-    },
+      title: "Your avatar"
+    }
+  ];
+
+  const activityRows: Array<{
+    icon: keyof typeof Feather.glyphMap;
+    key: string;
+    onPress?: () => void;
+    subtitle: string;
+    title: string;
+  }> = [
     {
       icon: "heart",
       key: "wishlist",
       onPress: () => setActivePage("wishlist"),
       subtitle: "Saved looks, products and shared outfits",
-      title: "Wishlist"
+      title: "Saved"
+    },
+    {
+      icon: "star",
+      key: "closet-favourites",
+      onPress: () => setActivePage("closetFavourites"),
+      subtitle: "Closet pieces to style and repeat",
+      title: "Closet Favourites"
+    },
+    {
+      icon: "shopping-bag",
+      key: "orders",
+      onPress: actions?.onOpenOrders,
+      subtitle: "Purchase history and delivery updates",
+      title: "Orders"
     },
     {
       icon: "package",
       key: "closet",
-      subtitle: "Pieces Mira can reuse in outfits",
-      title: "Closet preferences"
+      onPress: actions?.onOpenCloset,
+      subtitle: "Wardrobe items Mira can reuse in looks",
+      title: "Closet"
     }
   ];
 
@@ -433,13 +545,6 @@ export function AccountScreen({
       title: "Saved addresses"
     },
     {
-      icon: "shopping-bag",
-      key: "orders",
-      onPress: actions?.onOpenOrders,
-      subtitle: "Purchases, returns and delivery updates",
-      title: "Orders"
-    },
-    {
       icon: "credit-card",
       key: "payments",
       onPress: actions?.onOpenPayments,
@@ -451,14 +556,7 @@ export function AccountScreen({
       key: "help",
       onPress: actions?.onOpenHelp,
       subtitle: "Support for orders, fit and try-on",
-      title: "Help"
-    },
-    {
-      icon: "award",
-      key: "rewards",
-      onPress: actions?.onOpenRewards,
-      subtitle: "Benefits and membership status",
-      title: "Rewards"
+      title: "Help & support"
     },
     {
       icon: "shield",
@@ -479,11 +577,39 @@ export function AccountScreen({
     );
   }
 
+  if (activePage === "closetFavourites") {
+    return (
+      <ClosetFavouritesScreen
+        onBack={() => setActivePage(null)}
+        onOpenCloset={actions?.onOpenCloset}
+        onStartTryOn={actions?.onStartTryOn}
+      />
+    );
+  }
+
+  if (activePage === "editProfile") {
+    return (
+      <AccountEditProfileScreen
+        initialProfile={{
+          anniversary: user.anniversary,
+          avatarUri: user.avatarUri,
+          dateOfBirth: user.dateOfBirth,
+          email: user.email ?? "",
+          fashionInterest: user.fashionInterest,
+          name: user.name,
+          phone: user.phone
+        }}
+        onBack={() => setActivePage(null)}
+        onSave={handleSaveProfile}
+      />
+    );
+  }
+
   if (activePage) {
     return (
       <AccountDetailPage
         onBack={() => setActivePage(null)}
-        onEditProfile={actions?.onEditProfile}
+        onEditProfile={handleOpenEditProfile}
         onStartStyleQuiz={actions?.onStartStyleQuiz}
         page={activePage}
         styleProfile={styleProfile}
@@ -504,52 +630,56 @@ export function AccountScreen({
             avatarUri={user.avatarUri}
             email={user.email}
             name={user.name}
-            onEdit={actions?.onEditProfile}
+            onEdit={handleOpenEditProfile}
             phoneNumber={user.phoneNumber}
           />
 
-          <View style={styles.promptCard}>
-            <View style={styles.promptIcon}>
-              <Feather
-                color={colors.text}
-                name={styleProfile?.isRecorded ? "check" : "zap"}
-                size={19}
-              />
+          {shouldShowProfilePrompt ? (
+            <View style={styles.promptCard}>
+              <View style={styles.promptIcon}>
+                <Feather
+                  color={colors.text}
+                  name={promptTargetsStyleProfile ? "zap" : "package"}
+                  size={19}
+                />
+              </View>
+              <View style={styles.promptCopy}>
+                <Text style={styles.promptTitle}>
+                  Help Mira style you better
+                </Text>
+                <Text style={styles.promptBody}>
+                  {promptTargetsStyleProfile
+                    ? "Add fit notes and style cues so outfits feel closer to what you actually wear."
+                    : closetPromptCopy}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityLabel={
+                  promptTargetsStyleProfile
+                    ? "Complete style profile"
+                    : "Add closet pieces"
+                }
+                accessibilityRole="button"
+                onPress={handleProfilePromptPress}
+                style={({ pressed }) => [
+                  styles.primaryCta,
+                  pressed ? styles.pressed : null
+                ]}
+              >
+                <Text style={styles.primaryCtaText}>
+                  {promptTargetsStyleProfile
+                    ? "Complete style profile"
+                    : "Add 3 pieces you love"}
+                </Text>
+              </Pressable>
             </View>
-            <View style={styles.promptCopy}>
-              <Text style={styles.promptTitle}>
-                {styleProfile?.isRecorded
-                  ? "Mira has your style reference"
-                  : "Help Mira style you better"}
-              </Text>
-              <Text style={styles.promptBody}>
-                {styleProfile?.isRecorded
-                  ? "Your swipe signals are saved and will shape outfit suggestions."
-                  : "Add fit notes and style cues so outfits feel closer to what you actually wear."}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityLabel="Complete style profile"
-              accessibilityRole="button"
-              onPress={handleOpenStyle}
-              style={({ pressed }) => [
-                styles.primaryCta,
-                pressed ? styles.pressed : null
-              ]}
-            >
-              <Text style={styles.primaryCtaText}>
-                {styleProfile?.isRecorded
-                  ? "View style reference"
-                  : "Complete style profile"}
-              </Text>
-            </Pressable>
-          </View>
+          ) : null}
         </View>
 
         <View style={styles.body}>
           <View style={styles.section}>
             <View style={styles.rows}>
-              {styleRows.map((row) => (
+              {youRows.map((row) => (
                 <AccountMenuRow
                   icon={row.icon}
                   key={row.key}
@@ -562,27 +692,32 @@ export function AccountScreen({
           </View>
 
           <View style={styles.section}>
-            <SectionTitle title="Preferences" />
+            <View style={styles.rows}>
+              {activityRows.map((row) => (
+                <AccountMenuRow
+                  icon={row.icon}
+                  key={row.key}
+                  onPress={row.onPress}
+                  subtitle={row.subtitle}
+                  title={row.title}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
             <View style={styles.rows}>
               <AccountPreferenceRow
                 icon="bell"
                 onValueChange={setNotificationsEnabled}
-                subtitle="Saved looks, outfit ideas and price drops"
-                title="Style alerts"
+                subtitle="Style alerts, price drops and new looks"
+                title="Notifications"
                 value={notificationsEnabled}
-              />
-              <AccountPreferenceRow
-                icon="map-pin"
-                onValueChange={setLocationEnabled}
-                subtitle="Weather and nearby occasion context"
-                title="Location context"
-                value={locationEnabled}
               />
             </View>
           </View>
 
           <View style={styles.section}>
-            <SectionTitle title="Support" />
             <View style={styles.rows}>
               {supportRows.map((row) => (
                 <AccountMenuRow
@@ -596,19 +731,21 @@ export function AccountScreen({
             </View>
           </View>
 
-          <View style={styles.footer}>
-            <Pressable
-              accessibilityLabel="Logout"
-              accessibilityRole="button"
-              onPress={actions?.onLogout}
-              style={({ pressed }) => [
-                styles.logout,
-                pressed ? styles.pressed : null
-              ]}
-            >
-              <Text style={styles.logoutText}>Logout</Text>
-            </Pressable>
-            <Text style={styles.version}>Version {appVersion}</Text>
+          <View style={styles.section}>
+            <View style={styles.footer}>
+              <Pressable
+                accessibilityLabel="Logout"
+                accessibilityRole="button"
+                onPress={actions?.onLogout}
+                style={({ pressed }) => [
+                  styles.logout,
+                  pressed ? styles.pressed : null
+                ]}
+              >
+                <Text style={styles.logoutText}>Logout</Text>
+              </Pressable>
+              <Text style={styles.version}>Version {appVersion}</Text>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -644,14 +781,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.sheet,
     borderTopRightRadius: radii.sheet,
     flexGrow: 1,
-    gap: spacing.xl,
-    paddingBottom: 156,
+    gap: spacing.lg,
+    paddingBottom: 108,
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.xl
+    paddingTop: spacing.lg
   },
   content: {
     flexGrow: 1,
-    gap: spacing.xl,
+    gap: spacing.lg,
     paddingBottom: 0,
     paddingTop: appScreenTopPadding
   },
@@ -662,7 +799,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flexGrow: 1,
     gap: spacing.xl,
-    paddingBottom: 156,
+    paddingBottom: 108,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.sm
   },
@@ -761,13 +898,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   section: {
-    gap: spacing.xl
-  },
-  sectionTitle: {
-    color: colors.muted,
-    fontFamily: fonts.bodyMedium,
-    fontSize: 13,
-    lineHeight: 17
+    gap: spacing.md
   },
   primaryCta: {
     alignItems: "center",

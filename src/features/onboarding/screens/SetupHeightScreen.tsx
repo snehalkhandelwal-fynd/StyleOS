@@ -33,7 +33,11 @@ export function SetupHeightScreen({
         disabled: false,
         onPress: onContinue
       }}
-      title="Tell us about yourself"
+      title={
+        presentation === "drawer"
+          ? "How tall are you?"
+          : "Tell us about yourself"
+      }
       totalSteps={totalSteps}
     >
       <View

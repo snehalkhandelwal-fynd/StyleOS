@@ -52,7 +52,10 @@ import {
   type TryOnExitState
 } from "../features/home/screens/TryOnScreen";
 import { hasCompletedStyleProfile } from "../features/home/utils/stylePersonalization";
-import type { OnboardingDraft } from "../features/onboarding/viewModels/useOnboardingViewModel";
+import type {
+  EditableProfile,
+  OnboardingDraft
+} from "../features/onboarding/viewModels/useOnboardingViewModel";
 import { colors, fonts, spacing } from "../theme";
 import type { HomeTabName } from "./types";
 
@@ -68,10 +71,12 @@ type HomeTabsNavigatorProps = {
     returnAccountPage?: AccountPage
   ) => void;
   onStatusBarBackgroundChange?: (backgroundColor: string) => void;
+  onUpdateProfile: (profile: EditableProfile) => void;
 };
 
 type TryOnEntry = {
   context?: string;
+  lockOwnedPiecesInEditor?: boolean;
   look?: ProductLook;
   renderDelayMs?: number;
   returnTab: HomeTabName;
@@ -366,6 +371,38 @@ function buildClosetAutoPairSession(item: ClosetAutoPairItem) {
   return { look, pieces };
 }
 
+function buildClosetBuildLookSession(
+  item: ClosetAutoPairItem,
+  pieces: LookPiece[]
+) {
+  const buyableTotal = pieces
+    .filter((piece) => !piece.isOwned)
+    .reduce((sum, piece) => sum + getRupeeValue(piece.price), 0);
+
+  return {
+    look: {
+      brand: "Mira",
+      id: `closet-build-look-${item.id}-${Date.now()}`,
+      image: item.image,
+      itemCount: `${pieces.length} pieces`,
+      match: "Build look",
+      outfitItems: pieces.map((piece) => ({
+        image: piece.image,
+        kind: piece.kind,
+        label: piece.category
+      })),
+      price:
+        buyableTotal > 0
+          ? `From ₹${buyableTotal.toLocaleString("en-IN")}`
+          : "Try now",
+      title: `Build with ${item.title}`,
+      tries: "Ready to build",
+      vibe: "Closet builder"
+    },
+    pieces
+  };
+}
+
 const renderStatusTopInset =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight ?? 0;
 const closetAutoPairRenderDelayMs = 1800;
@@ -495,7 +532,8 @@ export function HomeTabsNavigator({
   onChangeAddress,
   onSelectPhoto,
   onStartStyleQuiz,
-  onStatusBarBackgroundChange
+  onStatusBarBackgroundChange,
+  onUpdateProfile
 }: HomeTabsNavigatorProps) {
   const renderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readyToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -516,6 +554,8 @@ export function HomeTabsNavigator({
   const [isExploreInternalViewOpen, setIsExploreInternalViewOpen] =
     useState(false);
   const [isClosetInternalViewOpen, setIsClosetInternalViewOpen] =
+    useState(false);
+  const [isAccountInternalViewOpen, setIsAccountInternalViewOpen] =
     useState(false);
   const [tryOnEntry, setTryOnEntry] = useState<TryOnEntry | null>(null);
   const [tryOnRender, setTryOnRender] = useState<TryOnRenderState>({
@@ -755,6 +795,7 @@ export function HomeTabsNavigator({
     setIsSearchOpen(false);
     setIsExploreInternalViewOpen(false);
     setIsClosetInternalViewOpen(false);
+    setIsAccountInternalViewOpen(false);
     setTryOnEntry(null);
     setIsTryOnShopLookOpen(false);
     setIsSelectedLookShopOpen(false);
@@ -765,7 +806,8 @@ export function HomeTabsNavigator({
 
   useEffect(() => {
     const statusBarBackground =
-      activeTab === "Closet" && !isClosetInternalViewOpen
+      (activeTab === "Closet" && !isClosetInternalViewOpen) ||
+      activeTab === "Profile"
         ? colors.surfaceTertiary
         : colors.background;
 
@@ -887,10 +929,12 @@ export function HomeTabsNavigator({
       look?: ProductLook,
       context?: string,
       renderDelayMs?: number,
-      useSessionPiecesForShop?: boolean
+      useSessionPiecesForShop?: boolean,
+      lockOwnedPiecesInEditor?: boolean
     ) => {
       const nextEntry = {
         context,
+        lockOwnedPiecesInEditor,
         look,
         renderDelayMs,
         returnTab: activeTab,
@@ -942,6 +986,29 @@ export function HomeTabsNavigator({
         look,
         "Closet auto-pair",
         closetAutoPairRenderDelayMs,
+        true,
+        true
+      );
+    },
+    [openTryOnSession]
+  );
+
+  const handleStartClosetBuildLook = useCallback(
+    (item: ClosetAutoPairItem, pieces: LookPiece[]) => {
+      const { look } = buildClosetBuildLookSession(item, pieces);
+
+      setLookSnapshots((current) => ({
+        ...current,
+        [look.id]: {
+          isSaved: false,
+          pieces
+        }
+      }));
+      openTryOnSession(
+        look,
+        "Closet build look",
+        closetAutoPairRenderDelayMs,
+        true,
         true
       );
     },
@@ -1217,7 +1284,8 @@ export function HomeTabsNavigator({
     activeTab !== "Cart" &&
     (activeTab !== "TryOn" || shouldShowStylistFallback) &&
     !(activeTab === "Feed" && isExploreInternalViewOpen) &&
-    !(activeTab === "Closet" && isClosetInternalViewOpen);
+    !(activeTab === "Closet" && isClosetInternalViewOpen) &&
+    !(activeTab === "Profile" && isAccountInternalViewOpen);
   const hasStyleProfile = hasCompletedStyleProfile(draft);
   const styleQuiz = draft.styleQuiz;
   const styleCardsForInterest = getStyleCardsForFashionInterest(
@@ -1376,9 +1444,11 @@ export function HomeTabsNavigator({
           <TryOnScreen
             cartCount={cartCount}
             draft={draft}
+            hideHeaderTitle={tryOnEntry?.context === "Closet build look"}
             initialIsSaved={tryOnLookSnapshot?.isSaved}
             initialPieces={tryOnLookSnapshot?.pieces}
             isCreatingLook={tryOnRender.status === "rendering"}
+            lockOwnedPiecesInEditor={tryOnEntry?.lockOwnedPiecesInEditor}
             look={tryOnEntry?.look}
             onCartUpdated={(pieceCount) =>
               setCartCount((current) => current + pieceCount)
@@ -1407,7 +1477,7 @@ export function HomeTabsNavigator({
             onOpenSearch={() => setIsSearchOpen(true)}
             onOpenWishlist={handleOpenWishlist}
             onStartAutoPairTryOn={handleStartClosetAutoPairTryOn}
-            onStartTryOn={() => openTryOnSession(undefined, "Closet item")}
+            onStartTryOn={handleStartClosetBuildLook}
           />
         ) : null}
         {activeTab === "Feed" ? (
@@ -1438,16 +1508,24 @@ export function HomeTabsNavigator({
         {activeTab === "Profile" ? (
           <AccountScreen
             actions={{
+              onOpenCloset: () => handleChangeTab("Closet"),
               onOpenExplore: () => handleChangeTab("Feed"),
               onStartStyleQuiz: () => onStartStyleQuiz("Profile", "style"),
-              onStartTryOn: (context) => openTryOnSession(undefined, context)
+              onStartTryOn: (context) => openTryOnSession(undefined, context),
+              onUpdateProfile
             }}
             appVersion="1.0.1"
             initialPage={accountPageOverride ?? initialAccountPage}
+            onInternalViewChange={setIsAccountInternalViewOpen}
             styleProfile={styleProfile}
             user={{
+              anniversary: draft.anniversary,
               avatarUri: draft.avatarUri,
+              dateOfBirth: draft.dateOfBirth,
+              email: draft.email,
+              fashionInterest: draft.fashionInterest,
               name: draft.name?.trim() || "Guest",
+              phone: draft.phone,
               phoneNumber: draft.phone
                 ? `${draft.phone.countryCode} ${draft.phone.phoneNumber}`
                 : undefined

@@ -9,7 +9,7 @@ import { colors, radii, spacing, typography } from "../../../theme";
  * - `name` is always rendered.
  * - `phoneNumber` / `email` rows render only when provided.
  * - `avatarUri` falls back to a placeholder glyph when absent.
- * - `onEdit` is optional; the edit affordance is hidden when omitted.
+ * - `onEdit` is optional; the tertiary edit CTA is hidden when omitted.
  */
 type AccountProfileCardProps = {
   name: string;
@@ -49,18 +49,22 @@ export function AccountProfileCard({
             {email}
           </Text>
         ) : null}
+        {onEdit ? (
+          <Pressable
+            accessibilityLabel="Edit profile"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onEdit}
+            style={({ pressed }) => [
+              styles.editCta,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Text style={styles.editCtaText}>Edit profile</Text>
+            <Feather color={colors.text} name="chevron-right" size={15} />
+          </Pressable>
+        ) : null}
       </View>
-      {onEdit ? (
-        <Pressable
-          accessibilityLabel="Edit profile"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={onEdit}
-          style={({ pressed }) => [styles.edit, pressed ? styles.pressed : null]}
-        >
-          <Feather color={colors.text} name="edit-2" size={16} />
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -93,13 +97,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.muted
   },
-  edit: {
+  editCta: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: radii.pill,
-    height: 34,
-    justifyContent: "center",
-    width: 34
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: spacing.xs,
+    paddingTop: spacing.xs
+  },
+  editCtaText: {
+    ...typography.button,
+    color: colors.text
   },
   info: {
     flex: 1,

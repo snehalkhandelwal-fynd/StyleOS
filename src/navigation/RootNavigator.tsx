@@ -222,6 +222,7 @@ export function RootNavigator({
           onSelectPhoto={actions.setFullBodyPhotoUri}
           onStartStyleQuiz={handleStartStyleQuizFromHome}
           onStatusBarBackgroundChange={onStatusBarBackgroundChange}
+          onUpdateProfile={actions.updateProfile}
         />
       ) : null}
 

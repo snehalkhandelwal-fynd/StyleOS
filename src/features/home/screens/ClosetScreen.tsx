@@ -25,6 +25,7 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 import { colors, fonts, radii, spacing, typography } from "../../../theme";
 import {
@@ -32,10 +33,19 @@ import {
   appScreenTopPadding
 } from "../components/AppScreenHeader";
 import {
+  ProductListingScreen,
+  type ProductListingProduct
+} from "../components/ProductListingScreen";
+import {
   appBottomSafeInset,
   appSearchHeaderHeight,
   appSearchHeaderTopPadding
 } from "../utils/safeArea";
+import {
+  getPieceAlternatives,
+  getRupeeValue,
+  type LookPiece
+} from "../data/lookPieces";
 import { CartCountBadge } from "../components/CartCountBadge";
 import { WishlistHeartIcon } from "../components/WishlistHeartIcon";
 
@@ -47,7 +57,7 @@ type ClosetScreenProps = {
   onOpenSearch?: () => void;
   onOpenWishlist?: () => void;
   onStartAutoPairTryOn?: (item: ClosetAutoPairItem) => void;
-  onStartTryOn?: () => void;
+  onStartTryOn?: (item: ClosetAutoPairItem, pieces: LookPiece[]) => void;
 };
 
 export type ClosetAutoPairItem = Pick<
@@ -128,7 +138,19 @@ type CatalogPair = {
   title: string;
 };
 
-type ClosetCategoryFilter = "All" | "Tops" | "Bottoms" | "Layers" | "Shoes";
+type ClosetCategoryFilter =
+  | "All"
+  | "Top"
+  | "Bottom"
+  | "Footwear"
+  | "Layer";
+
+type ClosetCategoryFilterOption = {
+  categoryMatches?: string[];
+  image: string;
+  key: ClosetCategoryFilter;
+  label: string;
+};
 
 const closetPieces: ClosetPiece[] = [
   {
@@ -216,13 +238,6 @@ const detectedCategories: DetectedCategory[] = [
   "Shoes",
   "Bag"
 ];
-const closetCategoryFilters: ClosetCategoryFilter[] = [
-  "All",
-  "Tops",
-  "Bottoms",
-  "Layers",
-  "Shoes"
-];
 const editProductColorOptions = [
   "White",
   "Black",
@@ -270,6 +285,37 @@ const detectedGraphicTeeImage = Image.resolveAssetSource(
 const detectedLightWashJeansImage = Image.resolveAssetSource(
   require("../../../../Images/Product Images/Bottoms/Sandro_SFPJE00818-4785_F_P.jpg")
 ).uri;
+const closetCategoryFilters: ClosetCategoryFilterOption[] = [
+  {
+    image: prototypeProductImages.sandro.whitePinstripeSuit,
+    key: "All",
+    label: "All"
+  },
+  {
+    categoryMatches: ["Tops"],
+    image: prototypeProductImages.productOnly.top,
+    key: "Top",
+    label: "Top"
+  },
+  {
+    categoryMatches: ["Bottoms"],
+    image: prototypeProductImages.productOnly.bottom,
+    key: "Bottom",
+    label: "Bottom"
+  },
+  {
+    categoryMatches: ["Shoes"],
+    image: prototypeProductImages.shopThisLook.brownShoes,
+    key: "Footwear",
+    label: "Footwear"
+  },
+  {
+    categoryMatches: ["Layers"],
+    image: prototypeProductImages.productOnly.jacket,
+    key: "Layer",
+    label: "Layer"
+  }
+];
 const detectedItemTemplates: Array<{
   category: DetectedCategory;
   color: string;
@@ -494,6 +540,13 @@ function getDetectedCategoryFromCloset(category: string): DetectedCategory {
   }
 }
 
+function doesClosetPieceMatchCategoryFilter(
+  piece: ClosetPiece,
+  option: ClosetCategoryFilterOption
+) {
+  return Boolean(option.categoryMatches?.includes(piece.category));
+}
+
 function getEditProductColorSwatch(color: string) {
   switch (color.trim().toLowerCase()) {
     case "white":
@@ -575,6 +628,281 @@ function toClosetAutoPairItem(piece: ClosetPiece): ClosetAutoPairItem {
     tags: piece.tags,
     title: piece.title
   };
+}
+
+type ClosetBuildSlotKind = LookPiece["kind"];
+type ClosetBuildSlotConfig = {
+  kind: ClosetBuildSlotKind;
+  label: string;
+  listingTitle: string;
+};
+type ClosetBuildListingOption = {
+  piece: LookPiece;
+  product: ProductListingProduct;
+};
+
+const closetBuildSlots: ClosetBuildSlotConfig[] = [
+  { kind: "top", label: "Top", listingTitle: "Choose top" },
+  { kind: "bottom", label: "Bottom", listingTitle: "Choose bottom" },
+  { kind: "shoe", label: "Footwear", listingTitle: "Choose shoes" },
+  { kind: "bag", label: "Bag", listingTitle: "Choose bag" },
+  { kind: "jacket", label: "Layer", listingTitle: "Choose layer" },
+  { kind: "accessory", label: "Accessory", listingTitle: "Choose accessory" },
+  { kind: "dress", label: "Dress", listingTitle: "Choose dress" }
+];
+
+function getClosetBuildSlotLabel(kind: ClosetBuildSlotKind) {
+  return closetBuildSlots.find((slot) => slot.kind === kind)?.label ?? "Piece";
+}
+
+function getClosetBuildSearchPlaceholder(kind: ClosetBuildSlotKind) {
+  const placeholders: Record<ClosetBuildSlotKind, string> = {
+    accessory: "Search accessories",
+    bag: "Search bags",
+    bottom: "Search bottoms",
+    dress: "Search dresses",
+    jacket: "Search layers",
+    shoe: "Search footwear",
+    top: "Search tops"
+  };
+
+  return placeholders[kind];
+}
+
+function getClosetBuildKind(item: ClosetAutoPairItem): ClosetBuildSlotKind {
+  const descriptor = `${item.category} ${item.title} ${item.tags.join(" ")}`.toLowerCase();
+
+  if (descriptor.includes("shoe") || descriptor.includes("sneaker")) {
+    return "shoe";
+  }
+
+  if (descriptor.includes("bag")) {
+    return "bag";
+  }
+
+  if (descriptor.includes("belt") || descriptor.includes("accessory")) {
+    return "accessory";
+  }
+
+  if (
+    descriptor.includes("layer") ||
+    descriptor.includes("jacket") ||
+    descriptor.includes("blazer") ||
+    descriptor.includes("coat")
+  ) {
+    return "jacket";
+  }
+
+  if (
+    descriptor.includes("bottom") ||
+    descriptor.includes("jean") ||
+    descriptor.includes("trouser") ||
+    descriptor.includes("skirt") ||
+    descriptor.includes("pant")
+  ) {
+    return "bottom";
+  }
+
+  if (descriptor.includes("dress")) {
+    return "dress";
+  }
+
+  return "top";
+}
+
+function getClosetBuildComplementKinds(
+  closetKind: ClosetBuildSlotKind
+): ClosetBuildSlotKind[] {
+  switch (closetKind) {
+    case "top":
+      return ["bottom", "shoe", "bag"];
+    case "bottom":
+      return ["top", "shoe", "bag"];
+    case "jacket":
+      return ["top", "bottom", "shoe", "bag"];
+    case "shoe":
+      return ["top", "bottom", "bag"];
+    case "bag":
+    case "accessory":
+      return ["top", "bottom", "shoe"];
+    case "dress":
+      return ["shoe", "bag", "jacket"];
+    default:
+      return ["top", "bottom", "shoe"];
+  }
+}
+
+function getClosetBuildScore(piece: LookPiece, item: ClosetAutoPairItem) {
+  const itemSignals =
+    `${item.color} ${item.material} ${item.fit} ${item.tags.join(" ")}`.toLowerCase();
+  const pieceSignals =
+    `${piece.name} ${piece.brand} ${piece.category}`.toLowerCase();
+  let score = 80;
+
+  if (
+    itemSignals.includes("brown") &&
+    (pieceSignals.includes("cream") ||
+      pieceSignals.includes("linen") ||
+      pieceSignals.includes("white") ||
+      pieceSignals.includes("khaki"))
+  ) {
+    score += 8;
+  }
+
+  if (
+    itemSignals.includes("cream") &&
+    (pieceSignals.includes("brown") ||
+      pieceSignals.includes("tan") ||
+      pieceSignals.includes("olive") ||
+      pieceSignals.includes("neutral"))
+  ) {
+    score += 7;
+  }
+
+  if (
+    itemSignals.includes("floral") &&
+    (pieceSignals.includes("linen") ||
+      pieceSignals.includes("neutral") ||
+      pieceSignals.includes("brown") ||
+      pieceSignals.includes("white"))
+  ) {
+    score += 6;
+  }
+
+  return score;
+}
+
+function getClosetBuildAutoPiece(
+  kind: ClosetBuildSlotKind,
+  item: ClosetAutoPairItem,
+  index: number
+): LookPiece {
+  const alternatives = getPieceAlternatives(kind);
+  const bestPiece =
+    alternatives
+      .map((piece, optionIndex) => ({
+        piece,
+        score: getClosetBuildScore(piece, item) - optionIndex
+      }))
+      .sort((first, second) => second.score - first.score)[0]?.piece ??
+    alternatives[0];
+
+  return {
+    ...bestPiece,
+    id: `closet-builder-${item.id}-${kind}-${index}`,
+    isOwned: false,
+    kind
+  };
+}
+
+function buildClosetBuildPieces(item: ClosetAutoPairItem): LookPiece[] {
+  const closetKind = getClosetBuildKind(item);
+  const ownedPiece: LookPiece = {
+    brand: "Your closet",
+    category: item.category,
+    id: `closet-builder-owned-${item.id}`,
+    image: item.image,
+    isOwned: true,
+    kind: closetKind,
+    name: item.title,
+    price: "₹0",
+    sizes: ["One"]
+  };
+  const complementPieces = getClosetBuildComplementKinds(closetKind).map(
+    (kind, index) => getClosetBuildAutoPiece(kind, item, index)
+  );
+
+  return [ownedPiece, ...complementPieces];
+}
+
+function getClosetBuildSlotPiece(
+  pieces: LookPiece[],
+  kind: ClosetBuildSlotKind
+) {
+  return pieces.find((piece) => piece.kind === kind);
+}
+
+function replaceClosetBuildSlotPiece(
+  pieces: LookPiece[],
+  kind: ClosetBuildSlotKind,
+  selectedPiece: LookPiece
+) {
+  const existingPiece = getClosetBuildSlotPiece(pieces, kind);
+
+  if (existingPiece?.isOwned) {
+    return pieces;
+  }
+
+  const nextPiece = {
+    ...selectedPiece,
+    id: existingPiece?.id ?? `closet-builder-${kind}-${pieces.length}`,
+    isOwned: false,
+    kind
+  };
+
+  if (existingPiece) {
+    return pieces.map((piece) =>
+      piece.id === existingPiece.id ? nextPiece : piece
+    );
+  }
+
+  return [...pieces, nextPiece];
+}
+
+function removeClosetBuildSlotPiece(
+  pieces: LookPiece[],
+  kind: ClosetBuildSlotKind
+) {
+  return pieces.filter((piece) => piece.kind !== kind || piece.isOwned);
+}
+
+function toClosetBuildProduct(
+  piece: LookPiece,
+  kind: ClosetBuildSlotKind,
+  index: number,
+  isCurrent: boolean
+): ProductListingProduct {
+  return {
+    brand: piece.brand,
+    id: `closet-build-${kind}-${piece.id}-${index}`,
+    image: piece.image,
+    match: isCurrent ? "Current look" : "Try now",
+    occasion: "Build your look",
+    price: piece.price,
+    priceValue: getRupeeValue(piece.price),
+    sizeOptions: piece.sizes,
+    styleLabel: getClosetBuildSlotLabel(kind),
+    title: piece.name,
+    tries: isCurrent ? "Selected" : "Try now",
+    vibe: "Closet builder"
+  };
+}
+
+function getClosetBuildListingOptions(
+  pieces: LookPiece[],
+  kind: ClosetBuildSlotKind
+): ClosetBuildListingOption[] {
+  const currentPiece = getClosetBuildSlotPiece(pieces, kind);
+  const alternatives = getPieceAlternatives(kind);
+  const uniquePieces = [
+    ...(currentPiece && !currentPiece.isOwned ? [currentPiece] : []),
+    ...alternatives
+  ]
+    .filter(
+      (piece, index, allPieces) =>
+        allPieces.findIndex(
+          (candidate) =>
+            candidate.kind === piece.kind &&
+            candidate.image === piece.image &&
+            candidate.name === piece.name
+        ) === index
+    )
+    .slice(0, 16);
+
+  return uniquePieces.map((piece, index) => ({
+    piece,
+    product: toClosetBuildProduct(piece, kind, index, piece === currentPiece)
+  }));
 }
 
 function ClosetToolbarButton({
@@ -2289,6 +2617,298 @@ function PhotoLibraryPickerModal({
   );
 }
 
+function ClosetBuildSlotCard({
+  kind,
+  label,
+  onClear,
+  onPress,
+  piece
+}: {
+  kind: ClosetBuildSlotKind;
+  label: string;
+  onClear: (kind: ClosetBuildSlotKind) => void;
+  onPress: (kind: ClosetBuildSlotKind) => void;
+  piece?: LookPiece;
+}) {
+  const isOwnedPiece = Boolean(piece?.isOwned);
+
+  return (
+    <View style={styles.closetBuildSlot}>
+      {piece ? (
+        <Pressable
+          accessibilityLabel={
+            isOwnedPiece
+              ? `${label}: ${piece.name}, yours`
+              : `Browse ${label}, currently ${piece.name}`
+          }
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isOwnedPiece }}
+          disabled={isOwnedPiece}
+          onPress={() => onPress(kind)}
+          style={({ pressed }) => [
+            styles.closetBuildSlotFrame,
+            pressed && !isOwnedPiece ? styles.pressed : null
+          ]}
+        >
+          <Image
+            resizeMode="contain"
+            source={{ uri: piece.image }}
+            style={styles.closetBuildSlotImage}
+          />
+          {isOwnedPiece ? (
+            <View style={styles.closetBuildOwnedTag}>
+              <Text style={styles.closetBuildOwnedTagText}>Yours</Text>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityLabel={`Remove ${label}`}
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                onClear(kind);
+              }}
+              style={({ pressed }) => [
+                styles.closetBuildRemoveButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.soft} name="x" size={21} />
+            </Pressable>
+          )}
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityLabel={`Browse ${label}`}
+          accessibilityRole="button"
+          onPress={() => onPress(kind)}
+          style={({ pressed }) => [
+            styles.closetBuildSlotFrame,
+            styles.closetBuildSlotFrameEmpty,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <View style={styles.closetBuildEmptyContent}>
+            <View style={styles.closetBuildAddIcon}>
+              <Feather color={colors.soft} name="plus" size={24} />
+            </View>
+            <Text style={styles.closetBuildEmptyText}>
+              Add {label.toLowerCase()}
+            </Text>
+          </View>
+        </Pressable>
+      )}
+
+      <Text numberOfLines={1} style={styles.closetBuildSlotLabel}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function ClosetShuffleIcon() {
+  return (
+    <Svg fill="none" height={16} viewBox="0 0 16 16" width={16}>
+      <Path
+        d="M5.85 0.854192C5.94108 0.759891 5.99148 0.63359 5.99034 0.502491C5.9892 0.371393 5.93661 0.245987 5.84391 0.153283C5.75121 0.0605785 5.6258 0.00799405 5.4947 0.00685484C5.3636 0.00571563 5.2373 0.0561128 5.143 0.147192L2.143 3.14719C2.04926 3.24096 1.99661 3.36811 1.99661 3.50069C1.99661 3.63327 2.04926 3.76043 2.143 3.85419L5.143 6.85419C5.2373 6.94527 5.3636 6.99567 5.4947 6.99453C5.6258 6.99339 5.75121 6.94081 5.84391 6.8481C5.93661 6.7554 5.9892 6.62999 5.99034 6.49889C5.99148 6.36779 5.94108 6.24149 5.85 6.14719L3.7 3.99719H11.49C12.153 3.99719 12.7889 4.26058 13.2578 4.72942C13.7266 5.19827 13.99 5.83415 13.99 6.49719V8.49719C13.99 8.6298 14.0427 8.75698 14.1364 8.85075C14.2302 8.94451 14.3574 8.99719 14.49 8.99719C14.6226 8.99719 14.7498 8.94451 14.8436 8.85075C14.9373 8.75698 14.99 8.6298 14.99 8.49719V6.49719C14.99 4.56719 13.42 2.99719 11.49 2.99719H3.7L5.85 0.847192V0.854192ZM2 7.50019C2 7.36758 1.94732 7.24041 1.85355 7.14664C1.75979 7.05287 1.63261 7.00019 1.5 7.00019C1.36739 7.00019 1.24021 7.05287 1.14645 7.14664C1.05268 7.24041 1 7.36758 1 7.50019V9.50019C1 11.4302 2.57 13.0002 4.5 13.0002H12.29L10.14 15.1502C10.0489 15.2445 9.99852 15.3708 9.99966 15.5019C10.0008 15.633 10.0534 15.7584 10.1461 15.8511C10.2388 15.9438 10.3642 15.9964 10.4953 15.9975C10.6264 15.9987 10.7527 15.9483 10.847 15.8572L13.847 12.8572C13.9407 12.7634 13.9934 12.6363 13.9934 12.5037C13.9934 12.3711 13.9407 12.244 13.847 12.1502L10.847 9.15019C10.7527 9.05911 10.6264 9.00871 10.4953 9.00985C10.3642 9.01099 10.2388 9.06358 10.1461 9.15628C10.0534 9.24899 10.0008 9.37439 9.99966 9.50549C9.99852 9.63659 10.0489 9.76289 10.14 9.85719L12.29 12.0072H4.5C3.83696 12.0072 3.20107 11.7438 2.73223 11.275C2.26339 10.8061 2 10.1702 2 9.50719V7.50719V7.50019Z"
+        fill={colors.text}
+      />
+    </Svg>
+  );
+}
+
+function ClosetBuildLookDrawer({
+  item,
+  onClose,
+  onGenerate,
+  visible
+}: {
+  item: ClosetAutoPairItem;
+  onClose: () => void;
+  onGenerate: (item: ClosetAutoPairItem, pieces: LookPiece[]) => void;
+  visible: boolean;
+}) {
+  const [pieces, setPieces] = useState<LookPiece[]>(() =>
+    buildClosetBuildPieces(item)
+  );
+  const [activeCategory, setActiveCategory] =
+    useState<ClosetBuildSlotKind | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    setPieces(buildClosetBuildPieces(item));
+    setActiveCategory(null);
+  }, [item, visible]);
+
+  const handleClearSlot = (kind: ClosetBuildSlotKind) => {
+    setPieces((currentPieces) => removeClosetBuildSlotPiece(currentPieces, kind));
+  };
+
+  const handleOpenCategory = (kind: ClosetBuildSlotKind) => {
+    const currentPiece = getClosetBuildSlotPiece(pieces, kind);
+
+    if (currentPiece?.isOwned) {
+      return;
+    }
+
+    setActiveCategory(kind);
+  };
+
+  const handleSelectProduct = (
+    kind: ClosetBuildSlotKind,
+    selectedPiece: LookPiece
+  ) => {
+    setPieces((currentPieces) =>
+      replaceClosetBuildSlotPiece(currentPieces, kind, selectedPiece)
+    );
+    setActiveCategory(null);
+  };
+
+  const handleShuffle = () => {
+    setPieces((currentPieces) =>
+      closetBuildSlots.reduce<LookPiece[]>((draftPieces, slot) => {
+        const currentPiece = getClosetBuildSlotPiece(draftPieces, slot.kind);
+
+        if (currentPiece?.isOwned) {
+          return draftPieces;
+        }
+
+        const alternatives = getPieceAlternatives(slot.kind);
+
+        if (alternatives.length === 0) {
+          return draftPieces;
+        }
+
+        const availableAlternatives =
+          alternatives.length > 1 && currentPiece
+            ? alternatives.filter(
+                (piece) =>
+                  piece.image !== currentPiece.image ||
+                  piece.name !== currentPiece.name
+              )
+            : alternatives;
+        const shuffledPiece =
+          availableAlternatives[
+            Math.floor(Math.random() * availableAlternatives.length)
+          ] ?? alternatives[0];
+
+        return replaceClosetBuildSlotPiece(
+          draftPieces,
+          slot.kind,
+          shuffledPiece
+        );
+      }, currentPieces)
+    );
+  };
+
+  if (!visible) {
+    return null;
+  }
+
+  const activeSlot =
+    closetBuildSlots.find((slot) => slot.kind === activeCategory) ??
+    closetBuildSlots[0];
+  const listingOptions = activeCategory
+    ? getClosetBuildListingOptions(pieces, activeCategory)
+    : [];
+
+  return (
+    <Modal animationType="slide" onRequestClose={onClose} transparent visible>
+      <View style={styles.addDrawerRoot}>
+        <Pressable
+          accessibilityLabel="Close build your look drawer"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.addDrawerScrim}
+        />
+        <View style={styles.closetBuildDrawer}>
+          {activeCategory ? (
+            <ProductListingScreen
+              emptyCopy="Try another category or come back to this slot later."
+              emptyTitle={`No ${activeSlot.label.toLowerCase()} options yet`}
+              hideCardWishlist
+              hideHeaderActions
+              hideProductImageTags
+              keepProductsVisibleOnEmptyChip
+              onBack={() => setActiveCategory(null)}
+              onOpenProduct={(product) => {
+                const selectedOption = listingOptions.find(
+                  (option) => option.product.id === product.id
+                );
+
+                if (selectedOption) {
+                  handleSelectProduct(activeCategory, selectedOption.piece);
+                }
+              }}
+              products={listingOptions.map((option) => option.product)}
+              searchPlaceholder={getClosetBuildSearchPlaceholder(activeCategory)}
+              showDrawerHandle
+              showSearchBar
+              title={activeSlot.listingTitle}
+            />
+          ) : (
+            <>
+              <View style={styles.closetBuildHandle} />
+              <View style={styles.closetBuildHeader}>
+                <View style={styles.closetBuildHeaderSpacer} />
+                <Text numberOfLines={1} style={styles.closetBuildTitle}>
+                  Build your look
+                </Text>
+                <Pressable
+                  accessibilityLabel="Shuffle suggested products"
+                  accessibilityRole="button"
+                  onPress={handleShuffle}
+                  style={({ pressed }) => [
+                    styles.closetBuildIconButton,
+                    pressed ? styles.pressed : null
+                  ]}
+                >
+                  <ClosetShuffleIcon />
+                </Pressable>
+              </View>
+              <ScrollView
+                contentContainerStyle={styles.closetBuildContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.closetBuildGrid}>
+                  {closetBuildSlots.map((slot) => (
+                    <ClosetBuildSlotCard
+                      key={slot.kind}
+                      kind={slot.kind}
+                      label={slot.label}
+                      onClear={handleClearSlot}
+                      onPress={handleOpenCategory}
+                      piece={getClosetBuildSlotPiece(pieces, slot.kind)}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+              <View style={styles.closetBuildGenerateShell}>
+                <Pressable
+                  accessibilityLabel="Generate look"
+                  accessibilityRole="button"
+                  onPress={() => onGenerate(item, pieces)}
+                  style={({ pressed }) => [
+                    styles.closetBuildGenerateButton,
+                    pressed ? styles.pressed : null
+                  ]}
+                >
+                  <Text style={styles.closetBuildGenerateText}>
+                    Generate Look
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function QuickAddBatchDrawer({
   expandedItemId,
   mode,
@@ -2586,6 +3206,8 @@ export function ClosetScreen({
   const [pieces, setPieces] = useState<ClosetPiece[]>(closetPieces);
   const [selectedPiece, setSelectedPiece] = useState<ClosetPiece | null>(null);
   const [isDetailEditVisible, setIsDetailEditVisible] = useState(false);
+  const [isBuildLookDrawerVisible, setIsBuildLookDrawerVisible] =
+    useState(false);
   const [favoritePieceIds, setFavoritePieceIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -2607,10 +3229,15 @@ export function ClosetScreen({
     useState<string | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] =
     useState<ClosetCategoryFilter>("All");
+  const selectedCategoryOption = closetCategoryFilters.find(
+    (option) => option.key === selectedCategoryFilter
+  );
   const filteredPieces =
-    selectedCategoryFilter === "All"
+    selectedCategoryFilter === "All" || !selectedCategoryOption
       ? pieces
-      : pieces.filter((piece) => piece.category === selectedCategoryFilter);
+      : pieces.filter((piece) =>
+          doesClosetPieceMatchCategoryFilter(piece, selectedCategoryOption)
+        );
 
   useEffect(() => {
     return () => {
@@ -3101,25 +3728,38 @@ export function ClosetScreen({
     });
   };
 
+  const closeSelectedPiece = () => {
+    setIsDetailEditVisible(false);
+    setIsBuildLookDrawerVisible(false);
+    setSelectedPiece(null);
+  };
+
+  const handleGenerateClosetBuildLook = (
+    item: ClosetAutoPairItem,
+    buildPieces: LookPiece[]
+  ) => {
+    setIsBuildLookDrawerVisible(false);
+    onStartTryOn?.(item, buildPieces);
+  };
+
   if (selectedPiece) {
+    const selectedAutoPairItem = toClosetAutoPairItem(selectedPiece);
+
     return (
       <>
         <ClosetPieceDetailScreen
           cartCount={cartCount}
           isFavorite={favoritePieceIds.has(selectedPiece.id)}
           onAskMira={onAskMira}
-          onBack={() => {
-            setIsDetailEditVisible(false);
-            setSelectedPiece(null);
-          }}
+          onBack={closeSelectedPiece}
           onEdit={() => setIsDetailEditVisible(true)}
           onOpenCart={onOpenCart}
           onOpenSearch={onOpenSearch}
           onOpenWishlist={onOpenWishlist}
           onStartAutoPairTryOn={() =>
-            onStartAutoPairTryOn?.(toClosetAutoPairItem(selectedPiece))
+            onStartAutoPairTryOn?.(selectedAutoPairItem)
           }
-          onStartTryOn={onStartTryOn}
+          onStartTryOn={() => setIsBuildLookDrawerVisible(true)}
           onToggleFavorite={() => handleToggleFavoritePiece(selectedPiece.id)}
           piece={selectedPiece}
         />
@@ -3128,6 +3768,12 @@ export function ClosetScreen({
           onSave={handleSaveDetailPiece}
           piece={selectedPiece}
           visible={isDetailEditVisible}
+        />
+        <ClosetBuildLookDrawer
+          item={selectedAutoPairItem}
+          onClose={() => setIsBuildLookDrawerVisible(false)}
+          onGenerate={handleGenerateClosetBuildLook}
+          visible={isBuildLookDrawerVisible}
         />
       </>
     );
@@ -3174,26 +3820,42 @@ export function ClosetScreen({
             </View>
           </View>
 
-          <View style={styles.filterChipRail}>
-            {closetCategoryFilters.map((filter, index) => {
-              const isSelected = selectedCategoryFilter === filter;
+          <ScrollView
+            contentContainerStyle={styles.filterChipRail}
+            horizontal
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterChipScroller}
+          >
+            {closetCategoryFilters.map((filter) => {
+              const isSelected = selectedCategoryFilter === filter.key;
 
               return (
                 <Pressable
+                  accessibilityLabel={`Filter closet by ${filter.label}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: isSelected }}
-                  key={`closet-filter-${filter}`}
-                  onPress={() => setSelectedCategoryFilter(filter)}
+                  key={`closet-filter-${filter.key}`}
+                  onPress={() => setSelectedCategoryFilter(filter.key)}
                   style={({ pressed }) => [
-                    styles.filterChip,
-                    index === 0 ? styles.filterChipFirst : null,
-                    index === closetCategoryFilters.length - 1
-                      ? styles.filterChipLast
-                      : null,
+                    styles.filterCategoryTab,
                     isSelected ? styles.filterChipSelected : null,
                     pressed ? styles.pressed : null
                   ]}
                 >
+                  <View
+                    style={[
+                      styles.filterImageShell,
+                      isSelected ? styles.filterImageShellSelected : null
+                    ]}
+                  >
+                    <Image
+                      resizeMode="cover"
+                      source={{ uri: filter.image }}
+                      style={styles.filterImage}
+                    />
+                  </View>
                   <Text
                     numberOfLines={1}
                     style={[
@@ -3201,12 +3863,12 @@ export function ClosetScreen({
                       isSelected ? styles.filterChipTextSelected : null
                     ]}
                   >
-                    {filter}
+                    {filter.label}
                   </Text>
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
 
         <View style={styles.grid}>
@@ -3334,6 +3996,163 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: 14,
     lineHeight: 18
+  },
+  closetBuildAddIcon: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 56,
+    justifyContent: "center",
+    width: 56
+  },
+  closetBuildContent: {
+    paddingBottom: 96,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg
+  },
+  closetBuildDrawer: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radii.sheet,
+    borderTopRightRadius: radii.sheet,
+    height: "76%",
+    overflow: "hidden"
+  },
+  closetBuildEmptyContent: {
+    alignItems: "center",
+    gap: spacing.md,
+    justifyContent: "center"
+  },
+  closetBuildEmptyText: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 17,
+    textAlign: "center"
+  },
+  closetBuildGenerateButton: {
+    alignItems: "center",
+    backgroundColor: colors.inverse,
+    borderRadius: radii.button,
+    height: 52,
+    justifyContent: "center"
+  },
+  closetBuildGenerateShell: {
+    backgroundColor: colors.background,
+    bottom: 0,
+    left: 0,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    position: "absolute",
+    right: 0
+  },
+  closetBuildGenerateText: {
+    color: colors.inverseText,
+    fontFamily: fonts.cta,
+    fontSize: 16,
+    lineHeight: 20
+  },
+  closetBuildGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.md
+  },
+  closetBuildHandle: {
+    alignSelf: "center",
+    backgroundColor: colors.soft,
+    borderRadius: radii.pill,
+    height: 5,
+    marginTop: spacing.sm,
+    width: 48
+  },
+  closetBuildHeader: {
+    alignItems: "center",
+    borderBottomColor: colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    height: 64,
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.xl
+  },
+  closetBuildHeaderSpacer: {
+    height: 48,
+    width: 48
+  },
+  closetBuildIconButton: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 48,
+    justifyContent: "center",
+    width: 48
+  },
+  closetBuildOwnedTag: {
+    backgroundColor: colors.inverse,
+    borderRadius: radii.pill,
+    bottom: spacing.sm,
+    left: spacing.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    position: "absolute"
+  },
+  closetBuildOwnedTagText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 13
+  },
+  closetBuildRemoveButton: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTranslucent,
+    borderColor: colors.border,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 44,
+    justifyContent: "center",
+    position: "absolute",
+    right: spacing.sm,
+    top: spacing.sm,
+    width: 44
+  },
+  closetBuildSlot: {
+    flexBasis: "47.8%",
+    flexGrow: 0,
+    minWidth: 0
+  },
+  closetBuildSlotFrame: {
+    alignItems: "center",
+    aspectRatio: 1,
+    backgroundColor: colors.surfaceTertiary,
+    borderRadius: 14,
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  closetBuildSlotFrameEmpty: {
+    backgroundColor: colors.surfaceTertiary
+  },
+  closetBuildSlotImage: {
+    height: "100%",
+    width: "100%"
+  },
+  closetBuildSlotLabel: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 19,
+    marginTop: spacing.sm,
+    textAlign: "center"
+  },
+  closetBuildTitle: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    lineHeight: 25,
+    textAlign: "center"
   },
   analyzingCopy: {
     flex: 1,
@@ -4281,41 +5100,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md
   },
-  filterChip: {
+  filterCategoryTab: {
     alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 36,
+    gap: spacing.xs,
     justifyContent: "center",
-    paddingHorizontal: spacing.lg
+    minWidth: 74,
+    paddingBottom: spacing.xs
   },
-  filterChipFirst: {
-    marginLeft: spacing.screen
-  },
-  filterChipLast: {
-    marginRight: spacing.screen
+  filterChipScroller: {
+    marginHorizontal: -spacing.screen,
+    marginTop: spacing.lg
   },
   filterChipRail: {
-    alignItems: "center",
+    alignItems: "flex-start",
     flexDirection: "row",
-    gap: spacing.sm,
-    marginHorizontal: -spacing.screen,
-    marginTop: spacing.md
-  },
-  filterChipSelected: {
-    backgroundColor: colors.inverse,
-    borderColor: colors.inverse
+    gap: spacing.lg,
+    paddingHorizontal: spacing.screen
   },
   filterChipText: {
     color: colors.muted,
     fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 18
+    fontSize: 13,
+    lineHeight: 17,
+    maxWidth: 82,
+    textAlign: "center"
   },
   filterChipTextSelected: {
-    color: colors.inverseText
+    color: colors.text,
+    fontFamily: fonts.heading
+  },
+  filterImage: {
+    height: "100%",
+    width: "100%"
+  },
+  filterImageShell: {
+    alignItems: "center",
+    backgroundColor: colors.imageSurface,
+    borderColor: colors.border,
+    borderRadius: 34,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 68,
+    justifyContent: "center",
+    overflow: "hidden",
+    width: 68
+  },
+  filterImageShellSelected: {
+    borderColor: colors.text,
+    borderWidth: 2
+  },
+  filterChipSelected: {
+    opacity: 1
   },
   grid: {
     flexDirection: "row",

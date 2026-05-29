@@ -12,7 +12,7 @@
       "bundleIdentifier": "com.styleos.app",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Stylus uses your location to show nearby outfits, delivery options, and weather-friendly recommendations."
+        "NSLocationWhenInUseUsageDescription": "Stylus uses your location to show nearby outfit availability and delivery options."
       }
     },
     "android": {

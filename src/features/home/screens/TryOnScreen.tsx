@@ -40,9 +40,11 @@ import type { OutfitPieceKind, ProductLook } from "./HomeScreen";
 type TryOnScreenProps = {
   cartCount?: number;
   draft: OnboardingDraft;
+  hideHeaderTitle?: boolean;
   initialIsSaved?: boolean;
   initialPieces?: LookPiece[];
   isCreatingLook?: boolean;
+  lockOwnedPiecesInEditor?: boolean;
   look?: ProductLook;
   onCartUpdated?: (pieceCount: number) => void;
   onClose?: (state: TryOnExitState) => void;
@@ -277,9 +279,11 @@ function ShuffleIcon() {
 }
 
 function TryOnTopBar({
+  hideTitle = false,
   lookName,
   onClose
 }: {
+  hideTitle?: boolean;
   lookName: string;
   onClose?: () => void;
 }) {
@@ -297,9 +301,13 @@ function TryOnTopBar({
         <Feather color={colors.text} name="x" size={21} />
       </Pressable>
 
-      <Text numberOfLines={1} style={styles.topTitle}>
-        {lookName}
-      </Text>
+      {hideTitle ? (
+        <View style={styles.topTitleSpacer} />
+      ) : (
+        <Text numberOfLines={1} style={styles.topTitle}>
+          {lookName}
+        </Text>
+      )}
 
       <Pressable
         accessibilityLabel="Share try-on"
@@ -393,14 +401,20 @@ function AvatarCreationLoadingScreen({
 
 function PieceCard({
   onPress,
-  piece
+  piece,
+  showOwnedTag
 }: {
   onPress: () => void;
   piece: LookPiece;
+  showOwnedTag: boolean;
 }) {
+  const isOwnedTagVisible = showOwnedTag && Boolean(piece.isOwned);
+
   return (
     <Pressable
-      accessibilityLabel={piece.name}
+      accessibilityLabel={
+        isOwnedTagVisible ? `${piece.name}, yours` : piece.name
+      }
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
@@ -414,6 +428,11 @@ function PieceCard({
           source={{ uri: piece.image }}
           style={styles.pieceImage}
         />
+        {isOwnedTagVisible ? (
+          <View style={styles.pieceOwnedBadge}>
+            <Text style={styles.pieceOwnedBadgeText}>Yours</Text>
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -880,40 +899,64 @@ function BuildSlotCard({
   label,
   onClear,
   onPress,
-  piece
+  piece,
+  shouldLockOwnedPieces
 }: {
   kind: BuildSlotKind;
   label: string;
   onClear: (kind: BuildSlotKind) => void;
   onPress: (kind: BuildSlotKind) => void;
   piece?: LookPiece;
+  shouldLockOwnedPieces: boolean;
 }) {
+  const isOwnedPieceLocked = shouldLockOwnedPieces && Boolean(piece?.isOwned);
+
   return (
     <View style={styles.buildSlot}>
       {piece ? (
-        <View style={styles.buildSlotFrame}>
+        <Pressable
+          accessibilityLabel={
+            isOwnedPieceLocked
+              ? `${label}: ${piece.name}, yours`
+              : `Browse ${label}, currently ${piece.name}`
+          }
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isOwnedPieceLocked }}
+          disabled={isOwnedPieceLocked}
+          onPress={() => onPress(kind)}
+          style={({ pressed }) => [
+            styles.buildSlotFrame,
+            pressed && !isOwnedPieceLocked ? styles.pressed : null
+          ]}
+        >
           <Image
             accessibilityLabel={`${label}: ${piece.name}`}
             resizeMode="cover"
             source={{ uri: piece.image }}
             style={styles.buildSlotImage}
           />
-          <Pressable
-            accessibilityLabel={`Remove ${label}`}
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={(event) => {
-              event.stopPropagation();
-              onClear(kind);
-            }}
-            style={({ pressed }) => [
-              styles.buildSlotRemove,
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Feather color={colors.soft} name="x" size={21} />
-          </Pressable>
-        </View>
+          {isOwnedPieceLocked ? (
+            <View style={styles.buildSlotOwnedTag}>
+              <Text style={styles.buildSlotOwnedTagText}>Yours</Text>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityLabel={`Remove ${label}`}
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                onClear(kind);
+              }}
+              style={({ pressed }) => [
+                styles.buildSlotRemove,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.soft} name="x" size={21} />
+            </Pressable>
+          )}
+        </Pressable>
       ) : (
         <Pressable
           accessibilityLabel={`Browse ${label}`}
@@ -950,6 +993,7 @@ function BuildLookScreen({
   onShuffle,
   onStylePromptChange,
   pieces,
+  shouldLockOwnedPieces,
   stylePrompt
 }: {
   onClearSlot: (kind: BuildSlotKind) => void;
@@ -958,6 +1002,7 @@ function BuildLookScreen({
   onShuffle: () => void;
   onStylePromptChange: (prompt: string) => void;
   pieces: LookPiece[];
+  shouldLockOwnedPieces: boolean;
   stylePrompt: string;
 }) {
   return (
@@ -997,6 +1042,7 @@ function BuildLookScreen({
               onClear={onClearSlot}
               onPress={onOpenCategory}
               piece={getBuildSlotPiece(pieces, slot.kind)}
+              shouldLockOwnedPieces={shouldLockOwnedPieces}
             />
           ))}
         </View>
@@ -1246,9 +1292,11 @@ export function ShopThisLookScreen({
 
 export function TryOnScreen({
   draft,
+  hideHeaderTitle = false,
   initialIsSaved = false,
   initialPieces,
   isCreatingLook = false,
+  lockOwnedPiecesInEditor = false,
   look,
   onCartUpdated,
   onClose,
@@ -1296,7 +1344,7 @@ export function TryOnScreen({
   const fixedLookProductPieces = useMemo(
     () =>
       useSessionPiecesForShop
-        ? pieces.filter((piece) => !piece.isOwned)
+        ? pieces
         : getShopThisLookPieces(pieces),
     [pieces, useSessionPiecesForShop]
   );
@@ -1490,13 +1538,36 @@ export function TryOnScreen({
     setIsBuildLookOpen(true);
   };
 
+  const isBuildSlotLocked = (piece?: LookPiece) =>
+    lockOwnedPiecesInEditor && Boolean(piece?.isOwned);
+
   const handleClearBuildSlot = (kind: BuildSlotKind) => {
-    setPieces((currentPieces) => removeBuildSlotPiece(currentPieces, kind));
+    setPieces((currentPieces) => {
+      const currentPiece = getBuildSlotPiece(currentPieces, kind);
+
+      if (isBuildSlotLocked(currentPiece)) {
+        return currentPieces;
+      }
+
+      return removeBuildSlotPiece(currentPieces, kind);
+    });
     setSelectedPieceId((currentId) => {
       const currentPiece = pieces.find((piece) => piece.id === currentId);
 
-      return currentPiece?.kind === kind ? "" : currentId;
+      return currentPiece?.kind === kind && !isBuildSlotLocked(currentPiece)
+        ? ""
+        : currentId;
     });
+  };
+
+  const handleOpenBuildCategory = (kind: BuildSlotKind) => {
+    const currentPiece = getBuildSlotPiece(pieces, kind);
+
+    if (isBuildSlotLocked(currentPiece)) {
+      return;
+    }
+
+    setActiveBuildCategory(kind);
   };
 
   const handleShuffleBuildLook = () => {
@@ -1509,6 +1580,11 @@ export function TryOnScreen({
         }
 
         const currentPiece = getBuildSlotPiece(draftPieces, slot.kind);
+
+        if (isBuildSlotLocked(currentPiece)) {
+          return draftPieces;
+        }
+
         const availableAlternatives =
           alternatives.length > 1 && currentPiece
             ? alternatives.filter(
@@ -1535,6 +1611,12 @@ export function TryOnScreen({
     selectedPiece: LookPiece
   ) => {
     setPieces((currentPieces) => {
+      const currentPiece = getBuildSlotPiece(currentPieces, kind);
+
+      if (isBuildSlotLocked(currentPiece)) {
+        return currentPieces;
+      }
+
       const nextPieces = replaceBuildSlotPiece(
         currentPieces,
         kind,
@@ -1581,7 +1663,11 @@ export function TryOnScreen({
     return (
       <View style={styles.screen}>
         <ExpoStatusBar style="dark" />
-        <TryOnTopBar lookName={activeLook.title} onClose={closeSession} />
+        <TryOnTopBar
+          hideTitle={hideHeaderTitle}
+          lookName={activeLook.title}
+          onClose={closeSession}
+        />
         <ScrollView
           contentContainerStyle={styles.uploadContent}
           showsVerticalScrollIndicator={false}
@@ -1686,10 +1772,11 @@ export function TryOnScreen({
         <BuildLookScreen
           onClearSlot={handleClearBuildSlot}
           onGenerate={handleGenerateBuildLook}
-          onOpenCategory={setActiveBuildCategory}
+          onOpenCategory={handleOpenBuildCategory}
           onShuffle={handleShuffleBuildLook}
           onStylePromptChange={setBuildStylePrompt}
           pieces={pieces}
+          shouldLockOwnedPieces={lockOwnedPiecesInEditor}
           stylePrompt={buildStylePrompt}
         />
       );
@@ -1699,7 +1786,11 @@ export function TryOnScreen({
   return (
     <View style={styles.screen}>
       <ExpoStatusBar style="dark" />
-      <TryOnTopBar lookName={activeLook.title} onClose={closeSession} />
+      <TryOnTopBar
+        hideTitle={hideHeaderTitle}
+        lookName={activeLook.title}
+        onClose={closeSession}
+      />
 
       <View style={styles.tryOnBody}>
         <View style={[styles.avatarRegion, styles.avatarRegionExpanded]}>
@@ -1781,6 +1872,7 @@ export function TryOnScreen({
                   key={piece.id}
                   onPress={() => handleOpenPieceProduct(piece)}
                   piece={piece}
+                  showOwnedTag={lockOwnedPiecesInEditor}
                 />
               ))}
             </ScrollView>
@@ -2107,6 +2199,21 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: spacing.sm,
     textAlign: "center"
+  },
+  buildSlotOwnedTag: {
+    backgroundColor: colors.inverse,
+    borderRadius: 999,
+    bottom: spacing.sm,
+    left: spacing.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    position: "absolute"
+  },
+  buildSlotOwnedTagText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    lineHeight: 13
   },
   buildSlotPlus: {
     alignItems: "center",
@@ -2513,6 +2620,21 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: "hidden"
   },
+  pieceOwnedBadge: {
+    backgroundColor: colors.inverse,
+    borderRadius: 999,
+    bottom: 6,
+    left: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    position: "absolute"
+  },
+  pieceOwnedBadgeText: {
+    color: colors.inverseText,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    lineHeight: 12
+  },
   piecePanel: {
     backgroundColor: colors.background,
     flex: 1,
@@ -2911,6 +3033,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     textAlign: "center"
+  },
+  topTitleSpacer: {
+    flex: 1
   },
   tryThisPill: {
     alignItems: "center",

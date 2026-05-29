@@ -36,6 +36,7 @@ export function AccountPreferenceRow({
         accessibilityLabel={title}
         accessibilityRole="switch"
         accessibilityState={{ checked: value }}
+        hitSlop={8}
         onPress={() => onValueChange(!value)}
         style={({ pressed }) => [
           styles.toggleTrack,
@@ -90,28 +91,28 @@ const styles = StyleSheet.create({
   },
   toggleThumb: {
     backgroundColor: colors.background,
-    borderRadius: 19,
-    height: 38,
+    borderRadius: 12,
+    height: 24,
     position: "absolute",
-    top: 3,
-    width: 38
+    top: 2,
+    width: 24
   },
   toggleThumbOff: {
-    left: 3
+    left: 2
   },
   toggleThumbOn: {
-    right: 3
+    right: 2
   },
   toggleTrack: {
-    borderRadius: 24,
-    height: 44,
+    borderRadius: 14,
+    height: 28,
     position: "relative",
-    width: 72
+    width: 48
   },
   toggleTrackOff: {
     backgroundColor: colors.background,
-    borderColor: colors.borderStrong,
-    borderWidth: 2
+    borderColor: colors.border,
+    borderWidth: 1
   },
   toggleTrackOn: {
     backgroundColor: colors.inverse

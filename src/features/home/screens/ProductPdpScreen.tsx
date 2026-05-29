@@ -26,7 +26,6 @@ import { MatchRibbonTag } from "../components/MatchRibbonTag";
 import type { ProductLook } from "./HomeScreen";
 import { colors, fonts, spacing } from "../../../theme";
 import {
-  appBottomSafeInset,
   appSearchHeaderHeight,
   appSearchHeaderTopPadding,
   appTopSafeInset
@@ -65,8 +64,7 @@ type Review = {
 };
 
 const topSafeInset = appTopSafeInset;
-const bottomSafeInset = appBottomSafeInset;
-const ctaDockBottomPadding = Platform.OS === "ios" ? spacing.lg : spacing.md;
+const ctaDockBottomPadding = spacing.xl;
 const ctaDockHeight = 48 + spacing.md + ctaDockBottomPadding;
 const pdpHeaderHeight = appSearchHeaderHeight;
 const galleryDotsHeight = 30;
