@@ -557,6 +557,8 @@ export function HomeTabsNavigator({
     useState(false);
   const [isAccountInternalViewOpen, setIsAccountInternalViewOpen] =
     useState(false);
+  const [accountInternalBackgroundColor, setAccountInternalBackgroundColor] =
+    useState(colors.background);
   const [tryOnEntry, setTryOnEntry] = useState<TryOnEntry | null>(null);
   const [tryOnRender, setTryOnRender] = useState<TryOnRenderState>({
     entry: null,
@@ -796,6 +798,7 @@ export function HomeTabsNavigator({
     setIsExploreInternalViewOpen(false);
     setIsClosetInternalViewOpen(false);
     setIsAccountInternalViewOpen(false);
+    setAccountInternalBackgroundColor(colors.background);
     setTryOnEntry(null);
     setIsTryOnShopLookOpen(false);
     setIsSelectedLookShopOpen(false);
@@ -806,8 +809,10 @@ export function HomeTabsNavigator({
 
   useEffect(() => {
     const statusBarBackground =
-      (activeTab === "Closet" && !isClosetInternalViewOpen) ||
-      activeTab === "Profile"
+      activeTab === "Profile" && isAccountInternalViewOpen
+        ? accountInternalBackgroundColor
+        : (activeTab === "Closet" && !isClosetInternalViewOpen) ||
+            activeTab === "Profile"
         ? colors.surfaceTertiary
         : colors.background;
 
@@ -816,7 +821,13 @@ export function HomeTabsNavigator({
     );
 
     return () => onStatusBarBackgroundChange?.(colors.background);
-  }, [activeTab, isClosetInternalViewOpen, onStatusBarBackgroundChange]);
+  }, [
+    accountInternalBackgroundColor,
+    activeTab,
+    isAccountInternalViewOpen,
+    isClosetInternalViewOpen,
+    onStatusBarBackgroundChange
+  ]);
 
   const handleChangeTab = (tab: HomeTabName) => {
     const shouldKeepTryOnEntry = tryOnRender.status !== "idle";
@@ -1516,7 +1527,12 @@ export function HomeTabsNavigator({
             }}
             appVersion="1.0.1"
             initialPage={accountPageOverride ?? initialAccountPage}
-            onInternalViewChange={setIsAccountInternalViewOpen}
+            onInternalViewChange={(isOpen, backgroundColor) => {
+              setIsAccountInternalViewOpen(isOpen);
+              setAccountInternalBackgroundColor(
+                backgroundColor ?? colors.background
+              );
+            }}
             styleProfile={styleProfile}
             user={{
               anniversary: draft.anniversary,

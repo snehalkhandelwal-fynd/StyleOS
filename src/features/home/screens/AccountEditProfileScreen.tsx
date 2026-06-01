@@ -238,6 +238,7 @@ function BackButton({
     <Pressable
       accessibilityLabel={label}
       accessibilityRole="button"
+      hitSlop={10}
       onPress={onPress}
       style={({ pressed }) => [
         styles.backButton,
@@ -250,13 +251,17 @@ function BackButton({
 }
 
 function VerifyExistingAccount({
+  body,
   destination,
   onBack,
-  onVerified
+  onVerified,
+  title
 }: {
+  body: string;
   destination: string;
   onBack: () => void;
   onVerified: () => void;
+  title: string;
 }) {
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -321,15 +326,12 @@ function VerifyExistingAccount({
     <SafeAreaView style={styles.screen}>
       <View style={styles.verifyHeader}>
         <BackButton icon="chevron-down" label="Back to profile edit" onPress={onBack} />
-        <Text style={styles.verifyTitle}>Verify existing account</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.verifyTitle}>{title}</Text>
+        <View style={styles.verifyHeaderSpacer} />
       </View>
 
       <View style={styles.verifyContent}>
-        <Text style={styles.verifyIntro}>
-          For your security, verify your existing account information before
-          changing your mobile number.
-        </Text>
+        <Text style={styles.verifyIntro}>{body}</Text>
         <Text style={styles.otpDestination}>OTP sent to</Text>
         <Text numberOfLines={2} style={styles.otpDestinationValue}>
           {destination}
@@ -562,6 +564,7 @@ export function AccountEditProfileScreen({
   const [phoneNumber, setPhoneNumber] = useState(currentPhoneNumber);
   const [isPhoneVerified, setIsPhoneVerified] = useState(!currentPhoneNumber);
   const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [isVerifyingNewPhone, setIsVerifyingNewPhone] = useState(false);
   const [activeDatePicker, setActiveDatePicker] =
     useState<DatePickerField | null>(null);
   const [draftDateParts, setDraftDateParts] = useState<DateParts>(
@@ -578,27 +581,41 @@ export function AccountEditProfileScreen({
   const otpDestination =
     (initialProfile.email ?? "").trim() ||
     formatPhone(currentPhone?.countryCode, currentPhoneNumber);
+  const newPhoneOtpDestination = formatPhone(
+    currentPhone?.countryCode ?? "+91",
+    cleanPhoneNumber
+  );
   const mobileActionLabel = currentPhoneNumber ? "Change" : "Add";
+  const needsNewPhoneVerification =
+    cleanPhoneNumber.length === requiredPhoneNumberDigits &&
+    cleanPhoneNumber !== currentPhoneNumber;
+
+  const buildProfilePayload = (): EditableProfile => ({
+    anniversary,
+    avatarUri: initialProfile.avatarUri,
+    dateOfBirth,
+    email,
+    fashionInterest: wearPreference,
+    name,
+    phone: cleanPhoneNumber
+      ? {
+          countryCode: currentPhone?.countryCode ?? "+91",
+          phoneNumber: cleanPhoneNumber
+        }
+      : currentPhone
+  });
 
   const handleSave = () => {
     if (!canSave) {
       return;
     }
 
-    onSave({
-      anniversary,
-      avatarUri: initialProfile.avatarUri,
-      dateOfBirth,
-      email,
-      fashionInterest: wearPreference,
-      name,
-      phone: cleanPhoneNumber
-        ? {
-            countryCode: currentPhone?.countryCode ?? "+91",
-            phoneNumber: cleanPhoneNumber
-          }
-        : currentPhone
-    });
+    if (needsNewPhoneVerification) {
+      setIsVerifyingNewPhone(true);
+      return;
+    }
+
+    onSave(buildProfilePayload());
   };
 
   const handleStartPhoneChange = () => {
@@ -635,6 +652,7 @@ export function AccountEditProfileScreen({
   if (isVerifyingPhone) {
     return (
       <VerifyExistingAccount
+        body="For your security, verify your existing account information before changing your mobile number."
         destination={otpDestination}
         onBack={() => setIsVerifyingPhone(false)}
         onVerified={() => {
@@ -643,6 +661,22 @@ export function AccountEditProfileScreen({
           setPhoneNumber("");
           requestAnimationFrame(() => phoneInputRef.current?.focus());
         }}
+        title="Verify existing account"
+      />
+    );
+  }
+
+  if (isVerifyingNewPhone) {
+    return (
+      <VerifyExistingAccount
+        body="Enter the OTP sent to your new mobile number to finish updating your profile."
+        destination={newPhoneOtpDestination}
+        onBack={() => setIsVerifyingNewPhone(false)}
+        onVerified={() => {
+          setIsVerifyingNewPhone(false);
+          onSave(buildProfilePayload());
+        }}
+        title="Verify new mobile number"
       />
     );
   }
@@ -656,7 +690,6 @@ export function AccountEditProfileScreen({
         <View style={styles.header}>
           <BackButton label="Back to account" onPress={onBack} />
           <Text style={styles.title}>Your profile</Text>
-          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView
@@ -733,8 +766,8 @@ export function AccountEditProfileScreen({
                 </View>
                 {isPhoneVerified ? (
                   <Text style={styles.helperText}>
-                    Existing account verified. Enter the mobile number you want
-                    to use.
+                    Existing account verified. We will send an OTP to this
+                    new number before updating it.
                   </Text>
                 ) : null}
               </View>
@@ -854,13 +887,13 @@ const styles = StyleSheet.create({
   },
   backButton: {
     alignItems: "center",
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 42,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    borderRadius: 0,
+    borderWidth: 0,
     justifyContent: "center",
-    width: 42
+    paddingRight: spacing.sm,
+    paddingVertical: spacing.xs
   },
   changeText: {
     color: colors.text,
@@ -1033,18 +1066,15 @@ const styles = StyleSheet.create({
   },
   wearOptions: {
     flexDirection: "row",
-    gap: spacing.sm
+    gap: spacing.sm,
+    marginTop: spacing.xs
   },
   header: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingHorizontal: spacing.screen,
-    paddingTop: appTopSafeInset + spacing.sm
-  },
-  headerSpacer: {
-    height: 42,
-    width: 42
+    paddingTop: appTopSafeInset + spacing.xl
   },
   helperText: {
     color: colors.muted,
@@ -1160,7 +1190,7 @@ const styles = StyleSheet.create({
     ...typography.screenTitle,
     color: colors.text,
     flex: 1,
-    textAlign: "center"
+    textAlign: "left"
   },
   verifyContent: {
     flex: 1,
@@ -1173,6 +1203,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.sm
+  },
+  verifyHeaderSpacer: {
+    height: 40,
+    width: 28
   },
   verifyIntro: {
     color: colors.text,
