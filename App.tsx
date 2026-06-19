@@ -26,6 +26,10 @@ export default function App() {
   const handleStatusBarBackgroundChange = useCallback((backgroundColor: string) => {
     setStatusBarBackgroundColor(backgroundColor);
   }, []);
+  const isOverlayStatusBar =
+    statusBarBackgroundColor === colors.scrimOverlay;
+  const statusBarStyle =
+    isOverlayStatusBar ? "light" : "dark";
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -54,7 +58,7 @@ export default function App() {
 
   return (
     <View style={[styles.app, { backgroundColor: statusBarBackgroundColor }]}>
-      <ExpoStatusBar style="dark" />
+      <ExpoStatusBar style={statusBarStyle} />
       <View style={styles.safeArea}>
         <RootNavigator
           onStatusBarBackgroundChange={handleStatusBarBackgroundChange}
@@ -64,7 +68,11 @@ export default function App() {
         pointerEvents="none"
         style={[
           styles.statusBarGuard,
-          { backgroundColor: statusBarBackgroundColor }
+          {
+            backgroundColor: isOverlayStatusBar
+              ? "transparent"
+              : statusBarBackgroundColor
+          }
         ]}
       />
     </View>

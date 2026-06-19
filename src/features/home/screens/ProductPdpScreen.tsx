@@ -40,6 +40,7 @@ type ProductPdpScreenProps = {
   onBack: () => void;
   onOpenCart?: () => void;
   onOpenLook?: (look: ProductLook) => void;
+  onOpenNotifications?: () => void;
   onOpenSearch?: () => void;
   onStartTryOn?: (context?: string) => void;
   product: ProductListingProduct;
@@ -301,12 +302,14 @@ function ProductPdpHeader({
   onBack,
   onOpenCart,
   onOpenSearch,
+  onOpenNotifications,
   onSave
 }: {
   cartCount?: number;
   isSaved: boolean;
   onBack: () => void;
   onOpenCart?: () => void;
+  onOpenNotifications?: () => void;
   onOpenSearch?: () => void;
   onSave: () => void;
 }) {
@@ -359,6 +362,21 @@ function ProductPdpHeader({
             size={25}
           />
         </Pressable>
+
+        {onOpenNotifications ? (
+          <Pressable
+            accessibilityLabel="Open notifications"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onOpenNotifications}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.text} name="bell" size={24} />
+          </Pressable>
+        ) : null}
 
         <Pressable
           accessibilityLabel="Open cart"
@@ -1417,6 +1435,7 @@ export function ProductPdpScreen({
   onBack,
   onOpenCart,
   onOpenLook,
+  onOpenNotifications,
   onOpenSearch,
   onStartTryOn,
   product
@@ -1505,6 +1524,7 @@ export function ProductPdpScreen({
         isSaved={isSaved}
         onBack={onBack}
         onOpenCart={onOpenCart ?? onAddToCart}
+        onOpenNotifications={onOpenNotifications}
         onOpenSearch={onOpenSearch}
         onSave={() => setIsSaved((current) => !current)}
       />

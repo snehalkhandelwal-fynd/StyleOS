@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
   FlatList,
   type ListRenderItemInfo,
@@ -134,6 +135,10 @@ function getTickType(option: HeightOption, unit: HeightUnit) {
   return "minor";
 }
 
+function triggerSelectionHaptic() {
+  void Haptics.selectionAsync().catch(() => undefined);
+}
+
 export function HeightPicker({
   feet,
   inches,
@@ -188,6 +193,7 @@ export function HeightPicker({
 
     activeIndexRef.current = index;
     setActiveIndex(index);
+    triggerSelectionHaptic();
   }, []);
 
   const scrollToIndex = useCallback(

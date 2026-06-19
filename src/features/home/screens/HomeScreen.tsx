@@ -55,6 +55,7 @@ type HomeScreenProps = {
   onOpenBrand: (brandId: string) => void;
   onOpenCart: () => void;
   onOpenLook: (look: ProductLook) => void;
+  onOpenNotifications: () => void;
   onOpenSearch: () => void;
   onShopLook: (look: ProductLook) => void;
   onStartStyleQuiz: () => void;
@@ -468,12 +469,14 @@ function LocationNavigation({
   address,
   cartCount = 0,
   onChangeAddress,
-  onOpenCart
+  onOpenCart,
+  onOpenNotifications
 }: {
   address: string;
   cartCount?: number;
   onChangeAddress: () => void;
   onOpenCart: () => void;
+  onOpenNotifications: () => void;
 }) {
   return (
     <View style={styles.navRow}>
@@ -491,8 +494,10 @@ function LocationNavigation({
       </Pressable>
       <View style={styles.headerActions}>
         <Pressable
-          accessibilityLabel="Notifications"
+          accessibilityLabel="Open notifications"
           accessibilityRole="button"
+          hitSlop={10}
+          onPress={onOpenNotifications}
           style={styles.headerIconButton}
         >
           <Feather
@@ -1614,6 +1619,7 @@ export function HomeScreen({
   onOpenBrand,
   onOpenCart,
   onOpenLook,
+  onOpenNotifications,
   onOpenSearch,
   onShopLook,
   onStartStyleQuiz
@@ -1753,6 +1759,7 @@ export function HomeScreen({
             cartCount={cartCount}
             onChangeAddress={onChangeAddress}
             onOpenCart={onOpenCart}
+            onOpenNotifications={onOpenNotifications}
           />
         </AnimatedHeaderView>
         <AnimatedHeaderView
@@ -2258,14 +2265,15 @@ const styles = StyleSheet.create({
   headerActions: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md
+    gap: spacing.sm,
+    zIndex: 4
   },
   headerIconButton: {
     alignItems: "center",
-    height: 32,
+    height: 44,
     justifyContent: "center",
     position: "relative",
-    width: 32
+    width: 44
   },
   occasionGrid: {
     flexDirection: "row",

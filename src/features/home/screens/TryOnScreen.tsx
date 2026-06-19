@@ -51,6 +51,7 @@ type TryOnScreenProps = {
   onContinueBrowsing?: (state: TryOnExitState) => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
   onOpenShopLook?: (state: TryOnExitState) => void;
+  onOverlayActiveChange?: (isActive: boolean) => void;
   onSelectPhoto: (uri: string) => void;
   onViewCart?: (state: TryOnExitState) => void;
   useSessionPiecesForShop?: boolean;
@@ -280,13 +281,18 @@ function ShuffleIcon() {
 
 function TryOnTopBar({
   hideTitle = false,
+  isLookGenerated = true,
   lookName,
   onClose
 }: {
   hideTitle?: boolean;
+  isLookGenerated?: boolean;
   lookName: string;
   onClose?: () => void;
 }) {
+  const shouldShowGeneratedHeader = isLookGenerated;
+  const shouldShowTitle = shouldShowGeneratedHeader && !hideTitle;
+
   return (
     <View style={styles.topBar}>
       <Pressable
@@ -301,24 +307,28 @@ function TryOnTopBar({
         <Feather color={colors.text} name="x" size={21} />
       </Pressable>
 
-      {hideTitle ? (
-        <View style={styles.topTitleSpacer} />
-      ) : (
+      {shouldShowTitle ? (
         <Text numberOfLines={1} style={styles.topTitle}>
           {lookName}
         </Text>
+      ) : (
+        <View style={styles.topTitleSpacer} />
       )}
 
-      <Pressable
-        accessibilityLabel="Share try-on"
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.topIconButton,
-          pressed ? styles.pressed : null
-        ]}
-      >
-        <Feather color={colors.text} name="share-2" size={19} />
-      </Pressable>
+      {shouldShowGeneratedHeader ? (
+        <Pressable
+          accessibilityLabel="Share try-on"
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.topIconButton,
+            pressed ? styles.pressed : null
+          ]}
+        >
+          <Feather color={colors.text} name="share-2" size={19} />
+        </Pressable>
+      ) : (
+        <View style={styles.topIconSpacer} />
+      )}
     </View>
   );
 }
@@ -1303,6 +1313,7 @@ export function TryOnScreen({
   onContinueBrowsing,
   onOpenProduct,
   onOpenShopLook,
+  onOverlayActiveChange,
   onSelectPhoto,
   onViewCart,
   useSessionPiecesForShop = false
@@ -1415,6 +1426,14 @@ export function TryOnScreen({
       drawerAnimation.stop();
     };
   }, [buildDrawerProgress, isBuildLookOpen]);
+
+  useEffect(() => {
+    onOverlayActiveChange?.(isBuildLookDrawerVisible);
+  }, [isBuildLookDrawerVisible, onOverlayActiveChange]);
+
+  useEffect(() => {
+    return () => onOverlayActiveChange?.(false);
+  }, [onOverlayActiveChange]);
 
   useEffect(() => {
     if (!isRendering) {
@@ -1665,6 +1684,7 @@ export function TryOnScreen({
         <ExpoStatusBar style="dark" />
         <TryOnTopBar
           hideTitle={hideHeaderTitle}
+          isLookGenerated={false}
           lookName={activeLook.title}
           onClose={closeSession}
         />
@@ -1788,6 +1808,7 @@ export function TryOnScreen({
       <ExpoStatusBar style="dark" />
       <TryOnTopBar
         hideTitle={hideHeaderTitle}
+        isLookGenerated={!isRendering}
         lookName={activeLook.title}
         onClose={closeSession}
       />
@@ -2738,7 +2759,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flexDirection: "row",
     gap: spacing.sm,
-    marginTop: "auto",
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.md
@@ -3024,6 +3044,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     height: 36,
     justifyContent: "center",
+    width: 36
+  },
+  topIconSpacer: {
+    height: 36,
     width: 36
   },
   topTitle: {

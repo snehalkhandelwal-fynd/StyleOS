@@ -35,6 +35,9 @@ export function RootNavigator({
   const [homeInitialTab, setHomeInitialTab] = useState<HomeTabName>("Home");
   const [homeInitialAccountPage, setHomeInitialAccountPage] =
     useState<AccountPage | null>(null);
+  const [homeStatusBarBackground, setHomeStatusBarBackground] = useState(
+    colors.background
+  );
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedCountry, setSelectedCountry] =
     useState<CountryOption>(defaultCountry);
@@ -42,10 +45,22 @@ export function RootNavigator({
     useState<OnboardingSetupDrawerStep | null>(null);
 
   useEffect(() => {
-    if (route !== "HomeTabs") {
+    if (setupDrawerStep) {
+      onStatusBarBackgroundChange?.(colors.scrimOverlay);
+      return;
+    }
+
+    if (route === "HomeTabs") {
+      onStatusBarBackgroundChange?.(homeStatusBarBackground);
+    } else {
       onStatusBarBackgroundChange?.(colors.background);
     }
-  }, [onStatusBarBackgroundChange, route]);
+  }, [
+    homeStatusBarBackground,
+    onStatusBarBackgroundChange,
+    route,
+    setupDrawerStep
+  ]);
 
   const goHome = useCallback((tab: HomeTabName = "Home", accountPage?: AccountPage) => {
     setHomeInitialTab(tab);
@@ -121,9 +136,21 @@ export function RootNavigator({
 
   const handleChangeAddressFromHome = useCallback(() => {}, []);
 
-  const handleUseAnotherPhoto = useCallback(() => {
-    setRoute("UploadFullBodyPhoto");
-  }, []);
+  const handleSelectReplacementPhoto = useCallback(
+    (uri: string) => {
+      actions.setFullBodyPhotoUri(uri);
+      setRoute("AvatarCreating");
+    },
+    [actions]
+  );
+
+  const handleSelectDrawerReplacementPhoto = useCallback(
+    (uri: string) => {
+      actions.setFullBodyPhotoUri(uri);
+      setSetupDrawerStep("avatarCreating");
+    },
+    [actions]
+  );
 
   return (
     <View style={styles.screen}>
@@ -207,8 +234,9 @@ export function RootNavigator({
         <AvatarReadyScreen
           avatarUri={state.draft.avatarUri}
           height={state.draft.height}
+          onChangeMeasurement={() => setRoute("SetupHeight")}
           onContinue={() => goHome("Home")}
-          onUseAnotherPhoto={handleUseAnotherPhoto}
+          onSelectReplacementPhoto={handleSelectReplacementPhoto}
         />
       ) : null}
 
@@ -221,7 +249,7 @@ export function RootNavigator({
           onChangeAddress={handleChangeAddressFromHome}
           onSelectPhoto={actions.setFullBodyPhotoUri}
           onStartStyleQuiz={handleStartStyleQuizFromHome}
-          onStatusBarBackgroundChange={onStatusBarBackgroundChange}
+          onStatusBarBackgroundChange={setHomeStatusBarBackground}
           onUpdateProfile={actions.updateProfile}
         />
       ) : null}
@@ -243,8 +271,9 @@ export function RootNavigator({
           onContinueHeight={handleContinueDrawerHeight}
           onContinueName={() => setSetupDrawerStep("height")}
           onContinuePhoto={() => setSetupDrawerStep("avatarCreating")}
+          onChangeMeasurement={() => setSetupDrawerStep("height")}
           onSelectPhoto={actions.setFullBodyPhotoUri}
-          onUseAnotherPhoto={() => setSetupDrawerStep("uploadPhoto")}
+          onSelectReplacementPhoto={handleSelectDrawerReplacementPhoto}
           step={setupDrawerStep}
         />
       ) : null}

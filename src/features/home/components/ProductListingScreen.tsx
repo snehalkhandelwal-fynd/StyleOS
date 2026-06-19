@@ -82,6 +82,7 @@ type ProductListingScreenProps = {
   keepProductsVisibleOnEmptyChip?: boolean;
   onBack: () => void;
   onOpenCart?: () => void;
+  onOpenNotifications?: () => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
   onOpenWishlist?: () => void;
   products: ProductListingProduct[];
@@ -629,6 +630,7 @@ export function ProductListingScreen({
   keepProductsVisibleOnEmptyChip = false,
   onBack,
   onOpenCart,
+  onOpenNotifications,
   onOpenProduct,
   onOpenWishlist,
   products,
@@ -765,6 +767,20 @@ export function ProductListingScreen({
             >
               <Feather color={colors.text} name="heart" size={23} />
             </Pressable>
+            {onOpenNotifications ? (
+              <Pressable
+                accessibilityLabel="Open notifications"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={onOpenNotifications}
+                style={({ pressed }) => [
+                  styles.headerIconButton,
+                  pressed ? styles.pressed : null
+                ]}
+              >
+                <Feather color={colors.text} name="bell" size={23} />
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityLabel="Open cart"
               accessibilityRole="button"

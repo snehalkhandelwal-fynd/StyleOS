@@ -2,11 +2,16 @@ import { Feather } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
+  type TextStyle,
+  type ViewStyle,
   View
 } from "react-native";
 
@@ -14,10 +19,7 @@ import { colors, fonts, radii, spacing, typography } from "../../../theme";
 import { AccountMenuRow } from "../components/AccountMenuRow";
 import { AccountPreferenceRow } from "../components/AccountPreferenceRow";
 import { AccountProfileCard } from "../components/AccountProfileCard";
-import {
-  AppScreenHeader,
-  appScreenTopPadding
-} from "../components/AppScreenHeader";
+import { appScreenTopPadding } from "../components/AppScreenHeader";
 import { AccountEditProfileScreen } from "./AccountEditProfileScreen";
 import type {
   EditableProfile,
@@ -76,18 +78,262 @@ type AccountScreenProps = {
   actions?: AccountActions;
   closetItemCount?: number;
   initialPage?: AccountPage | null;
-  onInternalViewChange?: (isOpen: boolean) => void;
+  onInternalViewChange?: (isOpen: boolean, backgroundColor?: string) => void;
+  onOverlayActiveChange?: (isActive: boolean) => void;
   styleProfile?: AccountStyleProfile;
 };
 
 type AccountDetailPageName =
-  | "addresses"
   | "avatar"
   | "measurements"
   | "privacy"
   | "style";
 export type AccountPage = AccountDetailPageName | "wishlist";
-type AccountInternalPage = AccountPage | "closetFavourites" | "editProfile";
+type AccountInternalPage =
+  | AccountPage
+  | "addAddress"
+  | "addresses"
+  | "closetFavourites"
+  | "editProfile";
+
+type AddressFormPayload = {
+  addressLine: string;
+  city: string;
+  houseNumber: string;
+  isDefault: boolean;
+  locality: string;
+  mobile: string;
+  name: string;
+  openSaturday: boolean;
+  openSunday: boolean;
+  pincode: string;
+  state: string;
+  type: AddressType;
+};
+
+type AddressType = "Home" | "Office";
+
+type SavedAddress = {
+  address: string;
+  distance: string;
+  icon: keyof typeof Feather.glyphMap;
+  id: string;
+  label: string;
+  phone?: string;
+};
+
+const savedAddresses: SavedAddress[] = [];
+const addressTypeOptions: AddressType[] = ["Home", "Office"];
+const stateByPincodePrefix: Record<string, string> = {
+  "11": "Delhi",
+  "12": "Haryana",
+  "13": "Haryana",
+  "14": "Punjab",
+  "15": "Punjab",
+  "16": "Punjab",
+  "17": "Himachal Pradesh",
+  "18": "Jammu & Kashmir",
+  "19": "Jammu & Kashmir",
+  "20": "Uttar Pradesh",
+  "21": "Uttar Pradesh",
+  "22": "Uttar Pradesh",
+  "23": "Uttar Pradesh",
+  "24": "Uttar Pradesh",
+  "25": "Uttar Pradesh",
+  "26": "Uttar Pradesh",
+  "27": "Uttar Pradesh",
+  "28": "Uttar Pradesh",
+  "30": "Rajasthan",
+  "31": "Rajasthan",
+  "32": "Rajasthan",
+  "33": "Rajasthan",
+  "34": "Rajasthan",
+  "36": "Gujarat",
+  "37": "Gujarat",
+  "38": "Gujarat",
+  "39": "Gujarat",
+  "40": "Maharashtra",
+  "41": "Maharashtra",
+  "42": "Maharashtra",
+  "43": "Maharashtra",
+  "44": "Maharashtra",
+  "45": "Madhya Pradesh",
+  "46": "Madhya Pradesh",
+  "47": "Madhya Pradesh",
+  "48": "Madhya Pradesh",
+  "49": "Chhattisgarh",
+  "50": "Telangana",
+  "51": "Andhra Pradesh",
+  "52": "Andhra Pradesh",
+  "53": "Andhra Pradesh",
+  "56": "Karnataka",
+  "57": "Karnataka",
+  "58": "Karnataka",
+  "59": "Karnataka",
+  "60": "Tamil Nadu",
+  "61": "Tamil Nadu",
+  "62": "Tamil Nadu",
+  "63": "Tamil Nadu",
+  "64": "Tamil Nadu",
+  "67": "Kerala",
+  "68": "Kerala",
+  "69": "Kerala",
+  "70": "West Bengal",
+  "71": "West Bengal",
+  "72": "West Bengal",
+  "73": "West Bengal",
+  "74": "West Bengal",
+  "75": "Odisha",
+  "76": "Odisha",
+  "77": "Odisha",
+  "78": "Assam"
+};
+const stateByThreeDigitPincodePrefix: Record<string, string> = {
+  "160": "Chandigarh",
+  "246": "Uttarakhand",
+  "247": "Uttarakhand",
+  "248": "Uttarakhand",
+  "249": "Uttarakhand",
+  "262": "Uttarakhand",
+  "263": "Uttarakhand",
+  "403": "Goa",
+  "605": "Puducherry",
+  "737": "Sikkim",
+  "744": "Andaman & Nicobar Islands",
+  "790": "Arunachal Pradesh",
+  "791": "Arunachal Pradesh",
+  "792": "Arunachal Pradesh",
+  "793": "Meghalaya",
+  "794": "Meghalaya",
+  "795": "Manipur",
+  "796": "Mizoram",
+  "797": "Nagaland",
+  "798": "Nagaland",
+  "799": "Tripura",
+  "814": "Jharkhand",
+  "815": "Jharkhand",
+  "816": "Jharkhand",
+  "817": "Jharkhand",
+  "818": "Jharkhand",
+  "819": "Jharkhand",
+  "820": "Jharkhand",
+  "821": "Jharkhand",
+  "822": "Jharkhand",
+  "823": "Jharkhand",
+  "824": "Jharkhand",
+  "825": "Jharkhand",
+  "826": "Jharkhand",
+  "827": "Jharkhand",
+  "828": "Jharkhand",
+  "829": "Jharkhand",
+  "830": "Jharkhand",
+  "831": "Jharkhand",
+  "832": "Jharkhand",
+  "833": "Jharkhand",
+  "834": "Jharkhand",
+  "835": "Jharkhand"
+};
+const webTextInputReset =
+  Platform.OS === "web"
+    ? ({
+        outlineStyle: "none",
+        outlineWidth: 0
+      } as unknown as TextStyle)
+    : null;
+
+function getStateFromPincode(pincode: string) {
+  const cleanPincode = pincode.replace(/\D/g, "");
+
+  if (cleanPincode.length < 2) {
+    return "";
+  }
+
+  return (
+    stateByThreeDigitPincodePrefix[cleanPincode.slice(0, 3)] ??
+    stateByPincodePrefix[cleanPincode.slice(0, 2)] ??
+    ""
+  );
+}
+
+function AddressTextField({
+  containerStyle,
+  editable = true,
+  inputMode = "text",
+  keyboardType = "default",
+  label,
+  maxLength,
+  onChangeText,
+  placeholder,
+  value
+}: {
+  containerStyle?: ViewStyle;
+  editable?: boolean;
+  inputMode?: "email" | "numeric" | "text" | "tel";
+  keyboardType?: "default" | "email-address" | "number-pad" | "phone-pad";
+  label: string;
+  maxLength?: number;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <View style={[styles.addressFormField, containerStyle]}>
+      <Text style={styles.addressFormLabel}>{label}</Text>
+      <View style={styles.addressInputShell}>
+        <TextInput
+          autoCapitalize={keyboardType === "email-address" ? "none" : "words"}
+          autoCorrect={false}
+          cursorColor={colors.text}
+          editable={editable}
+          inputMode={inputMode}
+          keyboardType={keyboardType}
+          maxLength={maxLength}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.soft}
+          selectionColor={colors.text}
+          style={[styles.addressInput, webTextInputReset]}
+          value={value}
+        />
+      </View>
+    </View>
+  );
+}
+
+function AddressCheckbox({
+  label,
+  onPress,
+  selected
+}: {
+  label: string;
+  onPress: () => void;
+  selected: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.addressCheckboxRow,
+        pressed ? styles.pressed : null
+      ]}
+    >
+      <View
+        style={[
+          styles.addressCheckbox,
+          selected ? styles.addressCheckboxSelected : null
+        ]}
+      >
+        {selected ? (
+          <Feather color={colors.inverseText} name="check" size={14} />
+        ) : null}
+      </View>
+      <Text style={styles.addressCheckboxText}>{label}</Text>
+    </Pressable>
+  );
+}
 
 function DetailInfoCard({
   body,
@@ -107,6 +353,437 @@ function DetailInfoCard({
         <Text style={styles.detailInfoTitle}>{title}</Text>
         <Text style={styles.detailInfoBody}>{body}</Text>
       </View>
+    </View>
+  );
+}
+
+function AccountAddressesScreen({
+  addresses,
+  onAddAddress,
+  onBack
+}: {
+  addresses: SavedAddress[];
+  onAddAddress: () => void;
+  onBack: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const hasSavedAddresses = addresses.length > 0;
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleAddresses = normalizedQuery
+    ? addresses.filter((address) => {
+        const searchableText = [
+          address.label,
+          address.address,
+          address.phone ?? ""
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedQuery);
+      })
+    : addresses;
+
+  return (
+    <SafeAreaView style={styles.addressScreen}>
+      <ScrollView
+        contentContainerStyle={styles.addressContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.addressHeader}>
+          <Pressable
+            accessibilityLabel="Back to account"
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={onBack}
+            style={({ pressed }) => [
+              styles.addressBackButton,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.text} name="chevron-left" size={24} />
+          </Pressable>
+          <Text style={styles.addressTitle}>Saved addresses</Text>
+        </View>
+
+        {hasSavedAddresses ? (
+          <View style={styles.addressSearch}>
+            <Feather color={colors.soft} name="search" size={20} />
+            <TextInput
+              accessibilityLabel="Search saved addresses"
+              autoCorrect={false}
+              onChangeText={setQuery}
+              placeholder="Search saved addresses"
+              placeholderTextColor={colors.soft}
+              returnKeyType="search"
+              selectionColor={colors.text}
+              style={styles.addressSearchInput}
+              value={query}
+            />
+          </View>
+        ) : null}
+
+        {hasSavedAddresses ? (
+          <Pressable
+            accessibilityLabel="Add new address"
+            accessibilityRole="button"
+            onPress={onAddAddress}
+            style={({ pressed }) => [
+              styles.addAddressCta,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.inverseText} name="plus" size={19} />
+            <Text style={styles.addAddressCtaText}>Add new address</Text>
+          </Pressable>
+        ) : null}
+
+        {hasSavedAddresses ? (
+          <View style={styles.addressList}>
+            {visibleAddresses.length > 0 ? (
+              visibleAddresses.map((address) => (
+                <View key={address.id} style={styles.addressCard}>
+                  <View style={styles.addressDistance}>
+                    <View style={styles.addressIconShell}>
+                      <Feather
+                        color={colors.text}
+                        name={address.icon}
+                        size={22}
+                      />
+                    </View>
+                    {address.distance ? (
+                      <Text style={styles.addressDistanceText}>
+                        {address.distance}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.addressCopy}>
+                    <Text style={styles.addressLabel}>{address.label}</Text>
+                    <Text style={styles.addressBody}>{address.address}</Text>
+                    {address.phone ? (
+                      <Text style={styles.addressPhone}>
+                        Phone number: {address.phone}
+                      </Text>
+                    ) : null}
+                    <View style={styles.addressActions}>
+                      <Pressable
+                        accessibilityLabel={`More options for ${address.label}`}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                          styles.addressIconButton,
+                          pressed ? styles.pressed : null
+                        ]}
+                      >
+                        <Feather
+                          color={colors.text}
+                          name="more-horizontal"
+                          size={18}
+                        />
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`Share ${address.label}`}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                          styles.addressIconButton,
+                          pressed ? styles.pressed : null
+                        ]}
+                      >
+                        <Feather color={colors.text} name="share-2" size={17} />
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.addressEmpty}>
+                <Text style={styles.addressLabel}>No addresses found</Text>
+                <Text style={styles.addressBody}>
+                  Try searching by name, area or phone number.
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.addressEmpty}>
+            <View style={styles.addressIconShell}>
+              <Feather color={colors.text} name="map-pin" size={22} />
+            </View>
+            <View style={styles.addressEmptyCopy}>
+              <Text style={styles.addressEmptyTitle}>
+                No saved addresses yet
+              </Text>
+              <Text style={styles.addressEmptyBody}>
+                Add a delivery address once, then reuse it whenever a look is
+                ready to buy.
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Add new address"
+              accessibilityRole="button"
+              onPress={onAddAddress}
+              style={({ pressed }) => [
+                styles.addAddressCta,
+                styles.addressEmptyCta,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.inverseText} name="plus" size={19} />
+              <Text style={styles.addAddressCtaText}>Add new address</Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function AccountAddAddressScreen({
+  onBack,
+  onSave
+}: {
+  onBack: () => void;
+  onSave: (address: AddressFormPayload) => void;
+}) {
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [houseNumber, setHouseNumber] = useState("");
+  const [addressLine, setAddressLine] = useState("");
+  const [locality, setLocality] = useState("");
+  const [city, setCity] = useState("");
+  const [type, setType] = useState<AddressType>("Home");
+  const [openSaturday, setOpenSaturday] = useState(false);
+  const [openSunday, setOpenSunday] = useState(false);
+  const [isDefault, setIsDefault] = useState(false);
+
+  const cleanMobile = mobile.replace(/\D/g, "");
+  const cleanPincode = pincode.replace(/\D/g, "");
+  const canSaveAddress =
+    name.trim().length > 0 &&
+    cleanMobile.length === 10 &&
+    cleanPincode.length === 6 &&
+    stateName.trim().length > 0 &&
+    houseNumber.trim().length > 0 &&
+    addressLine.trim().length > 0 &&
+    locality.trim().length > 0 &&
+    city.trim().length > 0;
+
+  const handlePincodeChange = (value: string) => {
+    const nextPincode = value.replace(/\D/g, "");
+
+    setPincode(nextPincode);
+    setStateName(getStateFromPincode(nextPincode));
+  };
+
+  const handleAddressTypeChange = (nextType: AddressType) => {
+    setType(nextType);
+
+    if (nextType === "Home") {
+      setOpenSaturday(false);
+      setOpenSunday(false);
+    }
+  };
+
+  const handleSave = () => {
+    if (!canSaveAddress) {
+      return;
+    }
+
+    onSave({
+      addressLine: addressLine.trim(),
+      city: city.trim(),
+      houseNumber: houseNumber.trim(),
+      isDefault,
+      locality: locality.trim(),
+      mobile: cleanMobile,
+      name: name.trim(),
+      openSaturday,
+      openSunday,
+      pincode: cleanPincode,
+      state: stateName.trim(),
+      type
+    });
+  };
+
+  return (
+    <View style={styles.addressScreen}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.addressKeyboard}
+      >
+        <ScrollView
+          contentContainerStyle={styles.addAddressContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.addressHeader}>
+            <Pressable
+              accessibilityLabel="Back to saved addresses"
+              accessibilityRole="button"
+              hitSlop={10}
+              onPress={onBack}
+              style={({ pressed }) => [
+                styles.addressBackButton,
+                pressed ? styles.pressed : null
+              ]}
+            >
+              <Feather color={colors.text} name="chevron-left" size={24} />
+            </Pressable>
+            <Text style={styles.addressTitle}>Add new address</Text>
+          </View>
+
+          <View style={styles.addressFormFields}>
+            <AddressTextField
+              label="Name *"
+              onChangeText={setName}
+              placeholder="Enter name"
+              value={name}
+            />
+            <AddressTextField
+              inputMode="tel"
+              keyboardType="phone-pad"
+              label="Mobile *"
+              maxLength={10}
+              onChangeText={(value) => setMobile(value.replace(/\D/g, ""))}
+              placeholder="Mobile number"
+              value={mobile}
+            />
+
+            <View style={styles.addressFieldRow}>
+              <AddressTextField
+                containerStyle={styles.addressFieldHalf}
+                inputMode="numeric"
+                keyboardType="number-pad"
+                label="Pincode *"
+                maxLength={6}
+                onChangeText={handlePincodeChange}
+                placeholder="Pincode"
+                value={pincode}
+              />
+              <AddressTextField
+                containerStyle={styles.addressFieldHalf}
+                editable={false}
+                label="State *"
+                onChangeText={() => {}}
+                placeholder="State"
+                value={stateName}
+              />
+            </View>
+
+            <AddressTextField
+              label="House Number/Tower/Block *"
+              onChangeText={setHouseNumber}
+              placeholder="House, tower or block"
+              value={houseNumber}
+            />
+            <AddressTextField
+              label="Address (Building, Street, Area) *"
+              onChangeText={setAddressLine}
+              placeholder="Building, street, area"
+              value={addressLine}
+            />
+            <AddressTextField
+              label="Locality/Town *"
+              onChangeText={setLocality}
+              placeholder="Locality or town"
+              value={locality}
+            />
+            <AddressTextField
+              label="City/District *"
+              onChangeText={setCity}
+              placeholder="City or district"
+              value={city}
+            />
+
+            <View style={styles.addressFormField}>
+              <Text style={styles.addressFormLabel}>Type of address *</Text>
+              <View style={styles.addressTypeRow}>
+                {addressTypeOptions.map((option) => {
+                  const isSelected = type === option;
+
+                  return (
+                    <Pressable
+                      accessibilityLabel={`Set address type to ${option}`}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      key={option}
+                      onPress={() => handleAddressTypeChange(option)}
+                      style={({ pressed }) => [
+                        styles.addressTypeChip,
+                        isSelected ? styles.addressTypeChipSelected : null,
+                        pressed ? styles.pressed : null
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.addressRadio,
+                          isSelected ? styles.addressRadioSelected : null
+                        ]}
+                      >
+                        {isSelected ? <View style={styles.addressRadioDot} /> : null}
+                      </View>
+                      <Text
+                        style={[
+                          styles.addressTypeText,
+                          isSelected ? styles.addressTypeTextSelected : null
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {type === "Office" ? (
+              <View style={styles.addressFormField}>
+                <Text style={styles.addressFormLabel}>
+                  Is your office open on weekends?
+                </Text>
+                <View style={styles.addressCheckboxGroup}>
+                  <AddressCheckbox
+                    label="Open on Saturday"
+                    onPress={() => setOpenSaturday((current) => !current)}
+                    selected={openSaturday}
+                  />
+                  <AddressCheckbox
+                    label="Open on Sunday"
+                    onPress={() => setOpenSunday((current) => !current)}
+                    selected={openSunday}
+                  />
+                </View>
+              </View>
+            ) : null}
+
+            <View style={styles.addressDivider} />
+
+            <AddressCheckbox
+              label="Make this as my default address"
+              onPress={() => setIsDefault((current) => !current)}
+              selected={isDefault}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.addAddressFooter}>
+          <Pressable
+            accessibilityLabel="Save address"
+            accessibilityRole="button"
+            disabled={!canSaveAddress}
+            onPress={handleSave}
+            style={({ pressed }) => [
+              styles.addAddressSaveButton,
+              !canSaveAddress ? styles.addAddressSaveButtonDisabled : null,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Text style={styles.addAddressSaveText}>Save address</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -139,23 +816,6 @@ function AccountDetailPage({
       }>;
     }
   > = {
-    addresses: {
-      cta: "Add address",
-      intro: "Save places you ship to often so checkout stays quick when a look feels right.",
-      items: [
-        {
-          body: "No saved home address yet",
-          icon: "home",
-          title: "Home"
-        },
-        {
-          body: "Add work, studio or campus delivery details",
-          icon: "map-pin",
-          title: "Other address"
-        }
-      ],
-      title: "Saved addresses"
-    },
     avatar: {
       cta: "Update avatar",
       intro: "Your avatar powers try-on previews, saved looks and outfit comparisons.",
@@ -399,11 +1059,13 @@ export function AccountScreen({
   closetItemCount,
   initialPage,
   onInternalViewChange,
+  onOverlayActiveChange,
   styleProfile
 }: AccountScreenProps) {
   const [activePage, setActivePage] = useState<AccountInternalPage | null>(
     initialPage ?? null
   );
+  const [addresses, setAddresses] = useState<SavedAddress[]>(savedAddresses);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
@@ -413,9 +1075,14 @@ export function AccountScreen({
   }, [initialPage]);
 
   useEffect(() => {
-    onInternalViewChange?.(Boolean(activePage));
+    const internalBackgroundColor =
+      activePage === "addresses" || activePage === "addAddress"
+        ? colors.background
+        : colors.surfaceTertiary;
 
-    return () => onInternalViewChange?.(false);
+    onInternalViewChange?.(Boolean(activePage), internalBackgroundColor);
+
+    return () => onInternalViewChange?.(false, colors.background);
   }, [activePage, onInternalViewChange]);
 
   const handleOpenStyle = () => {
@@ -460,6 +1127,32 @@ export function AccountScreen({
   const handleSaveProfile = (profile: EditableProfile) => {
     actions?.onUpdateProfile?.(profile);
     setActivePage(null);
+  };
+
+  const handleSaveAddress = (address: AddressFormPayload) => {
+    const fullAddress = [
+      address.houseNumber,
+      address.addressLine,
+      address.locality,
+      address.city,
+      address.state,
+      address.pincode
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    setAddresses((currentAddresses) => [
+      {
+        address: fullAddress || "Address details added",
+        distance: "",
+        icon: address.type === "Home" ? "home" : "map-pin",
+        id: `address-${Date.now()}`,
+        label: address.type,
+        phone: address.mobile ? `+91 ${address.mobile}` : undefined
+      },
+      ...currentAddresses
+    ]);
+    setActivePage("addresses");
   };
 
   const youRows: Array<{
@@ -520,13 +1213,6 @@ export function AccountScreen({
       onPress: actions?.onOpenOrders,
       subtitle: "Purchase history and delivery updates",
       title: "Orders"
-    },
-    {
-      icon: "package",
-      key: "closet",
-      onPress: actions?.onOpenCloset,
-      subtitle: "Wardrobe items Mira can reuse in looks",
-      title: "Closet"
     }
   ];
 
@@ -600,7 +1286,27 @@ export function AccountScreen({
           phone: user.phone
         }}
         onBack={() => setActivePage(null)}
+        onOverlayActiveChange={onOverlayActiveChange}
         onSave={handleSaveProfile}
+      />
+    );
+  }
+
+  if (activePage === "addresses") {
+    return (
+      <AccountAddressesScreen
+        addresses={addresses}
+        onAddAddress={() => setActivePage("addAddress")}
+        onBack={() => setActivePage(null)}
+      />
+    );
+  }
+
+  if (activePage === "addAddress") {
+    return (
+      <AccountAddAddressScreen
+        onBack={() => setActivePage("addresses")}
+        onSave={handleSaveAddress}
       />
     );
   }
@@ -625,7 +1331,6 @@ export function AccountScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <AppScreenHeader title="My Account" />
           <AccountProfileCard
             avatarUri={user.avatarUri}
             email={user.email}
@@ -754,6 +1459,317 @@ export function AccountScreen({
 }
 
 const styles = StyleSheet.create({
+  addAddressCta: {
+    alignItems: "center",
+    backgroundColor: colors.inverse,
+    borderRadius: radii.button,
+    flexDirection: "row",
+    gap: spacing.sm,
+    height: 52,
+    justifyContent: "center"
+  },
+  addAddressCtaText: {
+    ...typography.button,
+    color: colors.inverseText
+  },
+  addAddressContent: {
+    backgroundColor: colors.background,
+    flexGrow: 1,
+    gap: spacing.xl,
+    paddingBottom: 132,
+    paddingHorizontal: spacing.screen,
+    paddingTop: appScreenTopPadding
+  },
+  addAddressFooter: {
+    backgroundColor: colors.background,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.md
+  },
+  addAddressSaveButton: {
+    alignItems: "center",
+    backgroundColor: colors.inverse,
+    borderRadius: radii.button,
+    height: 52,
+    justifyContent: "center"
+  },
+  addAddressSaveButtonDisabled: {
+    opacity: 0.42
+  },
+  addAddressSaveText: {
+    ...typography.button,
+    color: colors.inverseText
+  },
+  addressActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md
+  },
+  addressBackButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingRight: spacing.sm,
+    paddingVertical: spacing.xs
+  },
+  addressBody: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20
+  },
+  addressCard: {
+    alignItems: "flex-start",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: spacing.md,
+    padding: spacing.lg
+  },
+  addressContent: {
+    backgroundColor: colors.background,
+    flexGrow: 1,
+    gap: spacing.lg,
+    paddingBottom: 108,
+    paddingHorizontal: spacing.screen,
+    paddingTop: appScreenTopPadding
+  },
+  addressCopy: {
+    flex: 1,
+    minWidth: 0
+  },
+  addressDistance: {
+    alignItems: "center",
+    gap: spacing.xs,
+    width: 48
+  },
+  addressDistanceText: {
+    color: colors.muted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: "center"
+  },
+  addressEmpty: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    flex: 1,
+    gap: spacing.md,
+    justifyContent: "center",
+    paddingHorizontal: 0,
+    paddingVertical: spacing.xxl
+  },
+  addressEmptyBody: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  addressEmptyCopy: {
+    alignItems: "center",
+    gap: spacing.xs,
+    maxWidth: 328
+  },
+  addressEmptyCta: {
+    alignSelf: "stretch",
+    marginTop: spacing.sm
+  },
+  addressEmptyTitle: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 17,
+    lineHeight: 22,
+    textAlign: "center"
+  },
+  addressHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm
+  },
+  addressCheckbox: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: 6,
+    borderWidth: 1,
+    height: 22,
+    justifyContent: "center",
+    width: 22
+  },
+  addressCheckboxGroup: {
+    gap: spacing.md
+  },
+  addressCheckboxRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.md,
+    minHeight: 32
+  },
+  addressCheckboxSelected: {
+    backgroundColor: colors.inverse,
+    borderColor: colors.inverse
+  },
+  addressCheckboxText: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 20
+  },
+  addressDivider: {
+    backgroundColor: colors.border,
+    height: StyleSheet.hairlineWidth,
+    marginVertical: spacing.xs
+  },
+  addressFieldHalf: {
+    flex: 1,
+    minWidth: 0
+  },
+  addressFieldRow: {
+    flexDirection: "row",
+    gap: spacing.md
+  },
+  addressFormField: {
+    gap: spacing.sm
+  },
+  addressFormFields: {
+    gap: spacing.lg
+  },
+  addressFormLabel: {
+    color: colors.muted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 17
+  },
+  addressIconButton: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTertiary,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  addressIconShell: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    height: 40,
+    justifyContent: "center",
+    width: 40
+  },
+  addressInput: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    minWidth: 0,
+    padding: 0
+  },
+  addressInputShell: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: radii.card,
+    borderWidth: 1,
+    flexDirection: "row",
+    minHeight: 56,
+    paddingHorizontal: spacing.md
+  },
+  addressKeyboard: {
+    flex: 1
+  },
+  addressLabel: {
+    color: colors.text,
+    fontFamily: fonts.heading,
+    fontSize: 17,
+    lineHeight: 22,
+    marginBottom: spacing.xs
+  },
+  addressList: {
+    gap: spacing.md
+  },
+  addressPhone: {
+    color: colors.muted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: spacing.sm
+  },
+  addressSearch: {
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 52,
+    paddingHorizontal: spacing.lg
+  },
+  addressSearchInput: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 20,
+    padding: 0
+  },
+  addressTitle: {
+    ...typography.screenTitle,
+    color: colors.text,
+    flex: 1
+  },
+  addressScreen: {
+    backgroundColor: colors.background,
+    flex: 1
+  },
+  addressRadio: {
+    alignItems: "center",
+    borderColor: colors.borderStrong,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    height: 20,
+    justifyContent: "center",
+    width: 20
+  },
+  addressRadioDot: {
+    backgroundColor: colors.text,
+    borderRadius: radii.pill,
+    height: 8,
+    width: 8
+  },
+  addressRadioSelected: {
+    backgroundColor: "transparent",
+    borderColor: colors.text
+  },
+  addressTypeChip: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    minHeight: 32,
+    paddingRight: spacing.xl,
+    paddingVertical: spacing.xs
+  },
+  addressTypeChipSelected: {
+    backgroundColor: "transparent"
+  },
+  addressTypeRow: {
+    flexDirection: "row",
+    gap: spacing.lg
+  },
+  addressTypeText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 20
+  },
+  addressTypeTextSelected: {
+    color: colors.text
+  },
   avatarHero: {
     alignItems: "center",
     alignSelf: "flex-start",

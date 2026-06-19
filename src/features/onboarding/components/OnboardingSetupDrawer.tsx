@@ -41,9 +41,10 @@ type OnboardingSetupDrawerProps = {
   onContinueHeight: () => void;
   onContinueName: () => void;
   onContinuePhoto: () => void;
+  onChangeMeasurement: () => void;
   onBack?: () => void;
   onSelectPhoto: (uri: string) => void;
-  onUseAnotherPhoto: () => void;
+  onSelectReplacementPhoto: (uri: string) => void;
   step: OnboardingSetupDrawerStep;
 };
 
@@ -68,9 +69,10 @@ export function OnboardingSetupDrawer({
   onContinueHeight,
   onContinueName,
   onContinuePhoto,
+  onChangeMeasurement,
   onBack,
   onSelectPhoto,
-  onUseAnotherPhoto,
+  onSelectReplacementPhoto,
   step
 }: OnboardingSetupDrawerProps) {
   const { height } = useWindowDimensions();
@@ -194,8 +196,9 @@ export function OnboardingSetupDrawer({
             <AvatarReadyScreen
               avatarUri={draft.avatarUri}
               height={draft.height}
+              onChangeMeasurement={onChangeMeasurement}
               onContinue={onComplete}
-              onUseAnotherPhoto={onUseAnotherPhoto}
+              onSelectReplacementPhoto={onSelectReplacementPhoto}
               presentation="drawer"
             />
           ) : null}
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.46)"
+    backgroundColor: colors.scrimOverlay
   },
   sheet: {
     backgroundColor: colors.background,

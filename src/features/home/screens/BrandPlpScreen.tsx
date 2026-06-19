@@ -12,6 +12,7 @@ type BrandPlpScreenProps = {
   hasStyleProfile?: boolean;
   onBack: () => void;
   onOpenCart?: () => void;
+  onOpenNotifications?: () => void;
   onOpenProduct?: (product: ProductListingProduct) => void;
 };
 
@@ -116,6 +117,7 @@ export function BrandPlpScreen({
   hasStyleProfile = false,
   onBack,
   onOpenCart,
+  onOpenNotifications,
   onOpenProduct
 }: BrandPlpScreenProps) {
   const title = getBrandName(brandId);
@@ -129,6 +131,7 @@ export function BrandPlpScreen({
       cartCount={cartCount}
       onBack={onBack}
       onOpenCart={onOpenCart}
+      onOpenNotifications={onOpenNotifications}
       onOpenProduct={onOpenProduct}
       products={products}
       subtitle={`${products.length} products`}
