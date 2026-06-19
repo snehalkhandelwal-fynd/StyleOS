@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "../../../components/PrimaryButton";
 import { colors, fonts, radii, spacing } from "../../../theme";
@@ -8,6 +10,7 @@ import {
   OnboardingStepShell,
   type OnboardingStepPresentation
 } from "../components/OnboardingStepShell";
+import { PhotoPickerSheet } from "../components/PhotoUploadBox";
 
 type AvatarReadyScreenProps = {
   avatarUri?: string;
@@ -15,8 +18,9 @@ type AvatarReadyScreenProps = {
     feet: number;
     inches: number;
   };
+  onChangeMeasurement: () => void;
   onContinue: () => void;
-  onUseAnotherPhoto: () => void;
+  onSelectReplacementPhoto: (uri: string) => void;
   presentation?: OnboardingStepPresentation;
 };
 
@@ -74,11 +78,13 @@ function getMeasurementChips(height?: { feet: number; inches: number }) {
 export function AvatarReadyScreen({
   avatarUri,
   height,
+  onChangeMeasurement,
   onContinue,
-  onUseAnotherPhoto,
+  onSelectReplacementPhoto,
   presentation = "screen"
 }: AvatarReadyScreenProps) {
   const isDrawer = presentation === "drawer";
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const measurementChips = getMeasurementChips(height);
   const drawerNextButton = isDrawer
     ? {
@@ -90,54 +96,77 @@ export function AvatarReadyScreen({
     : undefined;
   const drawerSecondaryButton = isDrawer
     ? {
-        label: "Change photo",
-        onPress: onUseAnotherPhoto,
+        label: "Change measurement",
+        onPress: onChangeMeasurement,
         variant: "outline" as const
       }
     : undefined;
 
-  return (
-    <OnboardingStepShell
-      currentStep={4}
-      drawerCtaTopSpacing={spacing.md}
-      drawerSecondaryButton={drawerSecondaryButton}
-      nextButton={drawerNextButton}
-      presentation={presentation}
-      title="You’re ready to try outfits on yourself"
-      totalSteps={4}
-    >
-      <View style={[styles.content, isDrawer ? styles.drawerContent : null]}>
-        <AvatarImageFrame
-          style={isDrawer ? styles.drawerFrame : null}
-          uri={avatarUri ?? fallbackAvatar}
-        >
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            {measurementChips.map((chip) => (
-              <View
-                key={chip.key}
-                style={[styles.measurementChip, chip.style]}
-              >
-                <Text style={styles.measurementChipText}>{chip.label}</Text>
-              </View>
-            ))}
-          </View>
-        </AvatarImageFrame>
+  const openPhotoPicker = () => {
+    setIsPhotoPickerOpen(true);
+  };
 
-        {!isDrawer ? (
-          <View style={styles.buttonStack}>
-            <PrimaryButton
-              label="Try your first look"
-              onPress={onContinue}
-            />
-            <PrimaryButton
-              label="Change photo"
-              onPress={onUseAnotherPhoto}
-              variant="outline"
-            />
-          </View>
-        ) : null}
-      </View>
-    </OnboardingStepShell>
+  return (
+    <>
+      <OnboardingStepShell
+        currentStep={4}
+        drawerCtaTopSpacing={spacing.md}
+        drawerSecondaryButton={drawerSecondaryButton}
+        nextButton={drawerNextButton}
+        presentation={presentation}
+        title="You’re ready to try outfits on yourself"
+        totalSteps={4}
+      >
+        <View style={[styles.content, isDrawer ? styles.drawerContent : null]}>
+          <AvatarImageFrame
+            style={isDrawer ? styles.drawerFrame : null}
+            uri={avatarUri ?? fallbackAvatar}
+          >
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {measurementChips.map((chip) => (
+                <View
+                  key={chip.key}
+                  style={[styles.measurementChip, chip.style]}
+                >
+                  <Text style={styles.measurementChipText}>{chip.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Pressable
+              accessibilityLabel="Change photo"
+              accessibilityRole="button"
+              onPress={openPhotoPicker}
+              style={({ pressed }) => [
+                styles.changePhotoButton,
+                pressed ? styles.changePhotoButtonPressed : null
+              ]}
+            >
+              <Feather color={colors.text} name="camera" size={14} />
+              <Text style={styles.changePhotoText}>Change photo</Text>
+            </Pressable>
+          </AvatarImageFrame>
+
+          {!isDrawer ? (
+            <View style={styles.buttonStack}>
+              <PrimaryButton
+                label="Try your first look"
+                onPress={onContinue}
+              />
+              <PrimaryButton
+                label="Change measurement"
+                onPress={onChangeMeasurement}
+                variant="outline"
+              />
+            </View>
+          ) : null}
+        </View>
+      </OnboardingStepShell>
+      <PhotoPickerSheet
+        onClose={() => setIsPhotoPickerOpen(false)}
+        onSelectPhoto={onSelectReplacementPhoto}
+        visible={isPhotoPickerOpen}
+      />
+    </>
   );
 }
 
@@ -145,6 +174,34 @@ const styles = StyleSheet.create({
   buttonStack: {
     gap: spacing.sm,
     width: "100%"
+  },
+  changePhotoButton: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceTranslucent,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    position: "absolute",
+    right: spacing.md,
+    shadowColor: "#000000",
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    top: spacing.md
+  },
+  changePhotoButtonPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }]
+  },
+  changePhotoText: {
+    color: colors.text,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 15
   },
   content: {
     gap: spacing.lg,

@@ -19,6 +19,7 @@ export const colors = {
   scrimSoft: "rgba(0, 0, 0, 0.18)",
   scrimMedium: "rgba(0, 0, 0, 0.28)",
   scrimStrong: "rgba(0, 0, 0, 0.32)",
+  scrimOverlay: "rgba(0, 0, 0, 0.46)",
   surfaceTranslucent: "rgba(255, 255, 255, 0.9)",
   success: "#0A0A0A"
 };

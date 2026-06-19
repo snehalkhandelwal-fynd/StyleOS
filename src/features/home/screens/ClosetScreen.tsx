@@ -273,8 +273,7 @@ const editProductFitOptions = [
 ];
 const maxEditProductTags = 3;
 const closetPdpHeaderHeight = appSearchHeaderHeight;
-const detailCtaDockBottomPadding =
-  Platform.OS === "ios" ? spacing.lg : spacing.md;
+const detailCtaDockBottomPadding = spacing.xl;
 const detailCtaDockHeight = 48 + spacing.md + detailCtaDockBottomPadding;
 const defaultSizeOptions = ["XS", "S", "M", "L", "XL"];
 const bottomSizeOptions = ["26", "28", "30", "32", "34", "36"];
@@ -1338,7 +1337,7 @@ function ClosetPieceDetailScreen({
         contentContainerStyle={[
           styles.detailContent,
           {
-            paddingBottom: detailCtaDockHeight + spacing.xl,
+            paddingBottom: detailCtaDockHeight,
             paddingTop: closetPdpHeaderHeight
           }
         ]}
@@ -1391,6 +1390,16 @@ function ClosetPieceDetailScreen({
             <Text numberOfLines={1} style={styles.detailPieceCategory}>
               {piece.category} · {piece.color}
             </Text>
+            <View style={styles.detailTagRow}>
+              {piece.tags.map((tag) => (
+                <View
+                  key={`${piece.id}-detail-${tag}`}
+                  style={styles.detailTag}
+                >
+                  <Text style={styles.detailTagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <MiraAdviceSection onAskMira={onAskMira} piece={piece} />
@@ -1410,19 +1419,6 @@ function ClosetPieceDetailScreen({
             </View>
           </View>
 
-          <View style={styles.detailTagsBlock}>
-            <Text style={styles.detailSectionTitle}>Tags</Text>
-            <View style={styles.detailTagRow}>
-              {piece.tags.map((tag) => (
-                <View
-                  key={`${piece.id}-detail-${tag}`}
-                  style={styles.detailTag}
-                >
-                  <Text style={styles.detailTagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
         </View>
       </ScrollView>
       <ClosetDetailCtaDock
@@ -5074,9 +5070,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 17
   },
-  detailTagsBlock: {
-    marginTop: spacing.xl
-  },
   detailTitleEditButton: {
     alignItems: "center",
     height: 28,
@@ -5104,17 +5097,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.xs,
     justifyContent: "center",
-    minWidth: 74,
-    paddingBottom: spacing.xs
+    minWidth: 64,
+    paddingBottom: 0
   },
   filterChipScroller: {
     marginHorizontal: -spacing.screen,
-    marginTop: spacing.lg
+    marginTop: spacing.md
   },
   filterChipRail: {
     alignItems: "flex-start",
     flexDirection: "row",
-    gap: spacing.lg,
+    gap: spacing.sm,
     paddingHorizontal: spacing.screen
   },
   filterChipText: {

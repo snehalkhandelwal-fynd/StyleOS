@@ -79,6 +79,7 @@ type AccountScreenProps = {
   closetItemCount?: number;
   initialPage?: AccountPage | null;
   onInternalViewChange?: (isOpen: boolean, backgroundColor?: string) => void;
+  onOverlayActiveChange?: (isActive: boolean) => void;
   styleProfile?: AccountStyleProfile;
 };
 
@@ -1058,6 +1059,7 @@ export function AccountScreen({
   closetItemCount,
   initialPage,
   onInternalViewChange,
+  onOverlayActiveChange,
   styleProfile
 }: AccountScreenProps) {
   const [activePage, setActivePage] = useState<AccountInternalPage | null>(
@@ -1284,6 +1286,7 @@ export function AccountScreen({
           phone: user.phone
         }}
         onBack={() => setActivePage(null)}
+        onOverlayActiveChange={onOverlayActiveChange}
         onSave={handleSaveProfile}
       />
     );

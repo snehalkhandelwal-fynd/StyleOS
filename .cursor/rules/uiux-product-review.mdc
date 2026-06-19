@@ -112,6 +112,7 @@ Do not let discounts, brands, or product grids overpower styling and try-on.
 - Onboarding/setup headings and subtitles must use the shared onboarding typography tokens. Do not allow individual setup screens to define local heading font family, size, weight, line height, or letter spacing.
 - Upload-photo selected states must not change the heading, subtitle, typography, or vertical layout. Only the upload box content should change into the selected image preview.
 - On onboarding/setup screens, circular next buttons must sit in the bottom-right corner with equal visual spacing from the bottom and right edges. Respect the bottom safe area, and do not use mismatched bottom/right offsets.
+- Overlay/scrim layers for drawers, sheets, modals, and layovers must cover the whole device canvas, including top and bottom safe areas, the notch/status region, and any app-level status-bar guard. Never leave white or untinted safe-area bands visible behind an active overlay. Do not paint the status-bar guard as a separate overlay layer; make it transparent while the real scrim underneath covers the safe area.
 - Use progressive disclosure instead of showing too much at once.
 
 ## Personalization Guidance

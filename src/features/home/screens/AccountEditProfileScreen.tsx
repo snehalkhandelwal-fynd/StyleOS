@@ -30,6 +30,7 @@ import type {
 type AccountEditProfileScreenProps = {
   initialProfile: EditableProfile;
   onBack: () => void;
+  onOverlayActiveChange?: (isActive: boolean) => void;
   onSave: (profile: EditableProfile) => void;
 };
 
@@ -550,6 +551,7 @@ function DatePickerSheet({
 export function AccountEditProfileScreen({
   initialProfile,
   onBack,
+  onOverlayActiveChange,
   onSave
 }: AccountEditProfileScreenProps) {
   const currentPhone = initialProfile.phone;
@@ -648,6 +650,14 @@ export function AccountEditProfileScreen({
 
     setActiveDatePicker(null);
   };
+
+  useEffect(() => {
+    onOverlayActiveChange?.(Boolean(activeDatePicker));
+  }, [activeDatePicker, onOverlayActiveChange]);
+
+  useEffect(() => {
+    return () => onOverlayActiveChange?.(false);
+  }, [onOverlayActiveChange]);
 
   if (isVerifyingPhone) {
     return (
@@ -983,7 +993,7 @@ const styles = StyleSheet.create({
   },
   datePickerScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 10, 10, 0.36)"
+    backgroundColor: colors.scrimOverlay
   },
   datePickerSheet: {
     backgroundColor: colors.background,

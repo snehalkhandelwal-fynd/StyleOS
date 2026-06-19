@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import {
+  ActionSheetIOS,
+  Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +24,14 @@ type PhotoUploadBoxProps = {
 };
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
+export type PhotoPickerStep = "source" | "gallery";
+
+type PhotoPickerSheetProps = {
+  initialStep?: PhotoPickerStep;
+  onClose: () => void;
+  onSelectPhoto: (uri: string) => void;
+  visible: boolean;
+};
 
 const exampleModelImage = require("../../../assets/upload-example.png");
 const drawerUploadBoxHeight = 424;
@@ -30,6 +41,153 @@ const photoGuidelines: { icon: IoniconName; text: string }[] = [
   { icon: "person-remove-outline", text: "Just you no pets or friends" },
   { icon: "sunny-outline", text: "Good lighting, not blurry" }
 ];
+
+export function PhotoPickerSheet({
+  initialStep = "source",
+  onClose,
+  onSelectPhoto,
+  visible
+}: PhotoPickerSheetProps) {
+  const hasOpenedRef = useRef(false);
+  const [step, setStep] = useState<PhotoPickerStep>(initialStep);
+
+  useEffect(() => {
+    if (!visible) {
+      hasOpenedRef.current = false;
+      setStep(initialStep);
+      return;
+    }
+
+    setStep(initialStep);
+
+    if (hasOpenedRef.current) {
+      return;
+    }
+
+    hasOpenedRef.current = true;
+
+    const openCamera = () => {
+      onClose();
+      setTimeout(() => {
+        void selectCameraPhoto(onSelectPhoto);
+      }, 250);
+    };
+
+    const openGallery = () => {
+      setStep("gallery");
+    };
+
+    if (initialStep === "gallery") {
+      openGallery();
+      return;
+    }
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          cancelButtonIndex: 2,
+          options: ["Camera", "Gallery", "Cancel"],
+          title: "Select an option"
+        },
+        (selectedIndex) => {
+          if (selectedIndex === 0) {
+            openCamera();
+          }
+
+          if (selectedIndex === 1) {
+            openGallery();
+          }
+
+          if (selectedIndex === 2) {
+            onClose();
+          }
+        }
+      );
+      return;
+    }
+
+    Alert.alert("Select an option", undefined, [
+      { onPress: openCamera, text: "Camera" },
+      { onPress: openGallery, text: "Gallery" },
+      { onPress: onClose, style: "cancel", text: "Cancel" }
+    ]);
+  }, [initialStep, onClose, onSelectPhoto, visible]);
+
+  const handleSamplePhotoSelect = (selectedUri: string) => {
+    onSelectPhoto(selectedUri);
+    onClose();
+  };
+
+  if (!visible || step !== "gallery") {
+    return null;
+  }
+
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
+      <View style={styles.modalBackdrop}>
+        <Pressable
+          accessibilityLabel="Close photo choices"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={styles.scrim}
+        />
+
+        <View style={styles.photoSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <View style={styles.sheetTitleGroup}>
+              <Text style={styles.sheetTitle}>Select from gallery</Text>
+              <Text style={styles.sheetSubtitle}>
+                Pick a clear full-body image.
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Close gallery choices"
+              accessibilityRole="button"
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.closeButton,
+                pressed ? styles.closeButtonPressed : null
+              ]}
+            >
+              <Ionicons color={colors.text} name="close" size={24} />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.sampleGrid}
+            style={styles.sampleScroller}
+            showsVerticalScrollIndicator={false}
+          >
+            {samplePeoplePhotos.map((photo) => (
+              <Pressable
+                accessibilityLabel={photo.accessibilityLabel}
+                accessibilityRole="imagebutton"
+                key={photo.id}
+                onPress={() => handleSamplePhotoSelect(photo.uri)}
+                style={({ pressed }) => [
+                  styles.sampleTile,
+                  pressed ? styles.sampleTilePressed : null
+                ]}
+              >
+                <Image
+                  resizeMode="cover"
+                  source={photo.source}
+                  style={styles.sampleImage}
+                />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export function PhotoUploadBox({
   onSelectPhoto,
@@ -47,16 +205,6 @@ export function PhotoUploadBox({
 
   const closePhotoDrawer = () => {
     setIsPickerOpen(false);
-  };
-
-  const handleSamplePhotoSelect = (selectedUri: string) => {
-    onSelectPhoto(selectedUri);
-    closePhotoDrawer();
-  };
-
-  const handleTakePhoto = () => {
-    closePhotoDrawer();
-    selectCameraPhoto(onSelectPhoto);
   };
 
   return (
@@ -215,82 +363,11 @@ export function PhotoUploadBox({
         )}
       </Pressable>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={closePhotoDrawer}
-        transparent
+      <PhotoPickerSheet
+        onClose={closePhotoDrawer}
+        onSelectPhoto={onSelectPhoto}
         visible={isPickerOpen}
-      >
-        <View style={styles.modalBackdrop}>
-          <Pressable
-            accessibilityLabel="Close photo choices"
-            accessibilityRole="button"
-            onPress={closePhotoDrawer}
-            style={styles.scrim}
-          />
-
-          <View style={styles.photoSheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <View style={styles.sheetTitleGroup}>
-                <Text style={styles.sheetTitle}>Choose a photo</Text>
-                <Text style={styles.sheetSubtitle}>
-                  Pick a clear full-body image.
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close photo choices"
-                accessibilityRole="button"
-                onPress={closePhotoDrawer}
-                style={({ pressed }) => [
-                  styles.closeButton,
-                  pressed ? styles.closeButtonPressed : null
-                ]}
-              >
-                <Ionicons color={colors.text} name="close" size={24} />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={styles.sampleGrid}
-              style={styles.sampleScroller}
-              showsVerticalScrollIndicator={false}
-            >
-              {samplePeoplePhotos.map((photo) => (
-                <Pressable
-                  accessibilityLabel={photo.accessibilityLabel}
-                  accessibilityRole="imagebutton"
-                  key={photo.id}
-                  onPress={() => handleSamplePhotoSelect(photo.uri)}
-                  style={({ pressed }) => [
-                    styles.sampleTile,
-                    pressed ? styles.sampleTilePressed : null
-                  ]}
-                >
-                  <Image
-                    resizeMode="cover"
-                    source={photo.source}
-                    style={styles.sampleImage}
-                  />
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            <Pressable
-              accessibilityLabel="Take new photo"
-              accessibilityRole="button"
-              onPress={handleTakePhoto}
-              style={({ pressed }) => [
-                styles.cameraButton,
-                pressed ? styles.cameraButtonPressed : null
-              ]}
-            >
-              <Ionicons color={colors.text} name="camera-outline" size={18} />
-              <Text style={styles.cameraButtonText}>Take new photo</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      />
     </>
   );
 }
@@ -315,28 +392,6 @@ const styles = StyleSheet.create({
   },
   boxWithPreview: {
     backgroundColor: colors.surface
-  },
-  cameraButton: {
-    alignItems: "center",
-    borderColor: colors.secondaryBorder,
-    borderRadius: radii.button,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: spacing.sm,
-    height: 48,
-    justifyContent: "center",
-    marginTop: spacing.md,
-    width: "100%"
-  },
-  cameraButtonPressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.99 }]
-  },
-  cameraButtonText: {
-    color: colors.text,
-    fontFamily: fonts.cta,
-    fontSize: 14,
-    lineHeight: 14
   },
   changePhotoButton: {
     alignItems: "center",

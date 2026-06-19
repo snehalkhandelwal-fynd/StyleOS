@@ -50,6 +50,7 @@ type ModelLookPdpScreenProps = {
   onBack: () => void;
   onLookSavedChange?: (isSaved: boolean) => void;
   onOpenCart?: () => void;
+  onOpenNotifications?: () => void;
   onOpenPieceProduct?: (piece: LookPiece) => void;
   onOpenShopLook?: () => void;
   onOpenWishlist?: () => void;
@@ -156,11 +157,13 @@ function LookPdpHeader({
   cartCount = 0,
   onBack,
   onOpenCart,
+  onOpenNotifications,
   onOpenWishlist
 }: {
   cartCount?: number;
   onBack: () => void;
   onOpenCart?: () => void;
+  onOpenNotifications?: () => void;
   onOpenWishlist?: () => void;
 }) {
   return (
@@ -198,6 +201,21 @@ function LookPdpHeader({
         >
           <WishlistHeartIcon saved={false} size={24} />
         </Pressable>
+
+        {onOpenNotifications ? (
+          <Pressable
+            accessibilityLabel="Open notifications"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onOpenNotifications}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              pressed ? styles.pressed : null
+            ]}
+          >
+            <Feather color={colors.text} name="bell" size={24} />
+          </Pressable>
+        ) : null}
 
         <Pressable
           accessibilityLabel="Open cart"
@@ -1052,6 +1070,7 @@ export function ModelLookPdpScreen({
   onBack,
   onLookSavedChange,
   onOpenCart,
+  onOpenNotifications,
   onOpenPieceProduct,
   onOpenShopLook,
   onOpenWishlist,
@@ -1155,6 +1174,7 @@ export function ModelLookPdpScreen({
         cartCount={cartCount}
         onBack={onBack}
         onOpenCart={onOpenCart}
+        onOpenNotifications={onOpenNotifications}
         onOpenWishlist={onOpenWishlist}
       />
       <ScrollView

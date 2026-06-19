@@ -42,6 +42,7 @@ import {
   ModelLookPdpScreen,
   type ShopThisLookCartItem
 } from "../features/home/screens/ModelLookPdpScreen";
+import { NotificationsScreen } from "../features/home/screens/NotificationsScreen";
 import { ProductPdpScreen } from "../features/home/screens/ProductPdpScreen";
 import { SearchDiscoveryScreen } from "../features/home/screens/SearchDiscoveryScreen";
 import { StylistScreen } from "../features/home/screens/StylistScreen";
@@ -551,12 +552,14 @@ export function HomeTabsNavigator({
   const [accountPageOverride, setAccountPageOverride] =
     useState<AccountPage | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isExploreInternalViewOpen, setIsExploreInternalViewOpen] =
     useState(false);
   const [isClosetInternalViewOpen, setIsClosetInternalViewOpen] =
     useState(false);
   const [isAccountInternalViewOpen, setIsAccountInternalViewOpen] =
     useState(false);
+  const [isHomeOverlayActive, setIsHomeOverlayActive] = useState(false);
   const [accountInternalBackgroundColor, setAccountInternalBackgroundColor] =
     useState(colors.background);
   const [tryOnEntry, setTryOnEntry] = useState<TryOnEntry | null>(null);
@@ -795,9 +798,11 @@ export function HomeTabsNavigator({
     setSelectedProductReturnTab(null);
     setAccountPageOverride(null);
     setIsSearchOpen(false);
+    setIsNotificationsOpen(false);
     setIsExploreInternalViewOpen(false);
     setIsClosetInternalViewOpen(false);
     setIsAccountInternalViewOpen(false);
+    setIsHomeOverlayActive(false);
     setAccountInternalBackgroundColor(colors.background);
     setTryOnEntry(null);
     setIsTryOnShopLookOpen(false);
@@ -808,8 +813,11 @@ export function HomeTabsNavigator({
   }, [initialTab, resetTryOnRender]);
 
   useEffect(() => {
-    const statusBarBackground =
-      activeTab === "Profile" && isAccountInternalViewOpen
+    const statusBarBackground = isHomeOverlayActive
+      ? colors.scrimOverlay
+      : activeTab === "Home" && isNotificationsOpen
+        ? colors.surfaceTertiary
+      : activeTab === "Profile" && isAccountInternalViewOpen
         ? accountInternalBackgroundColor
         : (activeTab === "Closet" && !isClosetInternalViewOpen) ||
             activeTab === "Profile"
@@ -824,6 +832,8 @@ export function HomeTabsNavigator({
   }, [
     accountInternalBackgroundColor,
     activeTab,
+    isHomeOverlayActive,
+    isNotificationsOpen,
     isAccountInternalViewOpen,
     isClosetInternalViewOpen,
     onStatusBarBackgroundChange
@@ -838,6 +848,7 @@ export function HomeTabsNavigator({
     setSelectedProductReturnTab(null);
     setAccountPageOverride(null);
     setIsSearchOpen(false);
+    setIsNotificationsOpen(false);
     setIsExploreInternalViewOpen(false);
     setIsClosetInternalViewOpen(false);
     setIsTryOnShopLookOpen(false);
@@ -849,6 +860,25 @@ export function HomeTabsNavigator({
     }
     setActiveTab(tab);
   };
+
+  const handleOpenNotifications = useCallback(() => {
+    setSelectedBrandId(null);
+    setSelectedLook(null);
+    setSelectedProduct(null);
+    setSelectedProductReturnTab(null);
+    setAccountPageOverride(null);
+    setIsSearchOpen(false);
+    setIsExploreInternalViewOpen(false);
+    setIsClosetInternalViewOpen(false);
+    setIsAccountInternalViewOpen(false);
+    setIsHomeOverlayActive(false);
+    setIsTryOnShopLookOpen(false);
+    setIsSelectedLookShopOpen(false);
+    setSelectedLookShopReturnTarget("look-detail");
+    setShopLookPieces(null);
+    setActiveTab("Home");
+    setIsNotificationsOpen(true);
+  }, []);
 
   const handleOpenWishlist = () => {
     handleChangeTab("Profile");
@@ -1292,6 +1322,7 @@ export function HomeTabsNavigator({
     !selectedLook &&
     !selectedProduct &&
     !selectedBrandId &&
+    !isNotificationsOpen &&
     activeTab !== "Cart" &&
     (activeTab !== "TryOn" || shouldShowStylistFallback) &&
     !(activeTab === "Feed" && isExploreInternalViewOpen) &&
@@ -1328,6 +1359,27 @@ export function HomeTabsNavigator({
   return (
     <View style={styles.screen}>
       <View style={styles.content}>
+        {activeTab === "Home" && isNotificationsOpen ? (
+          <NotificationsScreen
+            onAskMira={() => {
+              setIsNotificationsOpen(false);
+              handleChangeTab("AIStylist");
+            }}
+            onBack={() => setIsNotificationsOpen(false)}
+            onOpenCloset={() => {
+              setIsNotificationsOpen(false);
+              handleChangeTab("Closet");
+            }}
+            onOpenSearch={() => {
+              setIsNotificationsOpen(false);
+              setIsSearchOpen(true);
+            }}
+            onStartTryOn={(context) => {
+              setIsNotificationsOpen(false);
+              openTryOnSession(undefined, context);
+            }}
+          />
+        ) : null}
         {activeTab === "Home" && selectedProduct ? (
           <ProductPdpScreen
             cartCount={cartCount}
@@ -1404,7 +1456,11 @@ export function HomeTabsNavigator({
             onOpenProduct={handleOpenProductFromBrand}
           />
         ) : null}
-        {activeTab === "Home" && !selectedBrandId && !selectedLook && !selectedProduct ? (
+        {activeTab === "Home" &&
+        !isNotificationsOpen &&
+        !selectedBrandId &&
+        !selectedLook &&
+        !selectedProduct ? (
           <HomeScreen
             cartCount={cartCount}
             draft={draft}
@@ -1412,6 +1468,7 @@ export function HomeTabsNavigator({
             onChangeAddress={onChangeAddress}
             onOpenBrand={setSelectedBrandId}
             onOpenCart={() => handleChangeTab("Cart")}
+            onOpenNotifications={handleOpenNotifications}
             onOpenLook={(look) => {
               setIsSelectedLookShopOpen(false);
               setShopLookPieces(null);
@@ -1468,6 +1525,7 @@ export function HomeTabsNavigator({
             onContinueBrowsing={handleContinueBrowsingFromTryOn}
             onOpenProduct={handleOpenProductFromTryOn}
             onOpenShopLook={handleOpenShopLookFromTryOn}
+            onOverlayActiveChange={setIsHomeOverlayActive}
             onSelectPhoto={onSelectPhoto}
             onViewCart={handleViewCartFromTryOn}
             useSessionPiecesForShop={tryOnEntry?.useSessionPiecesForShop}
@@ -1533,6 +1591,7 @@ export function HomeTabsNavigator({
                 backgroundColor ?? colors.background
               );
             }}
+            onOverlayActiveChange={setIsHomeOverlayActive}
             styleProfile={styleProfile}
             user={{
               anniversary: draft.anniversary,

@@ -10,6 +10,14 @@ Do not read from, copy from, edit, run Expo from, or otherwise use:
 
 `/Users/Snehalkhandelwal/Documents/Projects/claude-rules-style-os`
 
+Also do not make implementation changes in:
+
+`/Users/Snehalkhandelwal/Documents/Projects/stylus-rn`
+
+That folder may exist locally, but this repository is the single source of
+truth for the active app. All edits, Expo commands, iOS builds, and verification
+must happen from `/Users/Snehalkhandelwal/Documents/Projects/claude-rules-style-os-app`.
+
 This project is a mobile-first fashion-tech application focused on virtual try-on, styling, wardrobe intelligence, and fashion decision-making.
 
 Before designing, reviewing, or modifying any UI screen, follow the UI/UX product review guidance in:
